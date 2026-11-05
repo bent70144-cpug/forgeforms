@@ -8,3 +8,6 @@ export {
   createIdentityRepositories,
   type IdentityRepositories,
 } from "./repositories/access.ts";
+
+// T10 (issue #10): document_versions repository (insert-only, immutable rows).
+export * from "./repositories/document-versions.ts";

@@ -6,6 +6,14 @@
         "name": "next"
       }
     ],
+    "paths": {
+      // INTEGRATION-DEBT (T10): source aliases until workspace deps for
+      // @formforge/* + transpilePackages land in apps/web/package.json
+      // (deps rule: T10 may only touch packages/{core,db} manifests).
+      "@formforge/core": ["../../packages/core/src/index.ts"],
+      "@formforge/db": ["../../packages/db/src/index.ts"],
+      "@/*": ["./*"]
+    },
     "lib": [
       "dom",
       "dom.iterable",
