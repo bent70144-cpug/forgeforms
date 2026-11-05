@@ -35,8 +35,8 @@ describe("signInWithGoogleProfile", () => {
     expect(user.emailVerifiedAt).not.toBeNull();
     expect(user.passwordHash).toBeNull(); // OAuth-only account
 
-    expect(workspace.name).toBe("Greta Google's Workspace");
-    expect(workspace.slug).toBe("greta");
+    expect(workspace?.name).toBe("Greta Google's Workspace");
+    expect(workspace?.slug).toBe("greta");
     expect(role).toBe("owner");
     expect(harness.repos.registrationCalls).toHaveLength(1);
     expect(sessionToken.length).toBeGreaterThan(20);
