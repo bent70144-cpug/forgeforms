@@ -1,0 +1,21 @@
+{
+  "name": "@formforge/worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "bullmq": "^6.7.0",
+    "ioredis": "^5.11.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "tsx": "^4.23.15",
+    "vitest": "^5.1.0",
+    "@types/node": "^24.0.0"
+  }
+}

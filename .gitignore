@@ -1,5 +1,16 @@
 skills/
 node_modules/
 .env
+.env.*
 upload/
 worktrees/
+tool-results/
+download/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+.DS_Store
+next-env.d.ts

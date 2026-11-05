@@ -1,0 +1,5 @@
+{
+  "name": "@formforge/config",
+  "private": true,
+  "type": "module"
+}
