@@ -19,7 +19,6 @@ import {
   DocumentDetailSchema,
   DocumentSummarySchema,
   ListDocumentsResponseSchema,
-  ListDocumentsQuerySchema,
   PatchDocumentRequestSchema,
   PublishDocumentResponseSchema,
 } from './documents';
