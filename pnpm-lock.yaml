@@ -190,6 +190,9 @@ importers:
       '@formforge/renderer':
         specifier: workspace:*
         version: link:../../packages/renderer
+      '@formforge/schema':
+        specifier: workspace:*
+        version: link:../../packages/schema
       bullmq:
         specifier: ^6.7.0
         version: 6.7.0(ioredis@5.11.1(supports-color@7.2.0))(pg@8.23.1)
@@ -364,6 +367,9 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@formforge/core':
+        specifier: workspace:*
+        version: link:../core
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

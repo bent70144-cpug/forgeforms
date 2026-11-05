@@ -10,6 +10,11 @@ export * from "./shared/ids.ts";
 export type { ErrorDetail as AppErrorDetail } from "./shared/errors.ts";
 // T23 named the code union `ErrorCode` — keep the alias for its public surface.
 export type { AppErrorCode as ErrorCode } from "./shared/errors.ts";
+/** HTTP status for an error code (spec §4) — T25 alias over the kernel map. */
+export function httpStatusFor(code: AppErrorCode): number {
+  return HTTP_STATUS_BY_CODE[code];
+}
+import { HTTP_STATUS_BY_CODE } from "./shared/errors.ts";
 import { AppError, type AppErrorCode, type ErrorDetail } from "./shared/errors.ts";
 import { parseShortId } from "./shared/ids.ts";
 
