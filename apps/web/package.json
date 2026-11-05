@@ -11,6 +11,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@formforge/core": "workspace:*",
+    "@formforge/schema": "workspace:*",
     "next": "^15.5.29",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

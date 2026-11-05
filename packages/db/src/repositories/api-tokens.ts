@@ -15,8 +15,10 @@
 //    through T02's transaction helper; swap the `db` calls once it exists.
 
 import { and, asc, eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
 // INTEGRATION-DEBT: awaiting T02 — local definition pending packages/db/src/schema/**
 export const apiTokens = pgTable('api_tokens', {
@@ -146,4 +148,24 @@ export function createApiTokenStore(db: ApiTokensDb): ApiTokenStore {
       await db.update(apiTokens).set({ lastUsedAt: at }).where(eq(apiTokens.id, id));
     },
   };
+}
+
+let cachedStore: ApiTokenStore | null = null;
+
+/**
+ * INTEGRATION-DEBT: awaiting T02 — convenience factory for call sites that do
+ * not yet have T02's shared db client. Reads DATABASE_URL, keeps one lazy
+ * module-level pool. Replace with the T02 client factory + RLS transaction
+ * helper when it lands. Throws (500 upstream) when DATABASE_URL is unset.
+ */
+export function getApiTokenStoreFromEnv(): ApiTokenStore {
+  if (cachedStore) return cachedStore;
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set — cannot build the api_tokens store');
+  }
+  const pool = new Pool({ connectionString, max: 5 });
+  const db = drizzle(pool) as unknown as NodePgDatabase<Record<string, never>>;
+  cachedStore = createApiTokenStore(db);
+  return cachedStore;
 }
