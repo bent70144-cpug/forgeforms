@@ -17,6 +17,8 @@ export const APP_ERROR_CODES = [
   "RATE_LIMITED",
   "PLAN_LIMIT",
   "INTERNAL",
+  // SPEC-NOTE (T10): §4 has no code for unpublish; mapped to 410 by callers.
+  "UNPUBLISHED",
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -30,28 +32,34 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = Objec
   RATE_LIMITED: 429,
   PLAN_LIMIT: 402,
   INTERNAL: 500,
+  UNPUBLISHED: 410,
 });
 
 /** Field-level detail, e.g. `{ path: "blocks[2].props.title", message: "Required" }`. */
-export type ErrorDetail = { path: string; message: string };
+export type ErrorDetail = { path?: string; message: string };
 
 export type AppErrorResponseBody = {
   error: {
     code: AppErrorCode;
     message: string;
-    details: ErrorDetail[];
+    details: readonly ErrorDetail[];
   };
 };
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
-  readonly details: ErrorDetail[];
+  readonly details: readonly ErrorDetail[];
 
-  constructor(code: AppErrorCode, message: string, details: ErrorDetail[] = []) {
+  constructor(code: AppErrorCode, message: string, details: readonly ErrorDetail[] = []) {
     super(message);
     this.name = "AppError";
     this.code = code;
     this.details = details;
+  }
+
+  /** Duck-typed guard for cross-boundary catches (never `instanceof` across dupes). */
+  static is(error: unknown): error is AppError {
+    return error instanceof Error && error.name === "AppError" && "code" in error;
   }
 
   /** HTTP status for API responses (spec §4 mapping). */

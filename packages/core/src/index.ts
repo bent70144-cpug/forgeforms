@@ -15,4 +15,4 @@ export * from "./shared/audit.ts";
 export * from "./logic/index.ts";
 
 // T10 (issue #10): publish pipeline — versions, snapshots, unpublish→410.
-export * from "./documents/index.ts";
+export * as documents from "./documents/index.ts";

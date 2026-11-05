@@ -18,6 +18,8 @@ describe("AppError", () => {
       "RATE_LIMITED",
       "PLAN_LIMIT",
       "INTERNAL",
+      // T10 extension (SPEC-NOTE in errors.ts): unpublish → 410.
+      "UNPUBLISHED",
     ]);
   });
 
@@ -32,6 +34,7 @@ describe("AppError", () => {
       RATE_LIMITED: 429,
       PLAN_LIMIT: 402,
       INTERNAL: 500,
+      UNPUBLISHED: 410,
     });
     for (const code of APP_ERROR_CODES) {
       expect(toHttpStatus(code)).toBe(HTTP_STATUS_BY_CODE[code]);
