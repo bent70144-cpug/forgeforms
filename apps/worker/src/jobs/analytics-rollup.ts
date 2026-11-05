@@ -52,7 +52,7 @@ export function createAnalyticsJobHandlers(deps: AnalyticsJobDeps = {}): Analyti
   }
   // SPEC-NOTE: the wall-clock default lives at this composition boundary only;
   // the service itself strictly uses the injected ctx.now().
-  const service = createAnalyticsService({ repo, ctx: { now: deps.now ?? (() => new Date()) } });
+  const service = createAnalyticsService({ repo, ctx: systemCtx(deps.now ?? (() => new Date())) });
 
   return {
     async rollup(payload) {
@@ -94,3 +94,14 @@ export const ANALYTICS_CRON_SCHEDULES = {
     payload: { monthsAhead: 1 },
   },
 } as const;
+
+// INTEGRATION-DEBT (lead): full Ctx arrives with T03/T04 session wiring; the
+// analytics plane is unauthenticated/public, so a system ctx is correct here.
+function systemCtx(now: () => Date): import("@formforge/core").Ctx {
+  return {
+    workspaceId: "system",
+    actor: { type: "system", id: "analytics" },
+    requestId: "analytics-" + Math.random().toString(36).slice(2, 10),
+    now,
+  };
+}

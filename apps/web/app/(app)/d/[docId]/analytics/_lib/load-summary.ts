@@ -26,7 +26,15 @@ export async function loadAnalyticsTabData(docId: string, spec: RangeSpec): Prom
   try {
     const service = createAnalyticsService({
       repo,
-      ctx: { now: () => new Date(), workspaceId: undefined },
+      // INTEGRATION-DEBT: analytics plane is system-scoped until T03/T04 wire
+      // the session ctx through the dashboard; docId-scoped reads are enforced
+      // by the repository layer.
+      ctx: {
+        workspaceId: "system",
+        actor: { type: "system", id: "analytics" },
+        requestId: "analytics-tab-" + docId,
+        now: () => new Date(),
+      },
     });
     const summary = await service.getAnalytics(docId, spec);
     // INTEGRATION-DEBT: wire the real workspace + billing.can() once T05 (auth)

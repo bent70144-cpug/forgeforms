@@ -47,7 +47,7 @@ const PIXEL_GIF = Uint8Array.from(
 function getAnalyticsService(): AnalyticsService | null {
   const repo = getDefaultAnalyticsRepository();
   if (!repo) return null;
-  return createAnalyticsService({ repo, ctx: { now: () => new Date() } });
+  return createAnalyticsService({ repo, ctx: systemCtx(() => new Date()) });
 }
 
 function errorResponse(error: AppError): Response {
@@ -141,4 +141,15 @@ export async function GET(request: Request): Promise<Response> {
 
 export async function OPTIONS(): Promise<Response> {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+// INTEGRATION-DEBT (lead): full Ctx arrives with T03/T04 session wiring; the
+// analytics plane is unauthenticated/public, so a system ctx is correct here.
+function systemCtx(now: () => Date): import("@formforge/core").Ctx {
+  return {
+    workspaceId: "system",
+    actor: { type: "system", id: "analytics" },
+    requestId: "analytics-" + Math.random().toString(36).slice(2, 10),
+    now,
+  };
 }
