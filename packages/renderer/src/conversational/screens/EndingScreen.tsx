@@ -1,3 +1,5 @@
+"use client";
+
 // Ending screen (spec §15 M3): custom title/body, optional redirectUrl.
 // Follows the redirect automatically after a short delay, with a manual link
 // for reduced-motion users and a11y (they always stay clickable).

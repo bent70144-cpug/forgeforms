@@ -16,5 +16,13 @@ export default tseslint.config(
       ".agents/**",
     ],
   },
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
   ...tseslint.configs.recommended,
 );

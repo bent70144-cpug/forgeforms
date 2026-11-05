@@ -6,8 +6,8 @@
 // INTEGRATION-DEBT: rule/block input types come from src/bridge.ts until
 // T06 (@formforge/schema) lands — see bridge.ts for the one-file swap.
 
-export { compile, lint, routeMap, isRoutingShape } from "./compile.js";
-export { evaluate } from "./evaluate.js";
+export { compile, lint, routeMap, isRoutingShape } from "./compile.ts";
+export { evaluate } from "./evaluate.ts";
 
 export type {
   Block,
@@ -26,4 +26,4 @@ export type {
   RuleAction,
   RuleCondition,
   RuleConditionOp,
-} from "./types.js";
+} from "./types.ts";

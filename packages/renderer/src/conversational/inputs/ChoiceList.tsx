@@ -1,3 +1,5 @@
+"use client";
+
 // single-select + dropdown inputs (spec §7.2).
 // - single-select: option buttons, optional "Other" free text, optional randomize
 // - dropdown: same list with an optional search filter (searchable prop)

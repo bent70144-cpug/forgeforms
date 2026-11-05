@@ -1,3 +1,5 @@
+"use client";
+
 // rating input — scale 3–10 (spec §7.2), icon glyphs, digit shortcuts.
 // Clicking/digits set the value; the parent auto-advances (<300ms, spec §10.2).
 import { useEffect, useRef, useState } from 'react';

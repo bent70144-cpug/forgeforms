@@ -9,7 +9,7 @@
 // `logic/__tests__/cases/*.json` — that is what lives here.
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { compile, evaluate, routeMap } from "../index.js";
+import { compile, evaluate, routeMap } from "../index.ts";
 import type {
   Block,
   Diagnostic,
@@ -18,7 +18,7 @@ import type {
   RouteMap,
   Routing,
   Rule,
-} from "../index.js";
+} from "../index.ts";
 
 interface GoldenStep {
   ctx: unknown;

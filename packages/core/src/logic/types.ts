@@ -1,6 +1,6 @@
 // Logic engine public types (spec §9). Pure data — safe to ship to the client.
 // Rule/Block input shapes come from the bridge (INTEGRATION-DEBT: awaiting T06).
-import type { Block, Rule, RuleAction, RuleCondition, RuleConditionOp } from "../bridge.js";
+import type { Block, Rule, RuleAction, RuleCondition, RuleConditionOp } from "../bridge.ts";
 
 // ---------------------------------------------------------------------------
 // Re-exported input types (single source: bridge / @formforge/schema once T06 lands)

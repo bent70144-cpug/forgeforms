@@ -19,10 +19,10 @@
 //    full Routing; JSON round-trips drop that hint, and unverifiable `end:*`
 //    targets are then accepted (they were linted at compile time).
 
-import { checkCondition } from "./conditions.js";
-import { hasOwnKey, resolveOperand, type OperandEnv } from "./operands.js";
-import { isRoutingShape } from "./compile.js";
-import type { CompiledCondition, EvaluateCtx, EvaluateResult, RouteMap, Routing } from "./types.js";
+import { checkCondition } from "./conditions.ts";
+import { hasOwnKey, resolveOperand, type OperandEnv } from "./operands.ts";
+import { isRoutingShape } from "./compile.ts";
+import type { CompiledCondition, EvaluateCtx, EvaluateResult, RouteMap, Routing } from "./types.ts";
 
 const START_SCOPE = "start";
 

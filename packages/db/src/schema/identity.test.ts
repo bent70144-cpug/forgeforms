@@ -13,7 +13,7 @@ import {
   users,
   workspacePlanValues,
   workspaces,
-} from "./identity.js";
+} from "./identity.ts";
 
 function columnNames(table: Parameters<typeof getTableConfig>[0]): string[] {
   return getTableConfig(table).columns.map((c) => c.name);

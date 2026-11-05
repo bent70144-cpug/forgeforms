@@ -1,6 +1,6 @@
 // Smoke test — sanity-check core semantics before the golden suite lands.
 import { describe, expect, it } from "vitest";
-import { compile, evaluate, lint, routeMap } from "../index.js";
+import { compile, evaluate, lint, routeMap } from "../index.ts";
 
 const blocks = [
   { id: "b1", kind: "short-text", props: {} },

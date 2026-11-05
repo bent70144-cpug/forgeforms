@@ -17,7 +17,7 @@
 //    the flat `Record<string, RouteNode>` shape the snapshot stores (spec §8)
 //    — keeping the endings so both shapes evaluate identically.
 
-import { parseOperand, looksLikeOperand } from "./operands.js";
+import { parseOperand, looksLikeOperand } from "./operands.ts";
 import type {
   Block,
   CompiledAction,
@@ -31,7 +31,7 @@ import type {
   Routing,
   Rule,
   RuleConditionOp,
-} from "./types.js";
+} from "./types.ts";
 
 const CONDITION_OPS: ReadonlySet<string> = new Set([
   "eq",

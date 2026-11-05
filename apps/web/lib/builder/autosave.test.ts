@@ -18,7 +18,7 @@ function env(overrides: Partial<DocumentEnvelope> = {}): DocumentEnvelope {
   };
 }
 
-/** Records calls and delegates each patch to the next queued behavior. */
+/** Records _calls and delegates each patch to the next queued behavior. */
 function recordedTransport(
   start: DocumentEnvelope,
   behaviors: Array<(call: Call, n: number) => Promise<{ rev: number }> | { rev: number }>,
@@ -229,14 +229,14 @@ describe("AutosaveController", () => {
   });
 
   it("retries transient errors with backoff, then succeeds", async () => {
-    let calls = 0;
+    let _calls = 0;
     const { transport, patches } = recordedTransport(env(), [
       () => {
-        calls += 1;
+        _calls += 1;
         throw new TransportError("INTERNAL", "boom", 500);
       },
       () => {
-        calls += 1;
+        _calls += 1;
         throw new TransportError("INTERNAL", "boom", 502);
       },
       () => ({ rev: 2 }),

@@ -1,3 +1,5 @@
+"use client";
+
 // NPS input — 0–10 (spec §7.2), left/right labels, 0–9 digit shortcuts and a
 // two-key "1 then 0" buffer for 10. Auto-advance is driven by the parent.
 import { useEffect, useRef, useState } from 'react';

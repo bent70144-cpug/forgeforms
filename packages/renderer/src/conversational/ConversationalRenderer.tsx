@@ -1,3 +1,5 @@
+"use client";
+
 // ConversationalRenderer — the client bundle for forms (spec §10.2, issue #12).
 // One question at a time, progress bar, up/down arrows, auto-advance <300ms on
 // instant-answer kinds, keyboard flows, inline validation, welcome/ending

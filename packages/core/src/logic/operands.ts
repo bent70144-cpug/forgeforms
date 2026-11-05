@@ -1,8 +1,8 @@
 // Operand parsing + resolution (spec §9: "@block:<id> → answer value,
 // @var:<name>, @hidden:<name>"). Pure, total, deterministic.
 
-import { normalizeAnswer } from "./conditions.js";
-import type { Operand } from "./types.js";
+import { normalizeAnswer } from "./conditions.ts";
+import type { Operand } from "./types.ts";
 
 const PREFIXES = ["block", "var", "hidden"] as const;
 
