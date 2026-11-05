@@ -1,5 +1,10 @@
 // @formforge/db — drizzle schema, migrations, repositories (spec §2/§6).
-// OWNED BY T02 (issue #2): drizzle.config.ts, src/schema/** (identity first),
-// migration pipeline, seed script. Later tickets add NEW files under
-// src/repositories/** — they must not touch src/schema/**.
-export {};
+//
+// OWNED BY T02 (issue #2): src/schema/** (identity first), the drizzle-kit
+// pipeline (drizzle.config.ts + drizzle/), and the src/repositories/** layout.
+export * from "./schema/index.ts";
+export { createDb, type Database } from "./client.ts";
+export {
+  createIdentityRepositories,
+  type IdentityRepositories,
+} from "./repositories/identity.ts";
