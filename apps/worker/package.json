@@ -9,6 +9,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@formforge/core": "workspace:*",
     "bullmq": "^6.7.0",
     "ioredis": "^5.11.1"
   },
