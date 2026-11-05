@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+onlyBuiltDependencies:
+  - esbuild
+  - msgpackr-extract
+  - "@tailwindcss/oxide"
+  - sharp
+  - workerd

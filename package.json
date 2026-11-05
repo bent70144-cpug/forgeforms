@@ -17,14 +17,5 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.72.1",
     "@types/node": "^24.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "msgpackr-extract",
-      "@tailwindcss/oxide",
-      "sharp",
-      "workerd"
-    ]
   }
 }
