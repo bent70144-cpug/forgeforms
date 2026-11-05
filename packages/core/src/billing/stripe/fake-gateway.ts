@@ -39,7 +39,7 @@ export function createFakeStripeGateway(options: FakeGatewayOptions = {}): FakeS
   const now = options.now ?? (() => new Date());
   const fake: FakeStripeGateway = {
     calls: [],
-    failNext: null,
+    failNext: options.failNext ?? null,
     checkoutCalls: [],
     portalCalls: [],
 
