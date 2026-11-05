@@ -97,12 +97,12 @@ function normalizeVarKey(rawKey: string): string | null {
   const lookup = stripped.toLowerCase().replace(/_/g, "");
   const alias = CANONICAL_VAR_ALIASES[lookup];
   if (alias) return alias;
-  if (/^ff[-_.]/.test(lookup)) return `--${stripped.replace(/_/g, "-")}`;
   const slug = stripped
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .toLowerCase();
   if (!slug) return null;
+  if (/^ff[-_.]/.test(slug)) return `--${slug}`;
   return `${FF_VAR_PREFIX}${slug}`;
 }
 

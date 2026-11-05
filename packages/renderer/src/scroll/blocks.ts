@@ -61,6 +61,7 @@ const ASSET_URL_KEYS = [
   "assetSrc",
   "imageUrl",
   "imageSrc",
+  "image",
 ] as const;
 
 /**
