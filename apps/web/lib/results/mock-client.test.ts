@@ -54,7 +54,7 @@ describe("MockResultsClient — cursor pagination (spec §4)", () => {
     let cursor: string | null = null;
     let pages = 0;
     do {
-      const res = await c.listSubmissions("doc_1", { limit: 50, cursor, sort: "newest" });
+      const res = await c.listSubmissions(FIXTURE_DOCUMENT.id, { limit: 50, cursor, sort: "newest" });
       seen.push(...res.data.map((r) => r.id));
       cursor = res.nextCursor;
       pages += 1;
@@ -69,7 +69,7 @@ describe("MockResultsClient — cursor pagination (spec §4)", () => {
     const c = client();
     const all = buildFixtureSubmissions({ now: FIXED_NOW });
     const expectedCompleted = all.filter((r) => r.status === "completed").length;
-    const first = await c.listSubmissions("doc_1", { limit: 500, status: "completed" });
+    const first = await c.listSubmissions(FIXTURE_DOCUMENT.id, { limit: 500, status: "completed" });
     expect(first.data).toHaveLength(expectedCompleted);
     expect(first.data.every((r) => r.status === "completed")).toBe(true);
     expect(first.nextCursor).toBeNull();
@@ -77,26 +77,26 @@ describe("MockResultsClient — cursor pagination (spec §4)", () => {
 
   it("binds cursors to filter+sort: reuse with different params → VALIDATION", async () => {
     const c = client();
-    const first = await c.listSubmissions("doc_1", { limit: 50, status: "completed" });
+    const first = await c.listSubmissions(FIXTURE_DOCUMENT.id, { limit: 50, status: "completed" });
     expect(first.nextCursor).not.toBeNull();
     await expect(
-      c.listSubmissions("doc_1", { limit: 50, cursor: first.nextCursor, status: "all" }),
+      c.listSubmissions(FIXTURE_DOCUMENT.id, { limit: 50, cursor: first.nextCursor, status: "all" }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
     await expect(
-      c.listSubmissions("doc_1", { limit: 50, cursor: first.nextCursor, status: "completed", sort: "oldest" }),
+      c.listSubmissions(FIXTURE_DOCUMENT.id, { limit: 50, cursor: first.nextCursor, status: "completed", sort: "oldest" }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("rejects malformed cursors with VALIDATION", async () => {
     const c = client();
-    await expect(c.listSubmissions("doc_1", { cursor: "not-a-cursor" })).rejects.toMatchObject({
+    await expect(c.listSubmissions(FIXTURE_DOCUMENT.id, { cursor: "not-a-cursor" })).rejects.toMatchObject({
       code: "VALIDATION",
     });
   });
 
   it("sorts oldest-first on demand", async () => {
     const c = client();
-    const res = await c.listSubmissions("doc_1", { limit: 2, sort: "oldest" });
+    const res = await c.listSubmissions(FIXTURE_DOCUMENT.id, { limit: 2, sort: "oldest" });
     const first = res.data[0]!;
     const second = res.data[1]!;
     const keyOf = (r: typeof first) => r.completedAt ?? r.startedAt;
@@ -109,23 +109,23 @@ describe("MockResultsClient — detail + summary", () => {
     const c = client();
     const all = buildFixtureSubmissions({ now: FIXED_NOW });
     const probe = all[10]!;
-    const got = await c.getSubmission("doc_1", probe.id);
+    const got = await c.getSubmission(FIXTURE_DOCUMENT.id, probe.id);
     expect(got.id).toBe(probe.id);
     expect(got.publicToken).toBe(probe.publicToken);
-    await expect(c.getSubmission("doc_1", "sub_missing")).rejects.toMatchObject({
+    await expect(c.getSubmission(FIXTURE_DOCUMENT.id, "sub_missing")).rejects.toMatchObject({
       code: "NOT_FOUND",
     });
   });
 
   it("serves the fixture document", async () => {
     const c = client();
-    const doc = await c.getDocument("doc_1");
+    const doc = await c.getDocument(FIXTURE_DOCUMENT.id);
     expect(doc).toEqual(FIXTURE_DOCUMENT);
   });
 
   it("summary aggregates match summaryCountsOf and list every question block", async () => {
     const c = client();
-    const summary = await c.getSummary("doc_1");
+    const summary = await c.getSummary(FIXTURE_DOCUMENT.id);
     const rows = buildFixtureSubmissions({ now: FIXED_NOW });
     expect(summary.counts).toEqual(summaryCountsOf(rows));
     const questionBlocks = FIXTURE_DOCUMENT.body.blocks.filter((b) => isQuestionBlock(b));
@@ -137,17 +137,27 @@ describe("MockResultsClient — detail + summary", () => {
   it("honours artificial latency (loading states are exercisable)", async () => {
     const c = new MockResultsClient({ latencyMs: 15, now: () => FIXED_NOW });
     const t0 = Date.now();
-    await c.getDocument("doc_1");
+    await c.getDocument(FIXTURE_DOCUMENT.id);
     expect(Date.now() - t0).toBeGreaterThanOrEqual(10);
   });
 
   it("throws ResultsApiError (never raw strings)", async () => {
     const c = client();
     try {
-      await c.getSubmission("doc_1", "sub_missing");
+      await c.getSubmission(FIXTURE_DOCUMENT.id, "sub_missing");
       expect.unreachable();
     } catch (err) {
       expect(err).toBeInstanceOf(ResultsApiError);
     }
+  });
+
+  it("is tenant-honest: unknown document ids 404 on every method", async () => {
+    const c = client();
+    await expect(c.getDocument("doc_other")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(c.listSubmissions("doc_other", {})).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(c.getSummary("doc_other")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(c.getSubmission("doc_other", "sub_fix0000")).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
   });
 });

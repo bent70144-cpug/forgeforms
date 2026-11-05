@@ -159,7 +159,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
         ) : tab === "submissions" ? (
           <SubmissionsTable docId={docId} client={client} body={doc.body.blocks} slug={doc.slug} />
         ) : tab === "summary" ? (
-          <SummaryTab docId={docId} client={client} body={doc.body} slug={doc.slug} />
+          <SummaryTab docId={docId} client={client} slug={doc.slug} />
         ) : (
           // Analytics placeholder — the real screen is owned by T19 (issue #19).
           <EmptyState

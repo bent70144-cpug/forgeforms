@@ -5,7 +5,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { DocumentBody } from "../../lib/results-bridge";
 import {
   describeError,
   truncateLabel,
@@ -129,11 +128,11 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
 export interface SummaryTabProps {
   docId: string;
   client: ResultsClient;
-  body: DocumentBody;
+  /** Document slug — powers the actionable empty state ("share your link"). */
   slug: string;
 }
 
-export function SummaryTab({ docId, client, body, slug }: SummaryTabProps) {
+export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);

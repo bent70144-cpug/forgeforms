@@ -86,16 +86,18 @@ export class MockResultsClient implements ResultsClient {
     }
   }
 
-  async getDocument(_documentId: string): Promise<DocumentSummary> {
+  async getDocument(documentId: string): Promise<DocumentSummary> {
     await this.tick();
+    this.assertDocument(documentId);
     return this.doc;
   }
 
   async listSubmissions(
-    _documentId: string,
+    documentId: string,
     params: ListSubmissionsParams = {},
   ): Promise<SubmissionsPage> {
     await this.tick();
+    this.assertDocument(documentId);
     const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, params.limit ?? DEFAULT_PAGE_SIZE));
     const status: StatusFilter = params.status ?? "all";
     const sort = params.sort ?? "newest";
@@ -128,15 +130,24 @@ export class MockResultsClient implements ResultsClient {
     return { data: page, nextCursor };
   }
 
-  async getSubmission(_documentId: string, submissionId: string): Promise<SubmissionDTO> {
+  async getSubmission(documentId: string, submissionId: string): Promise<SubmissionDTO> {
     await this.tick();
+    this.assertDocument(documentId);
     const found = this.submissions.find((s) => s.id === submissionId);
     if (!found) throw new ResultsApiError("NOT_FOUND", `Submission ${submissionId} not found`);
     return found;
   }
 
-  async getSummary(_documentId: string): Promise<SummaryResponse> {
+  async getSummary(documentId: string): Promise<SummaryResponse> {
     await this.tick();
+    this.assertDocument(documentId);
     return buildSummary(this.doc.body.blocks, this.submissions, new Date(this.now()).toISOString());
+  }
+
+  /** The mock serves a single fixture document; keep tenancy honest anyway. */
+  private assertDocument(documentId: string): void {
+    if (documentId !== this.doc.id) {
+      throw new ResultsApiError("NOT_FOUND", `Document ${documentId} not found`);
+    }
   }
 }
