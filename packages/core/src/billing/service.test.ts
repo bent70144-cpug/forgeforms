@@ -385,6 +385,7 @@ describe('seats (spec §13: 1/3/10)', () => {
       expect(error.details).toEqual([
         { path: 'capability', message: 'seats' },
         { path: 'requiredPlan', message: 'pro' },
+        { path: 'need', message: '2' },
       ]);
     }
   });
