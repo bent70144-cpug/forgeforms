@@ -1,0 +1,290 @@
+[
+  {
+    "name": "lint: two-block goto cycle with no exit",
+    "rules": [
+      {
+        "id": "f1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b2"
+          }
+        ],
+        "isFallback": true
+      },
+      {
+        "id": "f2",
+        "scope": "b2",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b3"
+      },
+      {
+        "code": "cycle_no_exit",
+        "ruleId": null,
+        "blockId": "b1"
+      },
+      {
+        "code": "cycle_no_exit",
+        "ruleId": null,
+        "blockId": "start"
+      }
+    ]
+  },
+  {
+    "name": "lint: self-loop with no exit",
+    "rules": [
+      {
+        "id": "f1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b2"
+      },
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b3"
+      },
+      {
+        "code": "cycle_no_exit",
+        "ruleId": null,
+        "blockId": "b1"
+      },
+      {
+        "code": "cycle_no_exit",
+        "ruleId": null,
+        "blockId": "start"
+      }
+    ]
+  },
+  {
+    "name": "lint: conditional self-loop with an exit is fine",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "again"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "again"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": []
+  },
+  {
+    "name": "lint: conditional cycle with default exits is fine",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "a"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b2"
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "eq",
+            "right": "b"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "a"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": []
+  }
+]

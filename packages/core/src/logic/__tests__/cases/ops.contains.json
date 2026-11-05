@@ -1,0 +1,334 @@
+[
+  {
+    "name": "contains: multi-select optionIds array includes option",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "contains",
+            "right": "optA"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionIds": [
+                "optA",
+                "optB"
+              ]
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      },
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionIds": [
+                "optC"
+              ]
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "contains: substring match on text answers",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "contains",
+            "right": "ell"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "hello"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      },
+      {
+        "ctx": {
+          "answers": {
+            "b1": "world"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "contains: missing answer never matches",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "contains",
+            "right": "ell"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "contains: right side can be an operand reference",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "contains",
+            "right": "@block:b1"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "optA",
+            "b2": {
+              "optionIds": [
+                "optA"
+              ]
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "contains: empty array contains nothing",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "contains",
+            "right": "optA"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionIds": []
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ]
+  }
+]

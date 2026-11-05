@@ -1,0 +1,418 @@
+[
+  {
+    "name": "set: single variable",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "discount",
+            "value": 10
+          },
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {
+            "discount": 10
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "set: multiple variables run in order",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "a",
+            "value": 1
+          },
+          {
+            "type": "set",
+            "var": "b",
+            "value": 2
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "a": 1,
+            "b": 2
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "set: variables persist across steps (calculated field)",
+    "rules": [
+      {
+        "id": "set",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "pro"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "tier",
+            "value": "pro"
+          }
+        ]
+      },
+      {
+        "id": "use",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@var:tier",
+            "op": "eq",
+            "right": "pro"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "pro"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "tier": "pro"
+          }
+        }
+      },
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {
+            "tier": "pro"
+          },
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {
+            "tier": "pro"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "actions run in order: set still applies after a goto",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          },
+          {
+            "type": "set",
+            "var": "x",
+            "value": 1
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {
+            "x": 1
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "last goto wins when a rule has several",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          },
+          {
+            "type": "goto",
+            "target": "b3"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "set: overwrites an existing variable (input ctx is not mutated)",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "count",
+            "value": 2
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes"
+          },
+          "variables": {
+            "count": 1
+          },
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "count": 2
+          }
+        }
+      }
+    ]
+  }
+]

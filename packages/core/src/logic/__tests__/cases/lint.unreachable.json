@@ -1,0 +1,164 @@
+[
+  {
+    "name": "lint: block skipped by an unconditional goto is unreachable",
+    "rules": [
+      {
+        "id": "f1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b3"
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b2"
+      }
+    ]
+  },
+  {
+    "name": "lint: everything reachable → no warnings",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": []
+  },
+  {
+    "name": "lint: a dangling goto does not break the default flow",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "ghost"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "dangling_goto",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  }
+]
