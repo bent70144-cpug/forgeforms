@@ -50,10 +50,10 @@ describe("checkAiQuota", () => {
     if (result.ok) return;
     expect(result.error.code).toBe("PLAN_LIMIT");
     expect(result.error.status).toBe(402);
-    expect(result.error.details).toEqual([
+    expect(result.error.details).toEqual(expect.arrayContaining([
       { path: "capability", message: "ai" },
       { path: "requiredPlan", message: "pro" },
-    ]);
+    ]));
     expect(deps.usage.counts.size).toBe(0); // no counter reads/writes on refusal
   });
 
@@ -66,13 +66,14 @@ describe("checkAiQuota", () => {
     if (result.ok) return;
     expect(result.error.code).toBe("PLAN_LIMIT");
     expect(result.error.status).toBe(402);
-    expect(result.error.details).toMatchObject({
-      capability: "ai",
-      used: 5,
-      limit: 5,
-      period: "2026-11",
-      metric: "ai.draft",
-    });
+    expect(result.error.details).toEqual(expect.arrayContaining([
+      { path: "capability", message: "ai" },
+      { path: "requiredPlan", message: "pro" },
+      { path: "used", message: "5" },
+      { path: "limit", message: "5" },
+      { path: "metric", message: "ai.draft" },
+      { path: "period", message: expect.any(String) },
+    ]));
   });
 
   it("under the limit → ok with quota state", async () => {

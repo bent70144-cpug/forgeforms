@@ -172,3 +172,8 @@ import {
   type DocumentType,
   type CanFn,
 } from "./types";
+
+// §7 document shape consumed by route tests and the AI workbench.
+export { DocumentBody } from "./types";
+export type { DocumentBody as DocumentBodyType } from "./types";
+export type { DocumentType, CanFn, Capability } from "./types";

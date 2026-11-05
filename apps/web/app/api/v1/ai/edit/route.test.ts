@@ -110,9 +110,7 @@ describe("POST /api/v1/ai/edit", () => {
   it("maps PLAN_LIMIT to 402 with capability=ai", async () => {
     vi.mocked(runAiEdit).mockResolvedValue({
       ok: false as const,
-      error: new AppError("PLAN_LIMIT", "Monthly AI quota exhausted for this plan", {
-        capability: "ai",
-      }),
+      error: new AppError("PLAN_LIMIT", "Monthly AI quota exhausted for this plan", [{ path: "capability", message: "ai" }]),
     });
     const response = await editPost(
       jsonRequest({ instruction: "x", document: DOCUMENT }),

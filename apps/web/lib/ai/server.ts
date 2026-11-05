@@ -32,6 +32,20 @@ export type HttpError = {
 
 export type Wired<T> = { ok: true; value: T } | { ok: false; error: HttpError };
 
+/**
+ * PLAN_LIMIT 402 bodies carry a capability object per spec §13
+ * ("402 {capability, requiredPlan}") — convert the kernel's ErrorDetail[]
+ * into that object at the HTTP boundary; other codes pass details through.
+ */
+function shapeDetails(code: string, details: unknown): unknown {
+  if (code !== "PLAN_LIMIT" || !Array.isArray(details)) return details;
+  const out: Record<string, string> = {};
+  for (const d of details as Array<{ path?: string; message: string }>) {
+    if (d.path) out[d.path] = d.message;
+  }
+  return out;
+}
+
 export function errorBody(error: HttpError): {
   error: { code: string; message: string; details?: unknown };
 } {
@@ -39,7 +53,7 @@ export function errorBody(error: HttpError): {
     error: {
       code: error.code,
       message: error.message,
-      ...(error.details === undefined ? {} : { details: error.details }),
+      ...(error.details === undefined ? {} : { details: shapeDetails(error.code, error.details) }),
     },
   };
 }

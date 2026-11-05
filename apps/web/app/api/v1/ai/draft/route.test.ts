@@ -110,11 +110,7 @@ describe("POST /api/v1/ai/draft", () => {
   it("maps PLAN_LIMIT AppError to 402 with capability=ai (spec §13)", async () => {
     vi.mocked(runAiDraft).mockResolvedValue({
       ok: false as const,
-      error: new AppError("PLAN_LIMIT", "Monthly AI quota exhausted for this plan", {
-        capability: "ai",
-        used: 5,
-        limit: 5,
-      }),
+      error: new AppError("PLAN_LIMIT", "Monthly AI quota exhausted for this plan", [{ path: "capability", message: "ai" }, { path: "used", message: String(5) }, { path: "limit", message: String(5) }]),
     });
     const response = await draftPost(jsonRequest({ prompt: "x" }));
     expect(response.status).toBe(402);
