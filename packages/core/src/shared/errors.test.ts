@@ -6,7 +6,7 @@ import {
   HTTP_STATUS_BY_CODE,
   formatZodPath,
   toHttpStatus,
-} from "./errors.js";
+} from "./errors.ts";
 
 describe("AppError", () => {
   it("exposes exactly the spec §4 code set", () => {

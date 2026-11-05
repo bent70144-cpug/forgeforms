@@ -8,7 +8,7 @@ import {
   parseShortId,
   shortId,
   uuidv7,
-} from "./ids.js";
+} from "./ids.ts";
 
 const BASE58_CHAR = /^[1-9A-HJ-NP-Za-km-z]$/;
 

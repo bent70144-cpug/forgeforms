@@ -6,7 +6,7 @@
 // process.env mutation; `loadEnv` is the boot-time entrypoint.
 
 import { z } from "zod";
-import { AppError } from "./errors.js";
+import { AppError } from "./errors.ts";
 
 export const LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];

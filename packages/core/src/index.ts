@@ -5,10 +5,10 @@
 // (identity/, documents/, logic/, submissions/, ...) alongside and export
 // them through this package root as well (spec §3: modules expose only
 // index.ts).
-export * from "./shared/ctx.js";
-export * from "./shared/result.js";
-export * from "./shared/errors.js";
-export * from "./shared/ids.js";
-export * from "./shared/logger.js";
-export * from "./shared/env.js";
-export * from "./shared/audit.js";
+export * from "./shared/ctx.ts";
+export * from "./shared/result.ts";
+export * from "./shared/errors.ts";
+export * from "./shared/ids.ts";
+export * from "./shared/logger.ts";
+export * from "./shared/env.ts";
+export * from "./shared/audit.ts";

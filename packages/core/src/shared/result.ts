@@ -3,7 +3,7 @@
 // "Services return Result<T, AppError> (no thrown errors across module
 // boundaries except for programmer errors)."
 
-import type { AppError } from "./errors.js";
+import type { AppError } from "./errors.ts";
 
 export type Ok<T> = { readonly ok: true; readonly value: T };
 export type Err<E> = { readonly ok: false; readonly error: E };

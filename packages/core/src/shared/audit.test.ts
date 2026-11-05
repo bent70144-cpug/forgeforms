@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createCtx, systemCtx } from "./ctx.js";
-import { buildAuditEntry } from "./audit.js";
-import { isUuidV7 } from "./ids.js";
+import { createCtx, systemCtx } from "./ctx.ts";
+import { buildAuditEntry } from "./audit.ts";
+import { isUuidV7 } from "./ids.ts";
 
 describe("Ctx", () => {
   it("createCtx applies defaults and overrides", () => {

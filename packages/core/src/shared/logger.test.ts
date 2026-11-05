@@ -1,6 +1,6 @@
 import { Writable } from "node:stream";
 import { afterEach, describe, expect, it } from "vitest";
-import { createLogger, buildRedactPaths, LOG_DENYLIST } from "./logger.js";
+import { createLogger, buildRedactPaths, LOG_DENYLIST } from "./logger.ts";
 
 type CapturedLine = Record<string, unknown>;
 

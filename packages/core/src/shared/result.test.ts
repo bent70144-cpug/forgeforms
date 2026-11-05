@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { Result } from "./result.js";
-import { AppError } from "./errors.js";
+import type { Result } from "./result.ts";
+import { AppError } from "./errors.ts";
 import {
   andThen,
   attempt,
@@ -12,7 +12,7 @@ import {
   ok,
   unwrap,
   unwrapOr,
-} from "./result.js";
+} from "./result.ts";
 
 describe("Result", () => {
   it("ok() carries the value; err() carries the error", () => {

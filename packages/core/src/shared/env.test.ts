@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { AppError } from "./errors.js";
-import { appEnvSchema, parseEnv } from "./env.js";
+import { AppError } from "./errors.ts";
+import { appEnvSchema, parseEnv } from "./env.ts";
 
 const validEnv: Record<string, string> = {
   DATABASE_URL: "postgres://postgres:postgres@localhost:5432/formforge",

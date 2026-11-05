@@ -7,8 +7,8 @@
 //      inside the service — testable with a frozen clock);
 //   3. returns/produces plain data the caller can wrap in Result<T, AppError>.
 
-import type { Ctx } from "./ctx.js";
-import { uuidv7 } from "./ids.js";
+import type { Ctx } from "./ctx.ts";
+import { uuidv7 } from "./ids.ts";
 
 /** Mirrors the `audit_log` table (spec §6). */
 export type AuditEntry = {
