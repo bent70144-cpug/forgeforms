@@ -5,7 +5,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./repositories": "./src/repositories/index.ts",
-    "./repositories/submissions": "./src/repositories/submissions.ts"
+    "./repositories/submissions": "./src/repositories/submissions.ts",
+    "./repositories/billing": "./src/repositories/billing.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

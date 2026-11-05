@@ -10,7 +10,8 @@
     "./submissions": "./src/submissions/index.ts",
     "./integrations": "./src/integrations/index.ts",
     "./export": "./src/export/index.ts",
-    "./templates": "./src/templates/index.ts"
+    "./templates": "./src/templates/index.ts",
+    "./billing": "./src/billing/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

@@ -8,6 +8,8 @@ export * from "./shared/result.ts";
 export * from "./shared/errors.ts";
 export * from "./shared/ids.ts";
 export type { ErrorDetail as AppErrorDetail } from "./shared/errors.ts";
+// T23 named the code union `ErrorCode` — keep the alias for its public surface.
+export type { AppErrorCode as ErrorCode } from "./shared/errors.ts";
 import { AppError, type AppErrorCode, type ErrorDetail } from "./shared/errors.ts";
 import { parseShortId } from "./shared/ids.ts";
 
