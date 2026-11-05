@@ -2,6 +2,7 @@
 // Drizzle repositories' semantics, including Postgres unique-violation errors
 // (SQLSTATE 23505) so services can prove their CONFLICT mapping.
 import type {
+  AuthTokenRepository,
   IdentityRepositories,
   MembershipRepository,
   MembershipRole,
@@ -11,6 +12,8 @@ import type {
   UserRepository,
   WorkspaceRepository,
 } from "./ports";
+import type { MailMessage, Mailer, MailSendResult } from "../integrations/mailer";
+import type { AuthTokenKind, AuthTokenRecord } from "./tokens";
 import type {
   MembershipRecord,
   SessionRecord,
@@ -18,6 +21,7 @@ import type {
   WorkspaceRecord,
 } from "./types";
 import type { Ctx } from "../bridge";
+import { AppError, ok, type Result } from "../bridge";
 import { ScryptPasswordHasher } from "./password";
 import { preAuthCtx } from "./service";
 
@@ -36,6 +40,7 @@ export class InMemoryIdentityRepositories implements IdentityRepositories {
   readonly workspacesBySlug = new Map<string, WorkspaceRecord>();
   readonly membershipRows: MembershipRecord[] = [];
   readonly sessionsByTokenHash = new Map<string, SessionRecord>();
+  readonly authTokensByHash = new Map<string, AuthTokenRecord>();
   readonly registrationCalls: Array<{
     user: UserRecord;
     workspace: WorkspaceRecord;
@@ -46,6 +51,20 @@ export class InMemoryIdentityRepositories implements IdentityRepositories {
   users: UserRepository = {
     findByEmail: async (email) => this.usersByEmail.get(email) ?? null,
     findById: async (id) => this.usersById.get(id) ?? null,
+    setPasswordHash: async (id, passwordHash) => {
+      const user = this.usersById.get(id);
+      if (!user) throw new Error(`setPasswordHash: unknown user ${id}`);
+      const updated = { ...user, passwordHash };
+      this.usersById.set(id, updated);
+      this.usersByEmail.set(updated.email, updated);
+    },
+    markEmailVerified: async (id, verifiedAt) => {
+      const user = this.usersById.get(id);
+      if (!user) throw new Error(`markEmailVerified: unknown user ${id}`);
+      const updated = { ...user, emailVerifiedAt: verifiedAt };
+      this.usersById.set(id, updated);
+      this.usersByEmail.set(updated.email, updated);
+    },
   };
 
   workspaces: WorkspaceRepository = {
@@ -96,6 +115,43 @@ export class InMemoryIdentityRepositories implements IdentityRepositories {
       }
     },
     deleteByTokenHash: async (tokenHash) => this.sessionsByTokenHash.delete(tokenHash),
+    deleteForUser: async (userId) => {
+      let deleted = 0;
+      for (const [hash, session] of [...this.sessionsByTokenHash]) {
+        if (session.userId === userId) {
+          this.sessionsByTokenHash.delete(hash);
+          deleted += 1;
+        }
+      }
+      return deleted;
+    },
+  };
+
+  authTokens: AuthTokenRepository = {
+    create: async (token) => {
+      this.authTokensByHash.set(token.tokenHash, { ...token });
+    },
+    findByTokenHash: async (tokenHash) => {
+      const token = this.authTokensByHash.get(tokenHash);
+      return token ? { ...token } : null;
+    },
+    // Mirrors UPDATE ... SET consumed_at WHERE token_hash = $1 AND consumed_at IS NULL.
+    consumeByTokenHash: async (tokenHash, consumedAt) => {
+      const token = this.authTokensByHash.get(tokenHash);
+      if (!token || token.consumedAt !== null) return false;
+      this.authTokensByHash.set(tokenHash, { ...token, consumedAt });
+      return true;
+    },
+    deleteUnconsumedByUser: async (userId, kind) => {
+      let deleted = 0;
+      for (const [hash, token] of [...this.authTokensByHash]) {
+        if (token.userId === userId && token.kind === kind && token.consumedAt === null) {
+          this.authTokensByHash.delete(hash);
+          deleted += 1;
+        }
+      }
+      return deleted;
+    },
   };
 }
 
@@ -128,4 +184,31 @@ export function makeTestHarness(options?: { startAt?: Date }): TestHarness {
     now: () => clock.now(),
   };
   return { repos, hasher, ctx, clock };
+}
+
+// --- mailer fake -------------------------------------------------------------
+
+export type FakeMailer = Mailer & {
+  /** Messages captured in send order. */
+  readonly sent: MailMessage[];
+  /** Pre-configured failures (shifted per send). */
+  failNextWith: (error: AppError) => void;
+};
+
+/** Capturing mailer double for recovery-flow tests (no network, no console). */
+export function makeFakeMailer(): FakeMailer {
+  const sent: MailMessage[] = [];
+  const failures: AppError[] = [];
+  return {
+    sent,
+    failNextWith(error: AppError) {
+      failures.push(error);
+    },
+    async send(message: MailMessage): Promise<Result<MailSendResult, AppError>> {
+      const failure = failures.shift();
+      if (failure) return { ok: false, error: failure };
+      sent.push({ ...message });
+      return ok({ id: `fake-${sent.length}` });
+    },
+  };
 }

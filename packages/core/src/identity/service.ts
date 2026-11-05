@@ -166,9 +166,10 @@ export async function validateSession(
   return ok({ session, user, workspace: primary?.workspace ?? null, role: primary?.role ?? null });
 }
 
-// --- internals -------------------------------------------------------------
+// --- internals (exported for the OAuth flow — oauth.ts signs users in the
+// same way as credentials login; keep semantics identical) -------------------
 
-async function startSession(ctx: Ctx, deps: IdentityDeps, userId: string): Promise<string> {
+export async function startSession(ctx: Ctx, deps: IdentityDeps, userId: string): Promise<string> {
   const token = randomBytes(32).toString("base64url");
   await deps.repos.sessions.create({
     id: uuidv7(),
@@ -184,7 +185,7 @@ async function startSession(ctx: Ctx, deps: IdentityDeps, userId: string): Promi
  * SPEC-NOTE: M1 uses the user's oldest membership as the active workspace.
  * A workspace switcher arrives with multi-workspace support (later milestone).
  */
-async function primaryWorkspace(
+export async function primaryWorkspace(
   deps: IdentityDeps,
   userId: string,
 ): Promise<{ workspace: WorkspaceRecord; role: MembershipRole } | null> {

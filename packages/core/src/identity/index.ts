@@ -4,6 +4,11 @@ export * from "./ports";
 export * from "./password";
 export * from "./schemas";
 export * from "./service";
+export * from "./tokens";
+export * from "./rate-limit";
+export * from "./emails";
+export * from "./recovery";
+export * from "./oauth";
 
 // INTEGRATION-DEBT: awaiting T02 — the shared kernel normally reaches consumers
 // via the package root export. Until T02 lands src/shared/ + src/index.ts,

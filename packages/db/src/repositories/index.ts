@@ -18,6 +18,7 @@ import {
   DrizzleWorkspaceRepository,
 } from "./identity";
 import { DrizzleSessionRepository } from "./sessions";
+import { DrizzleAuthTokenRepository } from "./auth-tokens";
 
 export { getDb } from "../bridge";
 export type { Db } from "../bridge";
@@ -28,6 +29,7 @@ export {
   DrizzleWorkspaceRepository,
 } from "./identity";
 export { DrizzleSessionRepository } from "./sessions";
+export { DrizzleAuthTokenRepository } from "./auth-tokens";
 
 export function createDrizzleRepositories(db: Db = getDb()) {
   return {
@@ -36,6 +38,7 @@ export function createDrizzleRepositories(db: Db = getDb()) {
     memberships: new DrizzleMembershipRepository(db),
     registration: new DrizzleRegistrationRepository(db),
     sessions: new DrizzleSessionRepository(db),
+    authTokens: new DrizzleAuthTokenRepository(db),
   };
 }
 // T02's tenancy repository (users/workspaces/memberships/apiTokens + RLS-ready

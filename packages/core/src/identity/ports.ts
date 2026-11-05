@@ -5,6 +5,8 @@
 // identity services have no compile-time dependency on @formforge/db internals
 // while T02 lands the schema in parallel; the composition root enforces the
 // structural match at typecheck time.
+import type { Mailer } from "../integrations/mailer";
+import type { AuthEmailRenderer, AuthTokenKind, AuthTokenRecord } from "./tokens";
 import type {
   MembershipRecord,
   MembershipRole,
@@ -21,10 +23,19 @@ export type {
   WorkspacePlan,
   WorkspaceRecord,
 } from "./types";
+export type {
+  AuthTokenKind,
+  AuthTokenRecord,
+  RenderedAuthEmail,
+} from "./tokens";
 
 export interface UserRepository {
   findByEmail(email: string): Promise<UserRecord | null>;
   findById(id: string): Promise<UserRecord | null>;
+  /** Password reset: replace the stored hash (null = OAuth-only account). */
+  setPasswordHash(id: string, passwordHash: string | null): Promise<void>;
+  /** Email verification: set the verified-at column (ticket #5). */
+  markEmailVerified(id: string, verifiedAt: Date): Promise<void>;
 }
 
 export interface WorkspaceRepository {
@@ -53,6 +64,22 @@ export interface SessionRepository {
   /** Sliding expiry: extend a session's expires_at. */
   touch(id: string, expiresAt: Date): Promise<void>;
   deleteByTokenHash(tokenHash: string): Promise<boolean>;
+  /** Revoke every session for a user (password reset → sign out everywhere). */
+  deleteForUser(userId: string): Promise<number>;
+}
+
+/**
+ * Single-use auth tokens (password reset + email verification, ticket #5).
+ * Tokens are stored hashed; `consume` is a compare-and-set on
+ * `consumed_at IS NULL` so exactly one of two concurrent uses wins.
+ */
+export interface AuthTokenRepository {
+  create(token: AuthTokenRecord): Promise<void>;
+  findByTokenHash(tokenHash: string): Promise<AuthTokenRecord | null>;
+  /** Atomic single-use: returns true only for the first consume. */
+  consumeByTokenHash(tokenHash: string, consumedAt: Date): Promise<boolean>;
+  /** Invalidate outstanding tokens of a kind (e.g. re-requested reset). */
+  deleteUnconsumedByUser(userId: string, kind: AuthTokenKind, at: Date): Promise<number>;
 }
 
 export interface IdentityRepositories {
@@ -61,11 +88,21 @@ export interface IdentityRepositories {
   memberships: MembershipRepository;
   registration: RegistrationRepository;
   sessions: SessionRepository;
+  authTokens: AuthTokenRepository;
 }
 
 export type IdentityDeps = {
   repos: IdentityRepositories;
   hasher: PasswordHasher;
+  /**
+   * Transport for auth emails (reset/verify). Required by the recovery
+   * services; optional on the type so flows that never send mail can omit it.
+   */
+  mailer?: Mailer;
+  /** Email body renderer — web overrides the core fallback with React templates. */
+  emails?: AuthEmailRenderer;
+  /** Base URL used to build the links inside auth emails (e.g. https://app.dev). */
+  appOrigin?: string;
 };
 
 export interface PasswordHasher {
