@@ -1,0 +1,903 @@
+     1→# FormForge — Build Specification (spec.md)
+     2→
+     3→> Implementation-ready spec for building FormForge: a multi-tenant SaaS for **forms, landing pages and portfolios** on one block-document model.
+     4→> Audience: a developer or coding agent. Follow milestones in order. Every milestone ends with acceptance criteria that must pass before moving on.
+     5→> Companion: the "FormForge — SaaS System Design" doc (architecture rationale). This file is the *what to build and how*.
+     6→
+     7→---
+     8→
+     9→## 0. How to use this spec
+    10→
+    11→1. Read sections 1–6 once (stack, layout, conventions, data model, block schema).
+    12→2. Build milestones **M0 → M8** (section 15) in order. Do not start a milestone until the previous one's acceptance criteria pass.
+    13→3. When this spec and your instinct disagree, follow the spec and leave a `// SPEC-NOTE:` comment explaining the deviation.
+    14→4. Anything marked **(Phase 2)** is out of scope until all of M0–M8 are done.
+    15→5. Keep modules decoupled: a module may only call another module through its `index.ts` public interface, never its internals or its tables.
+    16→
+    17→---
+    18→
+    19→## 1. Tech stack (pinned decisions)
+    20→
+    21→| Concern | Choice |
+    22→|---|---|
+    23→| Language | TypeScript (strict mode), Node 22 LTS |
+    24→| Framework | Next.js 15 (App Router), React 19 |
+    25→| Package manager | pnpm |
+    26→| Styling | Tailwind CSS 4 + shadcn/ui; design tokens as CSS variables |
+    27→| Database | PostgreSQL 16 |
+    28→| ORM / migrations | Drizzle ORM + drizzle-kit |
+    29→| Validation / schemas | Zod (single source of truth for block, API and form schemas) |
+    30→| Auth | Auth.js v5 (credentials + Google) with Drizzle adapter; argon2id password hashing |
+    31→| Queue / cache | Redis + BullMQ |
+    32→| Object storage | S3-compatible (Cloudflare R2), `@aws-sdk/client-s3` + presigned URLs |
+    33→| Email | Resend (React Email templates) |
+    34→| Payments | Stripe (Checkout + Customer Portal + webhooks) |
+    35→| Editor state | Zustand + Immer |
+    36→| Drag and drop | dnd-kit |
+    37→| Logic canvas | React Flow (`@xyflow/react`) |
+    38→| Rich text | Tiptap (sanitized output) |
+    39→| Testing | Vitest (unit), Playwright (e2e), MSW (mocks) |
+    40→| Lint / format | ESLint, Prettier, `tsc --noEmit` in CI |
+    41→| CI | GitHub Actions |
+    42→| Hosting | Vercel (web), Fly.io or Railway (workers), Neon (Postgres), Upstash or Redis Cloud (Redis) |
+    43→| Edge | Cloudflare (DNS, CDN, WAF, Turnstile, Cloudflare for SaaS for custom domains) |
+    44→
+    45→**Rule:** do not add a dependency that duplicates one above. New dependencies need a one-line justification in the PR description.
+    46→
+    47→---
+    48→
+    49→## 2. Repository layout
+    50→
+    51→Single repo, single Next.js app, workers in the same repo.
+    52→
+    53→```
+    54→formforge/
+    55→├─ apps/
+    56→│  ├─ web/                      # Next.js app (authoring + public plane)
+    57→│  │  ├─ app/
+    58→│  │  │  ├─ (marketing)/        # landing, pricing, templates
+    59→│  │  │  ├─ (auth)/             # login, register, reset
+    60→│  │  │  ├─ (app)/              # authenticated app
+    61→│  │  │  │  ├─ dashboard/
+    62→│  │  │  │  ├─ d/[docId]/       # builder, results, share, settings
+    63→│  │  │  │  └─ settings/        # workspace, billing, tokens
+    64→│  │  │  ├─ p/[slug]/           # public render route (path-based)
+    65→│  │  │  ├─ _host/[...path]/    # public render for custom domains (middleware rewrite)
+    66→│  │  │  └─ api/
+    67→│  │  │     ├─ v1/              # authenticated REST API
+    68→│  │  │     ├─ public/          # ingest, beacons, uploads (unauthenticated)
+    69→│  │  │     └─ webhooks/        # inbound (Stripe)
+    70→│  │  ├─ middleware.ts          # host → document routing, auth gate
+    71→│  │  └─ components/
+    72→│  └─ worker/                   # BullMQ worker entrypoint
+    73→├─ packages/
+    74→│  ├─ core/                     # domain modules (see §3)
+    75→│  │  └─ src/
+    76→│  │     ├─ identity/ tenancy/ billing/ documents/ rendering/
+    77→│  │     ├─ logic/ submissions/ assets/ domains/ integrations/
+    78→│  │     ├─ analytics/ ai/ admin/
+    79→│  │     └─ shared/             # errors, ids, result types, logger, clock
+    80→│  ├─ schema/                   # Zod schemas: blocks, documents, rules, api
+    81→│  ├─ db/                       # drizzle schema, migrations, repositories
+    82→│  ├─ renderer/                 # public renderer bundles (scroll + conversational)
+    83→│  ├─ blocks/                   # block definitions: schema + editor + renderer per kind
+    84→│  ├─ ui/                       # shared UI primitives
+    85→│  └─ config/                   # tsconfig, eslint presets
+    86→├─ e2e/                         # Playwright tests
+    87→├─ .env.example
+    88→├─ docker-compose.yml           # postgres, redis, minio (local)
+    89→└─ spec.md
+    90→```
+    91→
+    92→### 3. Module contract
+    93→
+    94→Each module in `packages/core/src/<module>/` exposes only `index.ts` with:
+    95→- **Service functions** (`createDocument`, `publishDocument`, ...) taking a `Ctx` as first argument.
+    96→- **Types** and **error classes**.
+    97→
+    98→```ts
+    99→// packages/core/src/shared/ctx.ts
+   100→export type Ctx = {
+   101→  workspaceId: string;
+   102→  actor: { type: "user" | "token" | "mcp" | "system"; id: string };
+   103→  requestId: string;
+   104→  now: () => Date;
+   105→};
+   106→```
+   107→
+   108→Rules:
+   109→- Every service function that touches tenant data **requires** a `Ctx` and scopes queries by `ctx.workspaceId`. A function without a `Ctx` cannot read tenant tables.
+   110→- Services return `Result<T, AppError>` (no thrown errors across module boundaries except for programmer errors).
+   111→- Repositories live in `packages/db`; only the owning module imports its repositories.
+   112→- Side effects (email, webhooks, analytics) are enqueued, never executed inline in request handlers.
+   113→
+   114→---
+   115→
+   116→## 4. Conventions
+   117→
+   118→**IDs:** UUIDv7, generated in the app (`uuidv7()`), stored as `uuid`. Public IDs in URLs use a prefix + base58 short form (`doc_…`, `sub_…`, `ast_…`) produced by a `shortId` helper in `shared/ids.ts`. Never expose sequential IDs.
+   119→
+   120→**Time:** stored as `timestamptz` in UTC. Use the injected `ctx.now()`, never `new Date()` inside services (testability).
+   121→
+   122→**Errors:** one `AppError` class with `code` (`NOT_FOUND`, `FORBIDDEN`, `VALIDATION`, `CONFLICT`, `RATE_LIMITED`, `PLAN_LIMIT`, `INTERNAL`), `message`, `details`. API maps codes to HTTP status (404, 403, 422, 409, 429, 402, 500).
+   123→
+   124→**API error body:**
+   125→```json
+   126→{ "error": { "code": "VALIDATION", "message": "Invalid input", "details": [{ "path": "blocks[2].props.title", "message": "Required" }] } }
+   127→```
+   128→
+   129→**Pagination:** cursor-based. `?limit=50&cursor=<opaque>` → `{ data: [...], nextCursor: string | null }`.
+   130→
+   131→**Idempotency:** mutating public endpoints accept `Idempotency-Key`. Keys stored in Redis for 24h; a repeated key returns the original response.
+   132→
+   133→**Logging:** structured JSON (`pino`), always include `requestId`, `workspaceId`, `documentId` when known. Never log answer values, passwords, tokens.
+   134→
+   135→**Feature gating:** one function only: `can(workspaceId, capability): Promise<boolean>` in `billing`. No inline plan checks anywhere else.
+   136→
+   137→**Naming:** files `kebab-case.ts`, React components `PascalCase.tsx`, DB columns `snake_case`, TS fields `camelCase` (Drizzle mapping).
+   138→
+   139→---
+   140→
+   141→## 5. Environment variables (`.env.example`)
+   142→
+   143→```
+   144→# App
+   145→NEXT_PUBLIC_APP_URL=http://localhost:3000
+   146→PUBLIC_BASE_URL=http://localhost:3000        # used for share links
+   147→SESSION_SECRET=
+   148→# Database / cache
+   149→DATABASE_URL=postgres://postgres:postgres@localhost:5432/formforge
+   150→REDIS_URL=redis://localhost:6379
+   151→# Auth
+   152→AUTH_SECRET=
+   153→GOOGLE_CLIENT_ID=
+   154→GOOGLE_CLIENT_SECRET=
+   155→# Storage
+   156→S3_ENDPOINT=http://localhost:9000
+   157→S3_REGION=auto
+   158→S3_BUCKET=formforge
+   159→S3_ACCESS_KEY_ID=
+   160→S3_SECRET_ACCESS_KEY=
+   161→S3_PUBLIC_CDN_URL=http://localhost:9000/formforge
+   162→# Email
+   163→RESEND_API_KEY=
+   164→EMAIL_FROM="FormForge <no-reply@example.com>"
+   165→# Billing
+   166→STRIPE_SECRET_KEY=
+   167→STRIPE_WEBHOOK_SECRET=
+   168→STRIPE_PRICE_PRO=
+   169→STRIPE_PRICE_BUSINESS=
+   170→# Abuse
+   171→TURNSTILE_SITE_KEY=
+   172→TURNSTILE_SECRET_KEY=
+   173→# AI (Phase M8)
+   174→ANTHROPIC_API_KEY=
+   175→AI_MODEL=claude-sonnet-4-6
+   176→# Edge / domains (Phase 2)
+   177→CLOUDFLARE_API_TOKEN=
+   178→CLOUDFLARE_ZONE_ID=
+   179→```
+   180→
+   181→Fail fast on boot: validate env with Zod in `packages/core/src/shared/env.ts`.
+   182→
+   183→---
+   184→
+   185→## 6. Data model
+   186→
+   187→Drizzle schema in `packages/db/src/schema/`. Shown here as SQL for clarity. All tenant tables include `workspace_id uuid not null references workspaces(id) on delete cascade`.
+   188→
+   189→```sql
+   190→-- identity & tenancy
+   191→create table users (
+   192→  id uuid primary key,
+   193→  email citext unique not null,
+   194→  name text,
+   195→  password_hash text,
+   196→  email_verified_at timestamptz,
+   197→  created_at timestamptz not null default now()
+   198→);
+   199→
+   200→create table workspaces (
+   201→  id uuid primary key,
+   202→  name text not null,
+   203→  slug text unique not null,
+   204→  plan text not null default 'free',            -- free | pro | business
+   205→  stripe_customer_id text,
+   206→  stripe_subscription_id text,
+   207→  created_at timestamptz not null default now()
+   208→);
+   209→
+   210→create table memberships (
+   211→  workspace_id uuid references workspaces(id) on delete cascade,
+   212→  user_id uuid references users(id) on delete cascade,
+   213→  role text not null,                            -- owner | admin | editor | viewer
+   214→  primary key (workspace_id, user_id)
+   215→);
+   216→
+   217→create table api_tokens (
+   218→  id uuid primary key,
+   219→  workspace_id uuid not null references workspaces(id) on delete cascade,
+   220→  name text not null,
+   221→  token_hash text not null unique,               -- sha256; plaintext shown once
+   222→  scopes text[] not null,                        -- docs:read docs:write docs:publish submissions:read
+   223→  last_used_at timestamptz,
+   224→  created_at timestamptz not null default now()
+   225→);
+   226→
+   227→-- documents
+   228→create table documents (
+   229→  id uuid primary key,
+   230→  workspace_id uuid not null references workspaces(id) on delete cascade,
+   231→  type text not null,                            -- form | page | portfolio
+   232→  title text not null,
+   233→  slug text not null,                            -- unique per workspace
+   234→  status text not null default 'draft',          -- draft | published | archived
+   235→  rev integer not null default 0,                -- optimistic concurrency
+   236→  draft jsonb not null,                          -- current working body (DocumentBody)
+   237→  published_version_id uuid,
+   238→  created_by uuid references users(id),
+   239→  created_at timestamptz not null default now(),
+   240→  updated_at timestamptz not null default now(),
+   241→  unique (workspace_id, slug)
+   242→);
+   243→create index on documents (workspace_id, updated_at desc);
+   244→
+   245→create table document_versions (
+   246→  id uuid primary key,
+   247→  document_id uuid not null references documents(id) on delete cascade,
+   248→  workspace_id uuid not null,
+   249→  schema_version integer not null,
+   250→  body jsonb not null,                           -- immutable
+   251→  created_by uuid,
+   252→  created_at timestamptz not null default now()
+   253→);
+   254→
+   255→create table snapshots (
+   256→  document_id uuid primary key references documents(id) on delete cascade,
+   257→  version_id uuid not null references document_versions(id),
+   258→  rendered jsonb not null,                       -- resolved theme, assets, compiled logic
+   259→  etag text not null,
+   260→  built_at timestamptz not null default now()
+   261→);
+   262→
+   263→-- submissions
+   264→create table submissions (
+   265→  id uuid primary key,
+   266→  workspace_id uuid not null,
+   267→  document_id uuid not null references documents(id) on delete cascade,
+   268→  version_id uuid not null,                      -- version answered
+   269→  status text not null default 'draft',          -- draft | completed | spam
+   270→  public_token text not null unique,
+   271→  variables jsonb not null default '{}',         -- logic variables (score, price)
+   272→  hidden jsonb not null default '{}',            -- hidden fields / UTM
+   273→  meta jsonb not null default '{}',              -- device, country, referrer (if allowed)
+   274→  started_at timestamptz not null default now(),
+   275→  completed_at timestamptz
+   276→);
+   277→create index on submissions (document_id, completed_at desc);
+   278→
+   279→create table answers (
+   280→  submission_id uuid references submissions(id) on delete cascade,
+   281→  block_id text not null,
+   282→  value jsonb,
+   283→  updated_at timestamptz not null,
+   284→  primary key (submission_id, block_id)
+   285→);
+   286→
+   287→-- assets
+   288→create table assets (
+   289→  id uuid primary key,
+   290→  workspace_id uuid not null,
+   291→  key text not null,
+   292→  mime text not null,
+   293→  size_bytes bigint not null,
+   294→  purpose text not null,                         -- media | upload
+   295→  scan_status text not null default 'pending',   -- pending | clean | infected | skipped
+   296→  created_at timestamptz not null default now()
+   297→);
+   298→
+   299→-- integrations
+   300→create table webhooks (
+   301→  id uuid primary key,
+   302→  workspace_id uuid not null,
+   303→  document_id uuid references documents(id) on delete cascade,  -- null = workspace-wide
+   304→  url text not null,
+   305→  secret text not null,
+   306→  events text[] not null default '{submission.completed}',
+   307→  enabled boolean not null default true,
+   308→  created_at timestamptz not null default now()
+   309→);
+   310→
+   311→create table webhook_deliveries (
+   312→  id uuid primary key,
+   313→  webhook_id uuid not null references webhooks(id) on delete cascade,
+   314→  event_id uuid not null,
+   315→  attempt integer not null,
+   316→  status_code integer,
+   317→  ok boolean not null,
+   318→  duration_ms integer,
+   319→  error text,
+   320→  created_at timestamptz not null default now()
+   321→);
+   322→
+   323→-- analytics
+   324→create table analytics_events (
+   325→  document_id uuid not null,
+   326→  ts timestamptz not null,
+   327→  type text not null,                            -- view | start | question_view | question_pass | complete
+   328→  session_hash text not null,
+   329→  block_id text,
+   330→  props jsonb
+   331→) partition by range (ts);
+   332→
+   333→create table analytics_daily (
+   334→  document_id uuid not null,
+   335→  day date not null,
+   336→  views integer not null default 0,
+   337→  starts integer not null default 0,
+   338→  completes integer not null default 0,
+   339→  primary key (document_id, day)
+   340→);
+   341→
+   342→-- misc
+   343→create table usage_counters (
+   344→  workspace_id uuid not null,
+   345→  period text not null,                          -- e.g. 2026-11
+   346→  metric text not null,
+   347→  value bigint not null default 0,
+   348→  primary key (workspace_id, period, metric)
+   349→);
+   350→
+   351→create table audit_log (
+   352→  id uuid primary key,
+   353→  workspace_id uuid not null,
+   354→  actor_type text not null,
+   355→  actor_id text,
+   356→  action text not null,
+   357→  target text,
+   358→  created_at timestamptz not null default now()
+   359→);
+   360→```
+   361→
+   362→**Row-level security:** enable RLS on every tenant table with a policy on `current_setting('app.workspace_id')`. The repository layer sets it per transaction (`set local app.workspace_id = ...`). Public ingest uses a dedicated DB role limited to `submissions`, `answers`, `assets` inserts/updates for published documents.
+   363→
+   364→---
+   365→
+   366→## 7. Block document schema (Zod)
+   367→
+   368→Defined in `packages/schema/src/document.ts`. This is the heart of the product.
+   369→
+   370→```ts
+   371→import { z } from "zod";
+   372→
+   373→export const BlockBase = z.object({
+   374→  id: z.string().min(1),          // stable, nanoid(10)
+   375→  kind: z.string(),
+   376→  props: z.record(z.unknown()),   // validated by the kind's own schema
+   377→  children: z.array(z.lazy(() => Block)).optional(),
+   378→  hidden: z.boolean().optional(),
+   379→});
+   380→export type Block = z.infer<typeof BlockBase>;
+   381→export const Block: z.ZodType<Block> = BlockBase;
+   382→
+   383→export const Theme = z.object({
+   384→  tokens: z.record(z.string()),    // e.g. "color.bg": "#fbf9f4"
+   385→  fontHeading: z.string().default("Inter"),
+   386→  fontBody: z.string().default("Inter"),
+   387→  radius: z.enum(["none", "sm", "md", "lg", "full"]).default("md"),
+   388→});
+   389→
+   390→export const Rule = z.object({
+   391→  id: z.string(),
+   392→  scope: z.string(),               // blockId this rule runs after, or "start"
+   393→  when: z.array(z.object({
+   394→    left: z.string(),              // "@block:<id>" | "@var:<name>" | "@hidden:<name>"
+   395→    op: z.enum(["eq","neq","gt","gte","lt","lte","contains","isEmpty","matches"]),
+   396→    right: z.unknown().optional(),
+   397→  })),
+   398→  then: z.array(z.discriminatedUnion("type", [
+   399→    z.object({ type: z.literal("goto"), target: z.string() }),       // blockId | "end:<endingId>"
+   400→    z.object({ type: z.literal("set"), var: z.string(), value: z.unknown() }),
+   401→  ])),
+   402→  isFallback: z.boolean().default(false),   // "in all other cases"
+   403→});
+   404→
+   405→export const DocumentBody = z.object({
+   406→  schemaVersion: z.literal(1),
+   407→  type: z.enum(["form", "page", "portfolio"]),
+   408→  theme: Theme,
+   409→  settings: z.object({
+   410→    seo: z.object({ title: z.string().optional(), description: z.string().optional(), ogImageAssetId: z.string().optional() }).default({}),
+   411→    locale: z.string().default("en"),
+   412→    progressBar: z.boolean().default(true),
+   413→    autoAdvance: z.boolean().default(true),
+   414→    showBranding: z.boolean().default(true),
+   415→    captcha: z.boolean().default(false),
+   416→    closeAt: z.string().datetime().optional(),
+   417→    maxSubmissions: z.number().int().positive().optional(),
+   418→    notifyEmails: z.array(z.string().email()).default([]),
+   419→  }),
+   420→  blocks: z.array(Block),
+   421→  endings: z.array(z.object({ id: z.string(), title: z.string(), body: z.string().optional(), redirectUrl: z.string().url().optional() })).default([]),
+   422→  logic: z.object({ rules: z.array(Rule) }).default({ rules: [] }),
+   423→});
+   424→export type DocumentBody = z.infer<typeof DocumentBody>;
+   425→```
+   426→
+   427→### 7.1 Block registry
+   428→
+   429→Each block lives in `packages/blocks/src/<kind>/` with four files:
+   430→
+   431→```
+   432→index.ts      # registers the block
+   433→schema.ts     # Zod schema for props (and answer value, for question blocks)
+   434→editor.tsx    # builder UI: canvas preview + settings panel
+   435→render.tsx    # public renderer component (server-safe; client only if interactive)
+   436→```
+   437→
+   438→```ts
+   439→export type BlockDef<P, A = never> = {
+   440→  kind: string;
+   441→  family: "content" | "question" | "action" | "layout";
+   442→  label: string;
+   443→  icon: string;
+   444→  propsSchema: z.ZodType<P>;
+   445→  defaultProps: () => P;
+   446→  answerSchema?: z.ZodType<A>;                         // question blocks only
+   447→  validate?: (answer: A, props: P) => string | null;   // server-side + client-side
+   448→  Editor: React.FC<EditorProps<P>>;
+   449→  Render: React.FC<RenderProps<P, A>>;
+   450→};
+   451→```
+   452→
+   453→**Registry rules**
+   454→- Registry is built at import time; unknown `kind` in a stored document renders as nothing (never crashes).
+   455→- Question blocks MUST define `answerSchema`; ingest validates every answer against it.
+   456→- Content blocks never store anything in `answers`.
+   457→
+   458→### 7.2 MVP block catalog
+   459→
+   460→| Family | Kind | Props (summary) | Answer value |
+   461→|---|---|---|---|
+   462→| Content | `hero` | title, subtitle, imageAssetId, cta{label,href} | — |
+   463→| Content | `text` | richText (Tiptap JSON → sanitized HTML) | — |
+   464→| Content | `image` | assetId, alt, caption | — |
+   465→| Content | `gallery` | assetIds[], layout(grid/masonry), columns | — |
+   466→| Content | `video` | url (YouTube/Vimeo allowlist) | — |
+   467→| Content | `testimonials` | items[{quote,name,role,avatarAssetId}] | — |
+   468→| Content | `faq` | items[{q,a}] | — |
+   469→| Content | `pricing` | tiers[{name,price,features[],cta}] | — |
+   470→| Content | `projects` (portfolio) | items[{title,description,coverAssetId,link,tags[]}] | — |
+   471→| Content | `contact-links` | links[{type,url}] | — |
+   472→| Layout | `section` | background, padding, children | — |
+   473→| Layout | `columns` | count(2-4), children | — |
+   474→| Layout | `multi-question-page` | children (question blocks) | map of child answers |
+   475→| Action | `button` | label, href, style | — |
+   476→| Action | `form-embed` | documentId (type=form) | — |
+   477→| Question | `short-text` | label, placeholder, required, maxLength | `string` |
+   478→| Question | `long-text` | label, placeholder, required, maxLength | `string` |
+   479→| Question | `email` | label, required | `string` (email) |
+   480→| Question | `number` | label, required, min, max | `number` |
+   481→| Question | `single-select` | label, options[{id,label}], allowOther, randomize | `{ optionId } or { other: string }` |
+   482→| Question | `multi-select` | label, options[], min, max | `{ optionIds: string[] }` |
+   483→| Question | `dropdown` | label, options[], searchable | `{ optionId }` |
+   484→| Question | `rating` | label, scale(3-10), icon | `number` |
+   485→| Question | `nps` | label, leftLabel, rightLabel | `number` 0–10 |
+   486→| Question | `file-upload` | label, accept[], maxSizeMb(≤10), maxFiles | `{ assetIds: string[] }` |
+   487→
+   488→Every question block also supports generic props: `description`, `required`, `buttonText`, `imageAssetId`, `prefillParam` (URL param name).
+   489→
+   490→Not in MVP **(Phase 2)**: phone, date, URL, address, matrix, ranking, opinion scale, slider, signature, payment, scheduler.
+   491→
+   492→---
+   493→
+   494→## 8. Document lifecycle
+   495→
+   496→```
+   497→create → draft ─(edit, autosave)→ draft ─(publish)→ published ─(edit)→ published + unpublished changes
+   498→                                                    └─(unpublish)→ draft
+   499→```
+   500→
+   501→**Autosave (authoring)**
+   502→- Client sends patches to `PATCH /api/v1/documents/:id` with `{ baseRev, ops: Op[] }`.
+   503→- Ops: `block.insert {parentId?, index, block}`, `block.update {id, props}`, `block.move {id, parentId?, index}`, `block.remove {id}`, `settings.update {…}`, `theme.update {…}`, `ending.upsert/remove`, `rule.upsert/remove`, `meta.update {title, slug}`.
+   504→- Server applies ops in one transaction against `documents.draft`, validates the result with `DocumentBody`, increments `rev`. If `baseRev !== rev` → `409 CONFLICT` with the current `rev` and body.
+   505→- Client debounce 500 ms; queue serializes requests; show "Saving…" / "Saved" indicator; recover from 409 by refetching and re-applying unsent ops where possible.
+   506→
+   507→**Publish**
+   508→1. Validate `draft` fully (`DocumentBody`, lint rules, required assets exist, form-embed targets exist and are published).
+   509→2. Insert immutable `document_versions` row with the body.
+   510→3. Build snapshot (resolve theme → CSS variable map, asset ids → CDN URLs, compile logic into block-indexed routing map, sanitize rich text) and upsert `snapshots`.
+   511→4. Update `documents.status = 'published'`, `published_version_id`.
+   512→5. Purge CDN cache by tag `doc:<id>`; update KV routing entry.
+   513→6. Return `{ url }`. Target total latency p95 under 10 s.
+   514→
+   515→**Unpublish:** set `status='draft'`, delete snapshot cache keys; public URL returns the "unavailable" page (HTTP 410).
+   516→
+   517→**Snapshot shape** (`snapshots.rendered`):
+   518→```ts
+   519→type Snapshot = {
+   520→  documentId: string; versionId: string; type: "form"|"page"|"portfolio";
+   521→  title: string; seo: {...}; locale: string;
+   522→  cssVars: Record<string,string>;
+   523→  blocks: Block[];                       // sanitized, asset URLs resolved
+   524→  endings: Ending[];
+   525→  routing: Record<string, RouteNode>;    // compiled logic, keyed by blockId
+   526→  settings: { progressBar: boolean; autoAdvance: boolean; showBranding: boolean; captcha: boolean; closeAt?: string };
+   527→};
+   528→```
+   529→
+   530→---
+   531→
+   532→## 9. Logic engine (`packages/core/src/logic`)
+   533→
+   534→Pure functions, zero I/O, no framework imports. Used by the renderer (client), ingest validation (server) and tests.
+   535→
+   536→```ts
+   537→export function compile(rules: Rule[], blocks: Block[]): Routing;   // lint + index
+   538→
+   539→export function evaluate(
+   540→  routing: Routing,
+   541→  ctx: { answers: Record<string, unknown>; variables: Record<string, unknown>; hidden: Record<string, unknown>; currentBlockId: string }
+   542→): { nextBlockId: string | `end:${string}`; variables: Record<string, unknown> };
+   543→```
+   544→
+   545→**Semantics**
+   546→- Default next = the next question block in document order; after the last, `end:<first ending>`.
+   547→- Rules scoped to `currentBlockId` are evaluated in array order; first rule whose `when` conditions all pass (AND) wins; its `then` actions run in order.
+   548→- A rule with `isFallback: true` has empty `when` and runs only if no other rule matched.
+   549→- Unknown `goto` target at runtime → fall back to default next (never crash).
+   550→- Operand resolution: `@block:<id>` → answer value (normalized: select → optionId, rating → number), `@var:<name>`, `@hidden:<name>`.
+   551→
+   552→**Compile-time lint (blocks save/publish on error):** dangling `goto` targets, rules scoped to missing blocks, goto cycles with no exit, more than one fallback per scope.
+   553→
+   554→**Tests:** table-driven golden cases in `logic/__tests__/cases/*.json`, at least 40 cases covering every operator, fallback, missing answers, and cycle detection.
+   555→
+   556→---
+   557→
+   558→## 10. Public plane
+   559→
+   560→### 10.1 Routes
+   561→
+   562→| Route | Purpose |
+   563→|---|---|
+   564→| `GET /p/:slug` | Public render by path (workspace slug in subdomain or path: `/p/:workspaceSlug/:docSlug`) |
+   565→| `GET *` on custom hostname | Middleware maps `Host` → `documentId` via routing table, rewrites to `_host` |
+   566→| `GET /api/public/snapshot/:documentId` | JSON snapshot for the conversational renderer (CDN cached) |
+   567→| `POST /api/public/submissions` | Start a submission |
+   568→| `PATCH /api/public/submissions/:token` | Save step answers |
+   569→| `POST /api/public/submissions/:token/complete` | Finalize |
+   570→| `POST /api/public/uploads/presign` | Presigned PUT for file answers |
+   571→| `POST /api/public/uploads/confirm` | Confirm upload, queue scan |
+   572→| `POST /api/public/a` | Analytics beacon batch |
+   573→
+   574→### 10.2 Renderers
+   575→
+   576→- **Scroll renderer** (pages, portfolios): server components. Static HTML, hydrate only interactive blocks (`form-embed`, gallery lightbox).
+   577→- **Conversational renderer** (forms): client bundle, one question at a time, progress bar, up/down arrows, auto-advance on select/rating/NPS (under 300 ms), keyboard: Enter advances text, Ctrl/Cmd+Enter advances long text and choice, Shift+Enter newline.
+   578→- Bundle budget: conversational renderer ≤ 120 KB gzipped including the logic engine. CI fails if exceeded.
+   579→- Both renderers read **only** the snapshot; they never query builder tables.
+   580→- `form-embed` renders the target form's conversational renderer inside an isolated iframe (`/embed/:documentId`) with a `postMessage` API: `{ type: "ff:height", value }`, `{ type: "ff:complete", submissionToken }`.
+   581→
+   582→### 10.3 Ingest contract
+   583→
+   584→**Start** — `POST /api/public/submissions`
+   585→```json
+   586→{ "documentId": "doc_…", "hidden": { "utm_source": "x" }, "turnstileToken": "…" }
+   587→```
+   588→→ `201 { "token": "sub_…", "versionId": "…" }`
+   589→Rules: document must be `published`, not past `closeAt`, under `maxSubmissions`; verify Turnstile when `captcha` is on; create `draft` submission; emit `start` event.
+   590→
+   591→**Save step** — `PATCH /api/public/submissions/:token`, header `Idempotency-Key`
+   592→```json
+   593→{ "answers": [{ "blockId": "b3", "value": "ana@example.com", "clientTs": "2026-11-06T10:00:00.000Z" }] }
+   594→```
+   595→→ `200 { "next": "b4", "variables": { … } }`
+   596→Rules: validate each answer with the block's `answerSchema` + `validate`; upsert per answer only if `clientTs > answers.updated_at`; compute `next` via the logic engine; reject when the submission is not `draft`.
+   597→
+   598→**Complete** — `POST /api/public/submissions/:token/complete`
+   599→```json
+   600→{ "answers": [ /* client's final value for every touched block */ ] }
+   601→```
+   602→→ `200 { "endingId": "end_1", "redirectUrl": null }`
+   603→Rules: reconcile (upsert all provided answers, last client value wins), validate required blocks reachable by the logic path, set `completed`, emit `complete`, enqueue `submission.completed` event, increment usage counter. Idempotent: a second call returns the same result.
+   604→
+   605→**Limits:** per-IP 60 requests/min on start, per-token 120/min on save; payload ≤ 256 KB; honeypot field `_hp` must be empty (silently mark `spam` if not).
+   606→
+   607→---
+   608→
+   609→## 11. Authenticated API (`/api/v1`)
+   610→
+   611→All routes require session cookie **or** `Authorization: Bearer <token>`. Workspace comes from the session's active workspace or the token's workspace. Validate with Zod; respond with the error shape in §4.
+   612→
+   613→| Method & path | Scope | Description |
+   614→|---|---|---|
+   615→| `GET /documents` | docs:read | List (filters: type, status, q) |
+   616→| `POST /documents` | docs:write | Create `{type, title, templateId?}` |
+   617→| `GET /documents/:id` | docs:read | Get draft + metadata |
+   618→| `PATCH /documents/:id` | docs:write | Apply ops with `baseRev` |
+   619→| `POST /documents/:id/duplicate` | docs:write | Copy |
+   620→| `DELETE /documents/:id` | docs:write | Soft-delete (archive) |
+   621→| `POST /documents/:id/publish` | docs:publish | Publish |
+   622→| `POST /documents/:id/unpublish` | docs:publish | Unpublish |
+   623→| `GET /documents/:id/versions` | docs:read | History |
+   624→| `POST /documents/:id/versions/:vid/restore` | docs:write | Restore as draft |
+   625→| `GET /documents/:id/submissions` | submissions:read | Table data (cursor) |
+   626→| `GET /documents/:id/submissions/:sid` | submissions:read | Detail |
+   627→| `GET /documents/:id/summary` | submissions:read | Per-question aggregates + NPS |
+   628→| `POST /documents/:id/exports` | submissions:read | Queue CSV export `{from?, to?}` |
+   629→| `GET /documents/:id/analytics` | docs:read | KPIs + trend |
+   630→| `GET/POST/PATCH/DELETE /documents/:id/webhooks` | docs:write | Manage |
+   631→| `GET /webhooks/:id/deliveries` | docs:read | Delivery log |
+   632→| `POST /webhooks/:id/deliveries/:did/replay` | docs:write | Replay |
+   633→| `POST /assets/presign`, `POST /assets/confirm` | docs:write | Media upload |
+   634→| `GET/POST/DELETE /tokens` | session only | Manage API tokens |
+   635→| `GET /workspace`, `PATCH /workspace`, members CRUD | session only | Tenancy |
+   636→| `POST /billing/checkout`, `POST /billing/portal` | session only | Stripe |
+   637→
+   638→Rate limit: 600 req/min per token, 300 per session.
+   639→
+   640→---
+   641→
+   642→## 12. Background jobs (BullMQ)
+   643→
+   644→| Queue | Job | Trigger | Behavior |
+   645→|---|---|---|---|
+   646→| `events` | `submission.completed` | ingest complete | Fan-out: notification email, webhooks, analytics |
+   647→| `email` | `send-notification`, `send-export-ready`, `send-verify`, `send-reset` | various | Resend; retry 5× exponential |
+   648→| `webhooks` | `deliver` | fan-out / replay | POST with signature; backoff 1m, 5m, 30m, 2h, 12h; log every attempt; disable after 10 consecutive failures |
+   649→| `exports` | `csv-export` | API | Stream rows by cursor to S3, email signed link (7-day expiry) |
+   650→| `assets` | `scan`, `process-image` | upload confirm | ClamAV scan (or `skipped` in dev); WebP/AVIF variants |
+   651→| `analytics` | `ingest-batch`, `rollup` | beacon / cron | Insert events; rollup daily (hourly for today) |
+   652→| `maintenance` | `reap-orphans`, `purge-old-deliveries`, `create-partitions` | cron | Housekeeping |
+   653→
+   654→**Webhook payload & signature**
+   655→```json
+   656→{ "id": "evt_…", "type": "submission.completed", "occurredAt": "…", "workspaceId": "…", "documentId": "…",
+   657→  "data": { "submissionId": "…", "answers": { "<blockId>": { "label": "Email", "value": "…" } }, "hidden": {}, "variables": {} } }
+   658→```
+   659→Header: `X-FormForge-Signature: t=<unix>,v1=<hex hmac_sha256(secret, t + "." + body)>`. Consumers reject if timestamp older than 5 minutes.
+   660→
+   661→---
+   662→
+   663→## 13. Billing and entitlements
+   664→
+   665→| Capability | Free | Pro | Business |
+   666→|---|---|---|---|
+   667→| Documents | unlimited | unlimited | unlimited |
+   668→| Submissions | unlimited (fair use) | unlimited | unlimited |
+   669→| File upload size | 10 MB | 10 MB | 50 MB |
+   670→| Remove branding | no | yes | yes |
+   671→| Custom domain | no | 1 | 5 |
+   672→| Team seats | 1 | 3 | 10 |
+   673→| Advanced analytics (drop-off) | no | yes | yes |
+   674→| Partial submissions | no | yes | yes |
+   675→| Webhooks | yes | yes | yes |
+   676→
+   677→**Implementation**
+   678→- `billing.can(workspaceId, capability)` reads a cached `entitlements` object derived from `workspaces.plan`.
+   679→- Stripe webhook (`/api/webhooks/stripe`) handles `checkout.session.completed`, `customer.subscription.updated/deleted`, `invoice.payment_failed`; verifies signature; updates `workspaces.plan`; is idempotent by event id.
+   680→- Over-limit actions throw `PLAN_LIMIT` (HTTP 402) with `{ capability, requiredPlan }`; UI shows an upgrade prompt. **Never put upgrade buttons inside editing surfaces**; show them only in settings and on the error response.
+   681→- Fair use: soft alert at 100k submissions/month per workspace; admin review, no automatic cutoff.
+   682→
+   683→---
+   684→
+   685→## 14. UI specification
+   686→
+   687→### 14.1 Screens
+   688→
+   689→1. **Auth:** login, register, forgot/reset password, Google button, password visibility toggle, inline server errors.
+   690→2. **Dashboard:** grid/list toggle; cards with title, type badge, status, submissions count, updated time; quick actions (open, copy link, duplicate, archive); "New" button → create modal (type: Form / Page / Portfolio, start from template or blank, name).
+   691→3. **Builder** (`/d/:id`): three panes.
+   692→   - Left: **Blocks** list (tree, drag to reorder, duplicate/delete menu) + "Add block" palette (search + categories; contextual: question blocks for forms, content blocks for pages/portfolios).
+   693→   - Center: **Canvas** showing the document exactly as rendered (phone/desktop toggle).
+   694→   - Right: **Settings** panel for the selected block, or Document settings / Theme / Endings when nothing is selected.
+   695→   - Top bar: title (inline edit), save indicator, Preview, Share, Publish button with status.
+   696→4. **Logic builder** (`/d/:id/logic`): React Flow canvas; nodes = start, question blocks, endings; edges = default flow; clicking a node opens a drawer to add/edit rules (IF conditions with AND, THEN goto/set, "in all other cases"). Autosave with "Saved" chip.
+   697→5. **Results** (`/d/:id/results`): tabs Submissions (table, one column per question, "—" for empty, detail drawer with timestamp and token), Summary (per-question charts, rating average, NPS with segments), Analytics (views, starts, completes, completion rate, 30-day trend).
+   698→6. **Share:** public link with copy, embed code (standard div + loader script, popup, full page; JS and iframe), QR (Phase 2).
+   699→7. **Integrate:** notification emails, webhooks (create, secret reveal once, delivery log, replay).
+   700→8. **Settings:** workspace, members, billing, API tokens.
+   701→9. **Templates gallery:** at least 6 forms, 4 landing pages, 4 portfolios (original content, stored as `DocumentBody` JSON files in `packages/core/src/documents/templates/`).
+   702→
+   703→### 14.2 Interaction rules
+   704→
+   705→- Every mutation is optimistic; show saved state within 2 s; zero data loss on reload.
+   706→- Keyboard: `Cmd/Ctrl+K` command palette (add block, go to), `Delete` removes selected block (with undo toast), `Cmd/Ctrl+Z / Shift+Z` undo/redo (client history of ops, 100 entries).
+   707→- Empty states are actionable ("No responses yet — share your link").
+   708→- Destructive actions use an undo toast where possible, a confirm dialog otherwise.
+   709→- Loading: skeletons, never blank screens.
+   710→
+   711→### 14.3 Design tokens
+   712→
+   713→Define in `packages/ui/tokens.css`; both builder and renderers consume CSS variables (`--ff-bg`, `--ff-fg`, `--ff-primary`, `--ff-primary-fg`, `--ff-muted`, `--ff-border`, `--ff-radius`, `--ff-font-heading`, `--ff-font-body`). Support light and dark for the app; documents use their own theme.
+   714→
+   715→### 14.4 Accessibility (release gate)
+   716→
+   717→WCAG 2.1 AA: every interactive element keyboard reachable with visible focus; labels on all inputs; ARIA live region announcing validation errors and question changes in the conversational renderer; color contrast ≥ 4.5:1; reduced-motion respected; axe-core run in Playwright with zero critical violations.
+   718→
+   719→---
+   720→
+   721→## 15. Milestones
+   722→
+   723→Each milestone lists **Build**, **Acceptance**. A milestone is done only when all acceptance items pass in CI or a recorded manual check.
+   724→
+   725→### M0 — Project foundation (week 1)
+   726→**Build**
+   727→- Monorepo, tooling, `docker-compose.yml` (Postgres, Redis, MinIO), `.env.example`, env validation, logging, error types, `Ctx`, `Result`, ID helpers.
+   728→- Drizzle setup, migration pipeline, seed script, CI (lint, typecheck, unit tests, build).
+   729→**Acceptance**
+   730→- `pnpm dev` starts web + worker locally with one command after `docker compose up`.
+   731→- CI green on an empty PR; migrations apply on a fresh DB.
+   732→
+   733→### M1 — Identity and tenancy (weeks 1–2)
+   734→**Build**
+   735→- Register/login/logout, Google OAuth, password reset, email verification, sessions.
+   736→- Workspace auto-created on signup; memberships; role checks (`requireRole`).
+   737→- Layout shell, dashboard (empty), workspace settings stub.
+   738→- RLS policies and the repository tenant-scoping helper.
+   739→**Acceptance**
+   740→- E2E: sign up → dashboard → log out → log in, persistent session.
+   741→- Wrong password shows a server-side error; native validation on empty fields.
+   742→- Test proving a user in workspace A cannot read workspace B documents through any repository function (including with RLS enabled and a forged ID).
+   743→
+   744→### M2 — Document model and builder core (weeks 2–5)
+   745→**Build**
+   746→- `schema` package (§7), block registry, content blocks (`hero`, `text`, `image`, `section`, `button`) and question blocks (`short-text`, `long-text`, `email`, `number`, `single-select`, `dropdown`, `rating`, `nps`).
+   747→- Documents CRUD, ops-based `PATCH` with `rev`, autosave client, builder three-pane UI, add-block palette with search, drag reorder, duplicate, delete, undo/redo, theme panel (colors, fonts, radius), endings panel.
+   748→- Dashboard list/grid, create modal.
+   749→**Acceptance**
+   750→- Creating a form with all MVP question blocks, reordering, and reloading preserves exact state.
+   751→- Conflicting edits from two tabs return 409 and recover without data loss.
+   752→- Invalid `DocumentBody` (unknown prop types, missing ids) is rejected with field-level errors.
+   753→- Autosave "Saved" indicator appears within 2 s of the last change.
+   754→
+   755→### M3 — Publish and public renderers (weeks 5–7)
+   756→**Build**
+   757→- Publish/unpublish pipeline, versions, snapshot builder, CDN purge hook, routing table.
+   758→- Scroll renderer (pages, portfolios) with SEO meta, OG tags, sitemap-friendly output.
+   759→- Conversational renderer for forms (progress bar, arrows, auto-advance, keyboard flows, validation messages, welcome and ending screens, branding badge).
+   760→- Mobile verification at 390×844.
+   761→**Acceptance**
+   762→- Publishing a form yields a live public URL within 10 s (p95); unpublish returns 410.
+   763→- Lighthouse on a published page: Performance ≥ 90 desktop, ≥ 85 mobile; Accessibility ≥ 90.
+   764→- Renderer bundle ≤ 120 KB gzipped (CI check).
+   765→- Public pages render with the database stopped, from cache (documented manual check).
+   766→
+   767→### M4 — Submissions and responses (weeks 7–9)
+   768→**Build**
+   769→- Ingest API (start/save/complete) with idempotency, validation, reconciliation, honeypot, Turnstile, rate limits.
+   770→- Results UI: submissions table, detail drawer, summary tab (charts, NPS segments).
+   771→- Notification email job.
+   772→- File upload block: presign, confirm, scan, signed downloads, 10 MB cap.
+   773→**Acceptance**
+   774→- E2E: complete a 10-question form including a 10 MB upload; response visible in the table within 5 s.
+   775→- Replaying the same save request with the same `Idempotency-Key` does not duplicate data.
+   776→- Out-of-order step saves never overwrite a newer answer with an older one (test).
+   777→- An invalid email entered then corrected stores only the corrected value.
+   778→- Server rejects answers that fail `answerSchema` even when the client is bypassed.
+   779→
+   780→### M5 — Logic builder (weeks 9–11)
+   781→**Build**
+   782→- Logic engine (§9) with compile lint and 40+ golden tests.
+   783→- React Flow logic builder with rule drawer, fallback, multiple endings, hidden fields (UTM capture), per-question prefill via URL param.
+   784→- Runtime integration in the conversational renderer and ingest.
+   785→**Acceptance**
+   786→- "If NPS ≤ 6 go to ending B, otherwise ending A" works in builder and runtime.
+   787→- Dangling target blocks publish with a clear error.
+   788→- Hidden fields captured end-to-end and shown in results.
+   789→- Same engine package is used on client and server (single import, verified by a test).
+   790→
+   791→### M6 — Portfolio, pages and embeds (weeks 10–12, parallel with M5)
+   792→**Build**
+   793→- Remaining content blocks (`gallery`, `video`, `testimonials`, `faq`, `pricing`, `projects`, `contact-links`, `columns`, `form-embed`).
+   794→- Image pipeline (variants, responsive `srcset`, blur placeholder).
+   795→- Template gallery (≥ 14 templates), "Use template" flow.
+   796→- Embed loader (`/embed.v1.js`), standard/popup/full-page modes, iframe `postMessage` events.
+   797→**Acceptance**
+   798→- A portfolio with projects, gallery and an embedded inquiry form can be built from a template in under 5 minutes (usability check).
+   799→- Submitting the embedded form creates a submission on the form document, visible in its Results.
+   800→- Embed works on a plain HTML test page and resizes its height automatically.
+   801→
+   802→### M7 — Integrations, analytics, billing (weeks 12–15)
+   803→**Build**
+   804→- Webhooks with signing, delivery log, replay; CSV export job with emailed link.
+   805→- Analytics pipeline (beacons, partitions, rollups) and Analytics tab; drop-off per question gated by `can(...)`.
+   806→- Stripe checkout/portal/webhooks, entitlements, plan limits, seats and invitations.
+   807→- Custom domain **manual** flow: add hostname, show DNS instructions, verify, route (Cloudflare for SaaS).
+   808→**Acceptance**
+   809→- Webhook endpoint receiving a failing response is retried on schedule and visible in the log; replay works.
+   810→- 10k-row CSV export arrives by email within 5 minutes.
+   811→- Analytics tab and Submissions count always agree (single-source test).
+   812→- Upgrading via Stripe test mode unlocks capabilities within 30 s; downgrade re-locks them.
+   813→- A custom hostname serves the published document over HTTPS.
+   814→
+   815→### M8 — Public API, MCP and AI (weeks 15–20)
+   816→**Build**
+   817→- API tokens UI + scopes, OpenAPI document generated from Zod schemas.
+   818→- MCP server exposing: `list_documents`, `get_document`, `create_document`, `apply_ops`, `publish_document`, `list_submissions`, `summarize_responses`. **No delete tools.**
+   819→- AI: prompt → `DocumentBody` draft (strict schema, one repair attempt), "edit with AI" ops generation, per-workspace monthly quota.
+   820→**Acceptance**
+   821→- OpenAPI spec validates; a sample script creates, publishes and reads a form using only a token.
+   822→- AI draft always passes `DocumentBody` validation or returns a clear failure; never writes without user confirmation.
+   823→- Tool calls from MCP appear in `audit_log` with `actor_type='mcp'`; cross-workspace IDs are rejected.
+   824→
+   825→---
+   826→
+   827→## 16. Testing strategy
+   828→
+   829→| Layer | Tool | What must be covered |
+   830→|---|---|---|
+   831→| Unit | Vitest | Logic engine (golden cases), block answer schemas, ops application, snapshot builder, entitlement function, ID helpers |
+   832→| Integration | Vitest + real Postgres/Redis (testcontainers) | Repositories + RLS, ingest flow, webhooks signing/retry, Stripe webhook idempotency |
+   833→| E2E | Playwright | Signup → build → publish → submit → view result; builder autosave/reload; logic routing; embed; mobile viewport |
+   834→| Accessibility | axe-core in Playwright | Builder, dashboard, public form, public page |
+   835→| Performance | Lighthouse CI | Public form and portfolio budgets |
+   836→| Security | Custom tests | Tenant isolation, XSS payloads in rich text and answers, upload type spoofing, rate limits |
+   837→
+   838→CI rule: PRs cannot merge with failing tests, type errors, lint errors, or bundle-size regression.
+   839→
+   840→---
+   841→
+   842→## 17. Security checklist (verify before launch)
+   843→
+   844→- [ ] All tenant tables have RLS; every repository call sets workspace context.
+   845→- [ ] Passwords hashed with argon2id; login and reset rate limited.
+   846→- [ ] API tokens stored hashed, shown once, scoped, revocable.
+   847→- [ ] Rich text sanitized on save **and** on snapshot build (allowlist); no raw HTML blocks.
+   848→- [ ] Strict CSP on public pages; user-supplied embeds only via sandboxed iframes with allowlisted hosts (YouTube, Vimeo, Calendly).
+   849→- [ ] Uploads: size cap, MIME allowlist, magic-byte check, scan before download, signed URLs only.
+   850→- [ ] Webhook secrets random 32 bytes; signature + timestamp; SSRF protection on outbound URLs (block private IP ranges, resolve DNS then connect to the resolved IP).
+   851→- [ ] Turnstile + honeypot + rate limits on ingest.
+   852→- [ ] Abuse controls: publish-time check for sensitive fields (card numbers, passwords) with warning; "Report abuse" link on every public page; admin takedown that sets a document to `archived` and purges cache.
+   853→- [ ] Secrets only in env/secret manager; no secrets in logs or client bundles.
+   854→- [ ] GDPR: workspace data export, workspace and account deletion, per-form retention setting, DPA page.
+   855→- [ ] Backups with tested restore.
+   856→
+   857→---
+   858→
+   859→## 18. Non-functional targets
+   860→
+   861→| Area | Target |
+   862→|---|---|
+   863→| Public availability | 99.9% |
+   864→| Public page LCP (4G) | < 2 s |
+   865→| Question transition | < 300 ms (auto-advance), < 2 s p95 for server-validated steps |
+   866→| Ingest p95 | < 300 ms |
+   867→| Builder interactive | < 3 s |
+   868→| Publish → live | < 10 s p95 |
+   869→| CSV export (10k rows) | < 5 min |
+   870→| RPO / RTO (authoring) | 5 min / 1 h |
+   871→
+   872→---
+   873→
+   874→## 19. Out of scope for this build (Phase 2+)
+   875→
+   876→Phone/date/URL/address/matrix/ranking/slider/signature/payment/scheduler blocks, Typeform and Google Forms import, Zapier/Make/Sheets/Slack/Notion integrations, QR codes, partial-submission refill links, anonymous mode, form translations, EU data residency, real-time collaboration, white-label, certified e-signatures, marketplace.
+   877→
+   878→---
+   879→
+   880→## 20. Definition of Done (per ticket)
+   881→
+   882→1. Code merged behind a feature flag if user-visible and incomplete.
+   883→2. Unit tests for new logic; integration/e2e test for new user-facing flows.
+   884→3. Types are strict; no `any` without a `// SPEC-NOTE`.
+   885→4. Accessibility checked (keyboard + axe) for any new UI.
+   886→5. No new lint warnings; bundle budgets respected.
+   887→6. Migrations are backward compatible (expand → migrate → contract).
+   888→7. Docs updated: this spec (if behavior changed), API OpenAPI, `.env.example`.
+   889→8. Telemetry added for new critical paths (error, latency).
+   890→
+   891→---
+   892→
+   893→## 21. First-day task list (copy into your tracker)
+   894→
+   895→1. Scaffold monorepo with pnpm workspaces; set up TypeScript, ESLint, Prettier, Vitest.
+   896→2. Add `docker-compose.yml` and `.env.example`; implement env validation.
+   897→3. Create Drizzle schema for `users`, `workspaces`, `memberships`, `documents`, `document_versions`, `snapshots`; run first migration.
+   898→4. Implement `shared` helpers: `Ctx`, `Result`, `AppError`, `uuidv7`, `shortId`, logger.
+   899→5. Implement register/login with Auth.js and workspace auto-creation.
+   900→6. Build the dashboard shell and "New document" modal (creates an empty `DocumentBody` per type).
+   901→7. Write the `DocumentBody` Zod schema and 3 block definitions (`hero`, `short-text`, `button`) end to end (schema, editor, renderer) to prove the registry pattern.
+   902→8. Open the first PR with CI green; demo: create a page, edit a hero, reload, state preserved.
+   903→
