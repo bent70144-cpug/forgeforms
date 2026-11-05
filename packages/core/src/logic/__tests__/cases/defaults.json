@@ -1,0 +1,301 @@
+[
+  {
+    "name": "default next walks document order",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      },
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "default next after the last block is end:<first ending>",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b3"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "start scope defaults to the first block",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "start"
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "unknown currentBlockId returns itself unchanged",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "ghost-block"
+        },
+        "expect": {
+          "nextBlockId": "ghost-block",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "start rules can seed variables from hidden fields",
+    "rules": [
+      {
+        "id": "seed",
+        "scope": "start",
+        "when": [
+          {
+            "left": "@hidden:campaign",
+            "op": "eq",
+            "right": "spring"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "greeting",
+            "value": "spring-campaign"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {
+            "campaign": "spring"
+          },
+          "currentBlockId": "start"
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {
+            "greeting": "spring-campaign"
+          }
+        }
+      },
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "start"
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "document order is depth-first: children follow their parent",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "s1",
+        "kind": "multi-question-page",
+        "props": {},
+        "children": [
+          {
+            "id": "c1",
+            "kind": "short-text",
+            "props": {}
+          },
+          {
+            "id": "c2",
+            "kind": "short-text",
+            "props": {}
+          }
+        ]
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "s1"
+        },
+        "expect": {
+          "nextBlockId": "c1",
+          "variables": {}
+        }
+      },
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "c2"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ]
+  }
+]

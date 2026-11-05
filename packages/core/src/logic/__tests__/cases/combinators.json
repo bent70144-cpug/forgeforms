@@ -1,0 +1,418 @@
+[
+  {
+    "name": "AND: all conditions pass → rule fires",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          },
+          {
+            "left": "@block:b2",
+            "op": "eq",
+            "right": "optA"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes",
+            "b2": {
+              "optionId": "optA"
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "AND: one failing condition blocks the rule",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "yes"
+          },
+          {
+            "left": "@block:b2",
+            "op": "eq",
+            "right": "optA"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "yes",
+            "b2": {
+              "optionId": "optB"
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "OR: expressed as two rules sharing actions",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "eq",
+            "right": "optA"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "eq",
+            "right": "optB"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionId": "optB"
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "NOT: expressed with inverse ops (neq)",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "neq",
+            "right": "optA"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionId": "optC"
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      },
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionId": "optA"
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "first match wins: earlier rule takes priority",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "contains",
+            "right": "opt"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          }
+        ]
+      },
+      {
+        "id": "r2",
+        "scope": "b2",
+        "when": [
+          {
+            "left": "@block:b2",
+            "op": "contains",
+            "right": "opt"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b2": {
+              "optionId": "optA"
+            }
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "empty when (no conditions) always matches",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      { "code": "unreachable_block", "ruleId": null, "blockId": "b2" },
+      { "code": "unreachable_block", "ruleId": null, "blockId": "b3" }
+    ]
+  }
+]

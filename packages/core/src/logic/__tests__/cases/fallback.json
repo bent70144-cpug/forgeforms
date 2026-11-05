@@ -1,0 +1,369 @@
+[
+  {
+    "name": "fallback runs when no rule matched",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "trigger"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      },
+      {
+        "id": "fb",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "set",
+            "var": "x",
+            "value": 1
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "other"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "x": 1
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "fallback skipped when a rule matched",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "trigger"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      },
+      {
+        "id": "fb",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "set",
+            "var": "x",
+            "value": 1
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "trigger"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fallback conditions are ignored (warning at compile)",
+    "rules": [
+      {
+        "id": "fb",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "never-set"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "x",
+            "value": 1
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "anything"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "x": 1
+          }
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "fallback_with_when",
+        "ruleId": "fb",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "only the first fallback per scope runs",
+    "rules": [
+      {
+        "id": "fb1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "set",
+            "var": "first",
+            "value": true
+          }
+        ],
+        "isFallback": true
+      },
+      {
+        "id": "fb2",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "set",
+            "var": "second",
+            "value": true
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "first": true
+          }
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "multiple_fallbacks",
+        "ruleId": "fb2",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "fallback goto cycle with no exit is flagged",
+    "rules": [
+      {
+        "id": "f1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b2"
+          }
+        ],
+        "isFallback": true
+      },
+      {
+        "id": "f2",
+        "scope": "b2",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "b1"
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b3"
+      },
+      {
+        "code": "cycle_no_exit",
+        "ruleId": null,
+        "blockId": "b1"
+      },
+      {
+        "code": "cycle_no_exit",
+        "ruleId": null,
+        "blockId": "start"
+      }
+    ]
+  }
+]

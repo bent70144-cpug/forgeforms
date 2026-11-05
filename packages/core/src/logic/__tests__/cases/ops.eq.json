@@ -1,0 +1,158 @@
+[
+  {
+    "name": "eq: string answer matches literal → goto fires",
+    "rules": [
+      { "id": "r1", "scope": "b1", "when": [{ "left": "@block:b1", "op": "eq", "right": "hello" }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b1": "hello" }, "variables": {}, "hidden": {}, "currentBlockId": "b1" },
+        "expect": { "nextBlockId": "end:done", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: string mismatch → default next",
+    "rules": [
+      { "id": "r1", "scope": "b1", "when": [{ "left": "@block:b1", "op": "eq", "right": "hello" }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b1": "world" }, "variables": {}, "hidden": {}, "currentBlockId": "b1" },
+        "expect": { "nextBlockId": "b2", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: rating answer is already a number",
+    "rules": [
+      { "id": "r1", "scope": "b3", "when": [{ "left": "@block:b3", "op": "eq", "right": 5 }], "then": [{ "type": "goto", "target": "b1" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b3": 5 }, "variables": {}, "hidden": {}, "currentBlockId": "b3" },
+        "expect": { "nextBlockId": "b1", "variables": {} }
+      },
+      {
+        "ctx": { "answers": { "b3": 4 }, "variables": {}, "hidden": {}, "currentBlockId": "b3" },
+        "expect": { "nextBlockId": "end:done", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: number answer equals numeric-string right (coercion)",
+    "rules": [
+      { "id": "r1", "scope": "b3", "when": [{ "left": "@block:b3", "op": "eq", "right": 5 }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b3": "5" }, "variables": {}, "hidden": {}, "currentBlockId": "b3" },
+        "expect": { "nextBlockId": "end:done", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: single-select answer normalizes to optionId",
+    "rules": [
+      { "id": "r1", "scope": "b2", "when": [{ "left": "@block:b2", "op": "eq", "right": "optA" }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b2": { "optionId": "optA" } }, "variables": {}, "hidden": {}, "currentBlockId": "b2" },
+        "expect": { "nextBlockId": "end:done", "variables": {} }
+      },
+      {
+        "ctx": { "answers": { "b2": { "optionId": "optB" } }, "variables": {}, "hidden": {}, "currentBlockId": "b2" },
+        "expect": { "nextBlockId": "b3", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: multi-select answer deep-equals array of optionIds",
+    "rules": [
+      { "id": "r1", "scope": "b2", "when": [{ "left": "@block:b2", "op": "eq", "right": ["optA", "optB"] }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "multi-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b2": { "optionIds": ["optA", "optB"] } }, "variables": {}, "hidden": {}, "currentBlockId": "b2" },
+        "expect": { "nextBlockId": "end:done", "variables": {} }
+      },
+      {
+        "ctx": { "answers": { "b2": { "optionIds": ["optB", "optA"] } }, "variables": {}, "hidden": {}, "currentBlockId": "b2" },
+        "expect": { "nextBlockId": "b3", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: missing answer equals an absent right operand",
+    "rules": [
+      { "id": "r1", "scope": "b1", "when": [{ "left": "@block:b1", "op": "eq" }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": {}, "variables": {}, "hidden": {}, "currentBlockId": "b1" },
+        "expect": { "nextBlockId": "end:done", "variables": {} }
+      }
+    ]
+  },
+  {
+    "name": "eq: null answer is not equal to a missing answer",
+    "rules": [
+      { "id": "r1", "scope": "b1", "when": [{ "left": "@block:b1", "op": "eq" }], "then": [{ "type": "goto", "target": "end:done" }] }
+    ],
+    "blocks": [
+      { "id": "b1", "kind": "short-text", "props": {} },
+      { "id": "b2", "kind": "single-select", "props": {} },
+      { "id": "b3", "kind": "rating", "props": {} }
+    ],
+    "endings": ["done"],
+    "steps": [
+      {
+        "ctx": { "answers": { "b1": null }, "variables": {}, "hidden": {}, "currentBlockId": "b1" },
+        "expect": { "nextBlockId": "b2", "variables": {} }
+      }
+    ]
+  }
+]

@@ -1,0 +1,211 @@
+[
+  {
+    "name": "lint: more than one fallback per scope",
+    "rules": [
+      {
+        "id": "fb1",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "set",
+            "var": "a",
+            "value": 1
+          }
+        ],
+        "isFallback": true
+      },
+      {
+        "id": "fb2",
+        "scope": "b1",
+        "when": [],
+        "then": [
+          {
+            "type": "set",
+            "var": "b",
+            "value": 2
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "a": 1
+          }
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "multiple_fallbacks",
+        "ruleId": "fb2",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: fallback with conditions warns",
+    "rules": [
+      {
+        "id": "fb1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "a",
+            "value": 1
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {
+            "a": 1
+          }
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "fallback_with_when",
+        "ruleId": "fb1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: fallback on start that jumps to an ending strands every block",
+    "rules": [
+      {
+        "id": "fb",
+        "scope": "start",
+        "when": [],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ],
+        "isFallback": true
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "start"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b1"
+      },
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b2"
+      },
+      {
+        "code": "unreachable_block",
+        "ruleId": null,
+        "blockId": "b3"
+      }
+    ]
+  }
+]

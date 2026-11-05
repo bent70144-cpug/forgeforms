@@ -1,0 +1,384 @@
+[
+  {
+    "name": "fuzz: null routing never throws",
+    "rawRouting": null,
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: empty object routing never throws",
+    "rawRouting": {},
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: routing with non-object scopes",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": "garbage",
+      "endings": [
+        "done"
+      ]
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: flat map with a broken defaultNext type",
+    "rawRouting": {
+      "b1": {
+        "defaultNext": 42
+      }
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: flat map with garbage values is unusable → returns current",
+    "rawRouting": {
+      "b1": "junk",
+      "b2": {
+        "defaultNext": "b3"
+      }
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: rules array full of garbage entries",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": {
+        "b1": {
+          "defaultNext": "b2",
+          "rules": [
+            null,
+            5,
+            "x",
+            {
+              "conditions": [],
+              "actions": []
+            }
+          ]
+        }
+      },
+      "endings": [
+        "done"
+      ]
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: compiled rule with a non-string goto target degrades to noop",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": {
+        "b1": {
+          "defaultNext": "b2",
+          "rules": [
+            {
+              "id": "r",
+              "scope": "b1",
+              "isFallback": false,
+              "conditions": [],
+              "actions": [
+                {
+                  "kind": "goto",
+                  "target": 42
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "endings": [
+        "done"
+      ]
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: non-string currentBlockId yields empty next",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": {
+        "b1": {
+          "defaultNext": "b2",
+          "rules": []
+        }
+      },
+      "endings": []
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": 42,
+          "variables": "nope",
+          "answers": [],
+          "hidden": null
+        },
+        "expect": {
+          "nextBlockId": "",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: missing ctx entirely",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": {
+        "b1": {
+          "defaultNext": "b2",
+          "rules": []
+        }
+      },
+      "endings": []
+    },
+    "steps": [
+      {
+        "ctx": null,
+        "expect": {
+          "nextBlockId": "",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: __proto__ key in scopes is read safely (own property)",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": {
+        "__proto__": {
+          "defaultNext": "b1",
+          "rules": []
+        }
+      },
+      "endings": []
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "__proto__",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b1",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: dangling end: target with known endings falls back to default",
+    "rawRouting": {
+      "kind": "routing",
+      "version": 1,
+      "scopes": {
+        "b1": {
+          "defaultNext": "b2",
+          "rules": [
+            {
+              "id": "r",
+              "scope": "b1",
+              "isFallback": false,
+              "conditions": [],
+              "actions": [
+                {
+                  "kind": "goto",
+                  "target": "end:ghost"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "endings": [
+        "done"
+      ]
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {},
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "fuzz: flat snapshot map evaluates directly (renderer path)",
+    "rawRouting": {
+      "b1": {
+        "defaultNext": "b2",
+        "rules": [
+          {
+            "id": "r",
+            "scope": "b1",
+            "isFallback": false,
+            "conditions": [
+              {
+                "ref": {
+                  "source": "block",
+                  "name": "b1"
+                },
+                "op": "eq",
+                "right": "go",
+                "rightRef": null
+              }
+            ],
+            "actions": [
+              {
+                "kind": "set",
+                "name": "flag",
+                "value": true
+              },
+              {
+                "kind": "goto",
+                "target": "end:done"
+              }
+            ]
+          }
+        ]
+      },
+      "b2": {
+        "defaultNext": "end:done",
+        "rules": []
+      }
+    },
+    "steps": [
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {
+            "b1": "go"
+          },
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {
+            "flag": true
+          }
+        }
+      },
+      {
+        "ctx": {
+          "currentBlockId": "b1",
+          "variables": {},
+          "answers": {
+            "b1": "stop"
+          },
+          "hidden": {}
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  }
+]

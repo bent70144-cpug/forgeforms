@@ -1,0 +1,174 @@
+[
+  {
+    "name": "neq: different string matches",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "neq",
+            "right": "hello"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "world"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "neq: equal string does not match",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "neq",
+            "right": "hello"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "hello"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "neq: missing answer counts as different",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "neq",
+            "right": "hello"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  }
+]

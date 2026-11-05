@@ -1,0 +1,232 @@
+[
+  {
+    "name": "lt: 3 < 5 matches",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b3",
+        "when": [
+          {
+            "left": "@block:b3",
+            "op": "lt",
+            "right": 5
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b3": 3
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b3"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "lte: boundary 3 <= 3 matches",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b3",
+        "when": [
+          {
+            "left": "@block:b3",
+            "op": "lte",
+            "right": 3
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b3": 3
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b3"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "lt: 9 is not < 5 → default",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b3",
+        "when": [
+          {
+            "left": "@block:b3",
+            "op": "lt",
+            "right": 5
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b3": 9
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b3"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  },
+  {
+    "name": "lte: missing answer never matches",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b3",
+        "when": [
+          {
+            "left": "@block:b3",
+            "op": "lte",
+            "right": 3
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b3"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ]
+  }
+]

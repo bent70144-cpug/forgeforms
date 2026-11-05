@@ -1,0 +1,661 @@
+[
+  {
+    "name": "lint: dangling goto to a missing block",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "ghost"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "dangling_goto",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: dangling goto to an unknown ending (endings known)",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:missing"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "dangling_goto",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: end:* targets cannot be validated without endings",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:anywhere"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:anywhere",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": []
+  },
+  {
+    "name": "lint: rule scoped to a missing block",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "ghost",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unknown_scope",
+        "ruleId": "r1",
+        "blockId": "ghost"
+      }
+    ]
+  },
+  {
+    "name": "lint: @block reference to a missing block",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:nope",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "unknown_block_ref",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: operand without @ prefix is malformed",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "malformed_operand",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: unknown condition op is malformed",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "startsWith",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "malformed_condition",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: set action without a variable name",
+    "rules": [
+      {
+        "id": "r1",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "x"
+          }
+        ],
+        "then": [
+          {
+            "type": "set",
+            "var": "",
+            "value": 1
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "x"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "b2",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "invalid_set_var",
+        "ruleId": "r1",
+        "blockId": "b1"
+      }
+    ]
+  },
+  {
+    "name": "lint: duplicate rule ids are flagged (both rules still work)",
+    "rules": [
+      {
+        "id": "same",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "a"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      },
+      {
+        "id": "same",
+        "scope": "b1",
+        "when": [
+          {
+            "left": "@block:b1",
+            "op": "eq",
+            "right": "b"
+          }
+        ],
+        "then": [
+          {
+            "type": "goto",
+            "target": "end:done"
+          }
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "single-select",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {
+            "b1": "a"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      },
+      {
+        "ctx": {
+          "answers": {
+            "b1": "b"
+          },
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b1"
+        },
+        "expect": {
+          "nextBlockId": "end:done",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "duplicate_rule_id",
+        "ruleId": "same",
+        "blockId": null
+      }
+    ]
+  },
+  {
+    "name": "lint: duplicate block ids are flagged (first defines the flow)",
+    "rules": [],
+    "blocks": [
+      {
+        "id": "b1",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "short-text",
+        "props": {}
+      },
+      {
+        "id": "b2",
+        "kind": "rating",
+        "props": {}
+      },
+      {
+        "id": "b3",
+        "kind": "rating",
+        "props": {}
+      }
+    ],
+    "endings": [
+      "done"
+    ],
+    "steps": [
+      {
+        "ctx": {
+          "answers": {},
+          "variables": {},
+          "hidden": {},
+          "currentBlockId": "b2"
+        },
+        "expect": {
+          "nextBlockId": "b3",
+          "variables": {}
+        }
+      }
+    ],
+    "expectDiagnostics": [
+      {
+        "code": "duplicate_block_id",
+        "ruleId": null,
+        "blockId": "b2"
+      }
+    ]
+  }
+]
