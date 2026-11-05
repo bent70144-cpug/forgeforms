@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSnapshot, parsePublicSlug, snapshotEtag, themeToCssVars } from '../snapshot';
 import { defaultDraftValidator } from '../validation';
-import { makeDocument, makeDraft, makeHarness, seedAndPublish } from './helpers';
+import { makeDocument, makeDraft, seedAndPublish } from './helpers';
 
 describe('buildSnapshot (spec §8 shape)', () => {
   it('maps theme tokens → cssVars, resolves assets, compiles routing, picks settings', async () => {

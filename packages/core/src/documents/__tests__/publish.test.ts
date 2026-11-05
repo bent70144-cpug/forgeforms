@@ -2,7 +2,7 @@
  * T10 — publish service tests (issue #10 acceptance criteria).
  */
 import { describe, expect, it } from 'vitest';
-import { makePublishDocument, ordinalOf } from '../publish';
+import { ordinalOf } from '../publish';
 import { makeGetPublishedSnapshot } from '../snapshot';
 import { defaultDraftValidator } from '../validation';
 import type { DraftValidator, LogicCompiler } from '../ports';
@@ -190,7 +190,6 @@ describe('publishDocument', () => {
 
     expect(result.ok).toBe(true);
     expect(elapsedMs).toBeLessThan(10_000);
-    // eslint-disable-next-line no-console
     console.info(`[T10] publish latency (in-memory, 50 blocks): ${elapsedMs.toFixed(1)} ms`);
   });
 });
