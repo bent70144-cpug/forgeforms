@@ -16,8 +16,10 @@ import type {
 export type StripeGatewayConfig = {
   /** Secret API key (sk_…). Test-mode keys are fine. */
   apiKey: string;
-  /** Stripe price ids from env (STRIPE_PRICE_PRO / STRIPE_PRICE_BUSINESS). */
-  prices: Record<PaidPlan, string>;
+  /** Stripe price ids from env (STRIPE_PRICE_PRO / STRIPE_PRICE_BUSINESS).
+   * Partial: a missing price id fails the specific checkout with a typed
+   * INTERNAL error instead of blocking gateway construction. */
+  prices: Partial<Record<PaidPlan, string>>;
   /** Override for tests; default https://api.stripe.com/v1 */
   apiBaseUrl?: string;
   /** Override for tests; default global fetch. */
