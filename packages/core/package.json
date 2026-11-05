@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./bridge": "./src/bridge.ts",
+    "./integrations": "./src/integrations/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "typescript": "^5.9.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "@types/node": "^24.0.0"
   }
 }
