@@ -240,10 +240,22 @@ importers:
       '@formforge/schema':
         specifier: workspace:*
         version: link:../schema
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
       zod:
         specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
