@@ -181,6 +181,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@formforge/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@formforge/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       next:
         specifier: ^15.5.29
         version: 15.5.29(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
