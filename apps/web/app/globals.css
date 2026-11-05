@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Scan renderer package sources so scroll/conversational classes (ff-scroll etc.)
+   are generated even though they live outside apps/web (T11, T12). */
+@source "../../../packages/renderer/src";
+
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
