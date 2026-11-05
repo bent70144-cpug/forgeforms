@@ -26,6 +26,8 @@ export const exportJobs = pgTable(
     requestedBy: uuid("requested_by"),
     /** queued → running → completed | failed. */
     status: text("status").notNull().default("queued"),
+    /** When the worker picked the job up (set by markRunning). */
+    startedAt: timestamp("started_at", { withTimezone: true }),
     /** Inclusive completedAt bounds requested via `{from?, to?}` (spec §11). */
     filterFrom: timestamp("filter_from", { withTimezone: true }),
     filterTo: timestamp("filter_to", { withTimezone: true }),
@@ -121,7 +123,7 @@ export function createExportJobsRepo(db: ExportJobsDb) {
     async markRunning(exportId: string, workspaceId: string, at: Date): Promise<void> {
       await db
         .update(exportJobs)
-        .set({ status: "running" })
+        .set({ status: "running", startedAt: at })
         .where(and(eq(exportJobs.id, exportId), eq(exportJobs.workspaceId, workspaceId), eq(exportJobs.status, "queued")));
     },
 

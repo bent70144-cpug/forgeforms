@@ -10,7 +10,7 @@
 // container kinds that recurse. When the registry lands, this walker can be
 // re-pointed at `BlockDef.family === "question"` without changing the output.
 
-import type { CsvColumn } from "./csv";
+import { formatCsvValue, type CsvColumn } from "./csv";
 
 /** Ids of the fixed system columns the export prepends to the question columns. */
 export const SYSTEM_COLUMN_IDS = {
@@ -121,21 +121,24 @@ function labelFor(options: readonly SelectOption[], optionId: string): string {
  *   anything else                               → formatCsvValue
  */
 export function formatAnswerCell(value: unknown, column: CsvColumn): string {
-  const options = readOptions(column);
-  if (options && value !== null && typeof value === "object" && !Array.isArray(value)) {
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
     const record = value as Record<string, unknown>;
-    if (typeof record.optionId === "string") return labelFor(options, record.optionId);
-    if (typeof record.other === "string") return record.other;
-    if (Array.isArray(record.optionIds)) {
-      return record.optionIds
-        .filter((id): id is string => typeof id === "string")
-        .map((id) => labelFor(options, id))
-        .join("; ");
-    }
+    // file-upload answers have no select options — resolve before the options check
     if (Array.isArray(record.assetIds)) {
       return record.assetIds
         .filter((id): id is string => typeof id === "string")
         .join("; ");
+    }
+    const options = readOptions(column);
+    if (options) {
+      if (typeof record.optionId === "string") return labelFor(options, record.optionId);
+      if (typeof record.other === "string") return record.other;
+      if (Array.isArray(record.optionIds)) {
+        return record.optionIds
+          .filter((id): id is string => typeof id === "string")
+          .map((id) => labelFor(options, id))
+          .join("; ");
+      }
     }
   }
   return formatCsvValue(value);
