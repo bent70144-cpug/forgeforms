@@ -5,6 +5,7 @@
 
 import { AppError } from "../bridge";
 import type { Ctx } from "../bridge";
+import { z } from "zod";
 import { addUtcDays, buildDailySeries, computeDropOff, computeKpis, dayKeyToDate, resolveRange, utcDayKey } from "./bucket";
 import { buildPixelEvent, parseBeaconBatch } from "./beacon";
 import { DOCUMENT_ID_RE } from "./beacon";
@@ -54,6 +55,24 @@ export interface AnalyticsServiceDeps {
   repo: AnalyticsRepositoryPort;
   ctx: Ctx;
 }
+
+/** BullMQ payload for the `analytics` queue's `rollup` job (spec §12). */
+export const RollupJobPayloadSchema = z.object({
+  documentId: z.string().regex(DOCUMENT_ID_RE).optional(),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  source: z.enum(["hourly", "daily"]).optional(),
+});
+
+/** BullMQ payload for the maintenance queue's `create-partitions` job. */
+export const PartitionsJobPayloadSchema = z.object({
+  monthsAhead: z.number().int().min(1).max(12).optional(),
+});
+
+/** Grouped export for job registration sites. */
+export const AnalyticsBatchSchemas = {
+  rollupPayload: RollupJobPayloadSchema,
+  partitionsPayload: PartitionsJobPayloadSchema,
+} as const;
 
 export interface RollupDayInput {
   documentId?: string;
