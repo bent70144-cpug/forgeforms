@@ -1,14 +1,11 @@
 @import "tailwindcss";
 
-<<<<<<< HEAD
 /* Design tokens (spec §14.3) — app surfaces consume the --ff-* variables;
    documents carry their own theme at render time. */
-=======
+
 /* Scan renderer package sources so scroll/conversational classes (ff-scroll etc.)
    are generated even though they live outside apps/web (T11, T12). */
 @source "../../../packages/renderer/src";
-
->>>>>>> ticket/11-scroll-renderer
 :root {
   --ff-bg: #fbf9f4;
   --ff-fg: #1c1917;

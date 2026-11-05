@@ -3,6 +3,7 @@
 //
 // Public surface:
 //  - ScrollRenderer + section parts: scroll plane for pages/portfolios (server-only).
+//  - ConversationalRenderer + flow machine: form plane (client, ≤120KB budget).
 //  - getPublishedSnapshot: snapshot reader (INTEGRATION-DEBT — placeholder until T10,
 //    see src/bridge.ts for the one-line swap).
 //  - buildPageMetadata / classifySnapshotError: pure helpers for the /p/[slug] route.
@@ -37,3 +38,19 @@ export {
   normalizeCssVars,
   type NormalizeCssVarsOptions,
 } from "./scroll/theme";
+
+export {
+  ConversationalRenderer,
+  createInitialState,
+  createMachineReducer,
+  createFetchIngestClient,
+  createMockIngestClient,
+  IngestError,
+  themeToCssVars,
+  validateAnswer,
+} from "./conversational/index";
+export type {
+  ConversationalRendererProps,
+  IngestClient,
+  MachineState,
+} from "./conversational/index";
