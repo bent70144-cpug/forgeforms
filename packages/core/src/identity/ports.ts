@@ -11,7 +11,7 @@ import type {
   SessionRecord,
   UserRecord,
   WorkspaceRecord,
-} from "./types.js";
+} from "./types";
 
 export type {
   MembershipRole,
@@ -20,7 +20,7 @@ export type {
   UserRecord,
   WorkspacePlan,
   WorkspaceRecord,
-} from "./types.js";
+} from "./types";
 
 export interface UserRepository {
   findByEmail(email: string): Promise<UserRecord | null>;

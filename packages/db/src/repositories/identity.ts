@@ -7,8 +7,11 @@
 // ports. After T02: swap the import to "../schema" + T02's client and re-derive
 // the DTOs from the ports if desired.
 import { eq } from "drizzle-orm";
-import type { Db } from "../bridge.js";
-import { memberships, sessions, users, workspaces } from "../bridge.js";
+import type { Db } from "../bridge";
+import { memberships, sessions, users, workspaces } from "../bridge";
+
+export type WorkspacePlan = "free" | "pro" | "business";
+export type MembershipRole = "owner" | "admin" | "editor" | "viewer";
 
 export type UserRecord = {
   id: string;
@@ -23,7 +26,7 @@ export type WorkspaceRecord = {
   id: string;
   name: string;
   slug: string;
-  plan: string;
+  plan: WorkspacePlan;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
   createdAt: Date;
@@ -61,7 +64,8 @@ function toWorkspace(row: typeof workspaces.$inferSelect): WorkspaceRecord {
     id: row.id,
     name: row.name,
     slug: row.slug,
-    plan: row.plan,
+    // text column constrained by CHECK in migration + input validation; cast mirrors drizzle schema typing.
+    plan: row.plan as WorkspacePlan,
     stripeCustomerId: row.stripeCustomerId,
     stripeSubscriptionId: row.stripeSubscriptionId,
     createdAt: row.createdAt,
@@ -107,14 +111,15 @@ export class DrizzleMembershipRepository {
 
   async listForUser(
     userId: string,
-  ): Promise<Array<{ workspace: WorkspaceRecord; role: string }>> {
+  ): Promise<Array<{ workspace: WorkspaceRecord; role: MembershipRole }>> {
     const rows = await this.db
       .select({ workspace: workspaces, role: memberships.role })
       .from(memberships)
       .innerJoin(workspaces, eq(memberships.workspaceId, workspaces.id))
       .where(eq(memberships.userId, userId))
       .orderBy(workspaces.createdAt);
-    return rows.map((row) => ({ workspace: toWorkspace(row.workspace), role: row.role }));
+    // role text column constrained to the MembershipRole vocabulary by input validation.
+    return rows.map((row) => ({ workspace: toWorkspace(row.workspace), role: row.role as MembershipRole }));
   }
 }
 
@@ -129,7 +134,11 @@ export class DrizzleRegistrationRepository {
   async createAccount(input: {
     user: UserRecord;
     workspace: WorkspaceRecord;
-    membership: MembershipRecord;
+    membership: {
+      workspaceId: string;
+      userId: string;
+      role: MembershipRole;
+    };
   }): Promise<void> {
     await this.db.transaction(async (tx) => {
       await tx.insert(users).values({

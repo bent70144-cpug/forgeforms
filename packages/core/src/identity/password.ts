@@ -1,6 +1,6 @@
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
-import type { PasswordHasher } from "./ports.js";
+import type { PasswordHasher } from "./ports";
 
 const scrypt = promisify(scryptCallback) as (
   password: string | Buffer,

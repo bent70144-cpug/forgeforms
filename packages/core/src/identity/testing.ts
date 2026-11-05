@@ -10,16 +10,16 @@ import type {
   SessionRepository,
   UserRepository,
   WorkspaceRepository,
-} from "./ports.js";
+} from "./ports";
 import type {
   MembershipRecord,
   SessionRecord,
   UserRecord,
   WorkspaceRecord,
-} from "./types.js";
-import type { Ctx } from "../bridge.js";
-import { ScryptPasswordHasher } from "./password.js";
-import { preAuthCtx } from "./service.js";
+} from "./types";
+import type { Ctx } from "../bridge";
+import { ScryptPasswordHasher } from "./password";
+import { preAuthCtx } from "./service";
 
 export class UniqueConstraintError extends Error {
   readonly code = "23505";

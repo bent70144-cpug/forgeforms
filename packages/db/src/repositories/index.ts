@@ -9,25 +9,25 @@
 // @formforge/core; the composition root (apps/web/lib/auth/container.ts)
 // assigns this object to the `IdentityRepositories` port, so any structural
 // drift fails typecheck there.
-import type { Db } from "../bridge.js";
-import { getDb } from "../bridge.js";
+import type { Db } from "../bridge";
+import { getDb } from "../bridge";
 import {
   DrizzleMembershipRepository,
   DrizzleRegistrationRepository,
   DrizzleUserRepository,
   DrizzleWorkspaceRepository,
-} from "./identity.js";
-import { DrizzleSessionRepository } from "./sessions.js";
+} from "./identity";
+import { DrizzleSessionRepository } from "./sessions";
 
-export { getDb } from "../bridge.js";
-export type { Db } from "../bridge.js";
+export { getDb } from "../bridge";
+export type { Db } from "../bridge";
 export {
   DrizzleMembershipRepository,
   DrizzleRegistrationRepository,
   DrizzleUserRepository,
   DrizzleWorkspaceRepository,
-} from "./identity.js";
-export { DrizzleSessionRepository } from "./sessions.js";
+} from "./identity";
+export { DrizzleSessionRepository } from "./sessions";
 
 export function createDrizzleRepositories(db: Db = getDb()) {
   return {

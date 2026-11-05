@@ -3,15 +3,14 @@
 // with an owner membership (spec §21.5, milestone M1).
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
-import { AppError, err, ok, type Ctx, type Result } from "../bridge.js";
-import type { IdentityDeps } from "./ports.js";
-import { LoginInputSchema, RegisterInputSchema, zodToDetails } from "./schemas.js";
-import type { MembershipRole, SessionRecord, UserRecord, WorkspaceRecord } from "./types.js";
+import { AppError, err, ok, type Ctx, type Result } from "../bridge";
+import type { IdentityDeps } from "./ports";
+import { LoginInputSchema, RegisterInputSchema, zodToDetails } from "./schemas";
+import type { MembershipRole, SessionRecord, UserRecord, WorkspaceRecord } from "./types";
 
-/** Cookie/session lifetime — mirrored by the web cookie config (apps/web/auth.config.ts). */
-export const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
-/** Sliding expiry interval: at most one DB touch per user per day. */
-export const SESSION_UPDATE_AGE_MS = 24 * 60 * 60 * 1000;
+// Session lifetimes live in ./policy (dependency-free, edge-safe).
+export { SESSION_MAX_AGE_MS, SESSION_UPDATE_AGE_MS } from "./policy";
+import { SESSION_MAX_AGE_MS, SESSION_UPDATE_AGE_MS } from "./policy";
 
 export type RegisterOutput = {
   user: UserRecord;

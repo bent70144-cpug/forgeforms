@@ -4,8 +4,8 @@
 // INTEGRATION-DEBT: awaiting T02 — table + Db come from ../bridge.ts until
 // T02's src/schema/** and client land.
 import { eq } from "drizzle-orm";
-import type { Db } from "../bridge.js";
-import { sessions, users } from "../bridge.js";
+import type { Db } from "../bridge";
+import { sessions, users } from "../bridge";
 
 export type SessionRecord = {
   id: string;

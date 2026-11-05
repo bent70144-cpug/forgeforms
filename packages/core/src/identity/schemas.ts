@@ -1,7 +1,7 @@
 // Server-side validation schemas (spec §1: Zod is the single source of truth;
 // issue #3: server-side validation with Zod + inline field errors).
 import { z } from "zod";
-import type { AppErrorDetail } from "../bridge.js";
+import type { AppErrorDetail } from "../bridge";
 
 export const RegisterInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name is too long").optional(),

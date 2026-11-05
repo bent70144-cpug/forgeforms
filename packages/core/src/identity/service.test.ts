@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AppError } from "../bridge.js";
+import { AppError } from "../bridge";
 import {
   SESSION_MAX_AGE_MS,
   SESSION_UPDATE_AGE_MS,
@@ -7,8 +7,8 @@ import {
   logoutUser,
   registerUser,
   validateSession,
-} from "./service.js";
-import { makeTestHarness, UniqueConstraintError } from "./testing.js";
+} from "./service";
+import { makeTestHarness, UniqueConstraintError } from "./testing";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
