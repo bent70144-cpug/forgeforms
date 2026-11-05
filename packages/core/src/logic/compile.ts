@@ -14,7 +14,8 @@
 // 3. `Routing` embeds `diagnostics` so compile() satisfies issue #13
 //    ("compile() reports each lint violation class with rule id + block id");
 //    `lint()` is the same array exposed standalone, and `routeMap()` projects
-//    the flat `Record<string, RouteNode>` shape the snapshot stores (spec §8).
+//    the flat `Record<string, RouteNode>` shape the snapshot stores (spec §8)
+//    — keeping the endings so both shapes evaluate identically.
 
 import { parseOperand, looksLikeOperand } from "./operands.js";
 import type {
@@ -105,6 +106,12 @@ export function lint(
 /**
  * Projects a Routing (or an already-flat map) to the snapshot's
  * `routing: Record<string, RouteNode>` shape (spec §8). Null-prototype.
+ *
+ * The source Routing's `endings` are embedded non-enumerably so the
+ * projection stays faithful: `evaluate()` can still verify `end:<id>`
+ * targets against them (SPEC-NOTE 5 in evaluate.ts). JSON round-trips drop
+ * the hint — raw flat maps accept any `end:*` (unverifiable, but linted at
+ * compile time).
  */
 export function routeMap(routing: Routing | RouteMap | null | undefined): RouteMap {
   const source = isRoutingShape(routing) ? routing.scopes : routing;
@@ -112,6 +119,15 @@ export function routeMap(routing: Routing | RouteMap | null | undefined): RouteM
   if (source === null || typeof source !== "object") return out;
   for (const [key, value] of Object.entries(source)) {
     if (isRouteNodeShape(value)) out[key] = value;
+  }
+  const endings = routing !== null && typeof routing === "object" ? (routing as { endings?: unknown }).endings : undefined;
+  if (Array.isArray(endings)) {
+    Object.defineProperty(out, "endings", {
+      value: [...endings],
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
   }
   return out;
 }

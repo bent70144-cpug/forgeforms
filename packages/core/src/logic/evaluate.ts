@@ -12,6 +12,12 @@
 //    overwrites the pending target (last goto wins) and every `set` applies.
 // 4. evaluate() NEVER throws (issue #13): malformed programs, broken targets
 //    and garbage ctx degrade to the documented fallbacks.
+// 5. An unknown goto target falls back to the default next, which is trusted
+//    as-is (compiler-produced); only an EMPTY defaultNext degrades to staying
+//    on the current block. `routeMap()` embeds the source Routing's endings
+//    non-enumerably so the flat snapshot shape evaluates identically to the
+//    full Routing; JSON round-trips drop that hint, and unverifiable `end:*`
+//    targets are then accepted (they were linted at compile time).
 
 import { checkCondition } from "./conditions.js";
 import { hasOwnKey, resolveOperand, type OperandEnv } from "./operands.js";
@@ -189,7 +195,10 @@ function resolveTarget(
   currentId: string,
 ): string {
   if (isValidTarget(next, scopes, endings)) return next;
-  if (isValidTarget(node.defaultNext, scopes, endings)) return node.defaultNext;
+  // Unknown goto target → fall back to the default next (spec §9). The default
+  // next is compiler-produced (a block id or `end:<first>`), so it is trusted
+  // as-is; only degenerate programs (empty defaultNext) stay put.
+  if (node.defaultNext !== "") return node.defaultNext;
   return currentId;
 }
 
@@ -211,10 +220,15 @@ function isValidTarget(
 }
 
 function getEndings(routing: Routing | RouteMap | null | undefined): readonly string[] | null {
-  if (routing !== null && typeof routing === "object" && isRoutingShape(routing)) {
+  if (routing === null || typeof routing !== "object") return null;
+  if (isRoutingShape(routing)) {
     return Array.isArray(routing.endings) ? routing.endings : null;
   }
-  return null; // flat maps carry no endings → `end:*` targets are accepted
+  // Flat map: `routeMap()` embeds the source Routing's endings non-enumerably
+  // (SPEC-NOTE 5) so `end:<id>` targets stay verifiable. Raw flat maps (e.g.
+  // from JSON round-trips) carry none → any `end:*` target is accepted.
+  const endings = (routing as { endings?: unknown }).endings;
+  return Array.isArray(endings) ? (endings as readonly string[]) : null;
 }
 
 // ---------------------------------------------------------------------------
