@@ -7,4 +7,4 @@ export { createDb, type Database } from "./client.ts";
 export {
   createIdentityRepositories,
   type IdentityRepositories,
-} from "./repositories/identity.ts";
+} from "./repositories/access.ts";

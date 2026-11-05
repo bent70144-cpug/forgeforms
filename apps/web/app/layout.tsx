@@ -3,7 +3,10 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "FormForge",
+  title: {
+    default: "FormForge",
+    template: "%s — FormForge",
+  },
   description: "Forms, landing pages and portfolios — one block-document model.",
 };
 

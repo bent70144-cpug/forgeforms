@@ -1,157 +1,168 @@
-import { and, eq } from "drizzle-orm";
-import { uuidv7, type Ctx } from "@formforge/core";
-import type { Database } from "../client.ts";
-import {
-  apiTokens,
-  memberships,
-  users,
-  workspaces,
-  type ApiToken,
-  type ApiTokenScope,
-  type Membership,
-  type MembershipRole,
-  type NewApiToken,
-  type NewMembership,
-  type NewUser,
-  type NewWorkspace,
-  type User,
-  type Workspace,
-  type WorkspacePlan,
-} from "../schema/identity.ts";
+// Drizzle repositories for the identity module (ticket #3). Implements the
+// port contracts exported by `@formforge/core/identity`; the web composition
+// root enforces the structural match at typecheck time.
+//
+// INTEGRATION-DEBT: awaiting T02 — tables and Db come from ../bridge.ts until
+// T02's src/schema/** and client land; input/output DTOs mirror the identity
+// ports. After T02: swap the import to "../schema" + T02's client and re-derive
+// the DTOs from the ports if desired.
+import { eq } from "drizzle-orm";
+import type { Db } from "../bridge";
+import { memberships, sessions, users, workspaces } from "../bridge";
 
-/**
- * Identity & tenancy repositories (spec §3/§6).
- *
- * Repositories live in `packages/db` and are the ONLY place tenant tables are
- * touched; only the owning module imports them. Every tenant-scoped function
- * takes `Ctx` first and filters by `ctx.workspaceId`; wall-clock time comes
- * exclusively from `ctx.now()`.
- *
- * SPEC-NOTE: M1 (issue #3+) wraps these in transactions that run
- * `set local app.workspace_id = …` to activate RLS; the function signatures
- * below are already RLS-ready (they never trust a client-supplied tenant id).
- */
+export type WorkspacePlan = "free" | "pro" | "business";
+export type MembershipRole = "owner" | "admin" | "editor" | "viewer";
 
-export function createIdentityRepositories(db: Database) {
+export type UserRecord = {
+  id: string;
+  email: string;
+  name: string | null;
+  passwordHash: string | null;
+  emailVerifiedAt: Date | null;
+  createdAt: Date;
+};
+
+export type WorkspaceRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  plan: WorkspacePlan;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  createdAt: Date;
+};
+
+export type MembershipRecord = {
+  workspaceId: string;
+  userId: string;
+  role: string;
+};
+
+export type SessionRecord = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  createdAt: Date;
+};
+
+// --- mappers (snake_case columns ↔ camelCase records) ----------------------
+
+function toUser(row: typeof users.$inferSelect): UserRecord {
   return {
-    users: {
-      findById(id: string): Promise<User | undefined> {
-        // Users are global (login plane) — not tenant-scoped by design.
-        return db.select().from(users).where(eq(users.id, id)).limit(1).then((r) => r[0]);
-      },
-      findByEmail(email: string): Promise<User | undefined> {
-        return db.select().from(users).where(eq(users.email, email)).limit(1).then((r) => r[0]);
-      },
-      async create(
-        ctx: Ctx,
-        values: Omit<NewUser, "id" | "createdAt"> & { id?: string },
-      ): Promise<User> {
-        const rows = await db
-          .insert(users)
-          .values({ ...values, id: values.id ?? uuidv7(ctx.now().getTime()), createdAt: ctx.now() })
-          .returning();
-        return rows[0]!;
-      },
-    },
-
-    workspaces: {
-      findById(id: string): Promise<Workspace | undefined> {
-        return db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1).then((r) => r[0]);
-      },
-      async create(
-        ctx: Ctx,
-        values: Omit<NewWorkspace, "id" | "createdAt"> & { id?: string },
-      ): Promise<Workspace> {
-        const rows = await db
-          .insert(workspaces)
-          .values({
-            ...values,
-            id: values.id ?? uuidv7(ctx.now().getTime()),
-            createdAt: ctx.now(),
-          })
-          .returning();
-        return rows[0]!;
-      },
-      async updatePlan(ctx: Ctx, plan: WorkspacePlan): Promise<void> {
-        await db.update(workspaces).set({ plan }).where(eq(workspaces.id, ctx.workspaceId));
-      },
-    },
-
-    memberships: {
-      listForWorkspace(ctx: Ctx): Promise<Membership[]> {
-        return db
-          .select()
-          .from(memberships)
-          .where(eq(memberships.workspaceId, ctx.workspaceId));
-      },
-      findRole(ctx: Ctx, userId: string): Promise<MembershipRole | undefined> {
-        return db
-          .select({ role: memberships.role })
-          .from(memberships)
-          .where(
-            and(
-              eq(memberships.workspaceId, ctx.workspaceId),
-              eq(memberships.userId, userId),
-            ),
-          )
-          .limit(1)
-          .then((r) => r[0]?.role as MembershipRole | undefined);
-      },
-      async create(ctx: Ctx, values: Omit<NewMembership, "workspaceId">): Promise<Membership> {
-        const rows = await db
-          .insert(memberships)
-          .values({ ...values, workspaceId: ctx.workspaceId })
-          .returning();
-        return rows[0]!;
-      },
-      async remove(ctx: Ctx, userId: string): Promise<void> {
-        await db
-          .delete(memberships)
-          .where(
-            and(
-              eq(memberships.workspaceId, ctx.workspaceId),
-              eq(memberships.userId, userId),
-            ),
-          );
-      },
-    },
-
-    apiTokens: {
-      listForWorkspace(ctx: Ctx): Promise<ApiToken[]> {
-        return db.select().from(apiTokens).where(eq(apiTokens.workspaceId, ctx.workspaceId));
-      },
-      findByTokenHash(tokenHash: string): Promise<ApiToken | undefined> {
-        // Token lookup happens on the unauthenticated plane, before a Ctx exists.
-        return db
-          .select()
-          .from(apiTokens)
-          .where(eq(apiTokens.tokenHash, tokenHash))
-          .limit(1)
-          .then((r) => r[0]);
-      },
-      async create(
-        ctx: Ctx,
-        values: { name: string; tokenHash: string; scopes: ApiTokenScope[] },
-      ): Promise<ApiToken> {
-        const insert: NewApiToken = {
-          id: uuidv7(ctx.now().getTime()),
-          workspaceId: ctx.workspaceId,
-          name: values.name,
-          tokenHash: values.tokenHash,
-          scopes: [...values.scopes],
-          createdAt: ctx.now(),
-        };
-        const rows = await db.insert(apiTokens).values(insert).returning();
-        return rows[0]!;
-      },
-      async touchLastUsed(ctx: Ctx, tokenId: string): Promise<void> {
-        await db
-          .update(apiTokens)
-          .set({ lastUsedAt: ctx.now() })
-          .where(and(eq(apiTokens.id, tokenId), eq(apiTokens.workspaceId, ctx.workspaceId)));
-      },
-    },
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    passwordHash: row.passwordHash,
+    emailVerifiedAt: row.emailVerifiedAt,
+    createdAt: row.createdAt,
   };
 }
 
-export type IdentityRepositories = ReturnType<typeof createIdentityRepositories>;
+function toWorkspace(row: typeof workspaces.$inferSelect): WorkspaceRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    // text column constrained by CHECK in migration + input validation; cast mirrors drizzle schema typing.
+    plan: row.plan as WorkspacePlan,
+    stripeCustomerId: row.stripeCustomerId,
+    stripeSubscriptionId: row.stripeSubscriptionId,
+    createdAt: row.createdAt,
+  };
+}
+
+// --- repositories -----------------------------------------------------------
+
+export class DrizzleUserRepository {
+  constructor(private readonly db: Db) {}
+
+  async findByEmail(email: string): Promise<UserRecord | null> {
+    const rows = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+    const row = rows[0];
+    return row ? toUser(row) : null;
+  }
+
+  async findById(id: string): Promise<UserRecord | null> {
+    const rows = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    const row = rows[0];
+    return row ? toUser(row) : null;
+  }
+}
+
+export class DrizzleWorkspaceRepository {
+  constructor(private readonly db: Db) {}
+
+  async findBySlug(slug: string): Promise<WorkspaceRecord | null> {
+    const rows = await this.db.select().from(workspaces).where(eq(workspaces.slug, slug)).limit(1);
+    const row = rows[0];
+    return row ? toWorkspace(row) : null;
+  }
+
+  async findById(id: string): Promise<WorkspaceRecord | null> {
+    const rows = await this.db.select().from(workspaces).where(eq(workspaces.id, id)).limit(1);
+    const row = rows[0];
+    return row ? toWorkspace(row) : null;
+  }
+}
+
+export class DrizzleMembershipRepository {
+  constructor(private readonly db: Db) {}
+
+  async listForUser(
+    userId: string,
+  ): Promise<Array<{ workspace: WorkspaceRecord; role: MembershipRole }>> {
+    const rows = await this.db
+      .select({ workspace: workspaces, role: memberships.role })
+      .from(memberships)
+      .innerJoin(workspaces, eq(memberships.workspaceId, workspaces.id))
+      .where(eq(memberships.userId, userId))
+      .orderBy(workspaces.createdAt);
+    // role text column constrained to the MembershipRole vocabulary by input validation.
+    return rows.map((row) => ({ workspace: toWorkspace(row.workspace), role: row.role as MembershipRole }));
+  }
+}
+
+export class DrizzleRegistrationRepository {
+  constructor(private readonly db: Db) {}
+
+  /**
+   * One transaction: user + personal workspace + owner membership (M1
+   * acceptance). Unique violations bubble up as Postgres 23505 errors which
+   * the identity service maps to AppError("CONFLICT").
+   */
+  async createAccount(input: {
+    user: UserRecord;
+    workspace: WorkspaceRecord;
+    membership: {
+      workspaceId: string;
+      userId: string;
+      role: MembershipRole;
+    };
+  }): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx.insert(users).values({
+        id: input.user.id,
+        email: input.user.email,
+        name: input.user.name,
+        passwordHash: input.user.passwordHash,
+        emailVerifiedAt: input.user.emailVerifiedAt,
+        createdAt: input.user.createdAt,
+      });
+      await tx.insert(workspaces).values({
+        id: input.workspace.id,
+        name: input.workspace.name,
+        slug: input.workspace.slug,
+        plan: input.workspace.plan,
+        stripeCustomerId: input.workspace.stripeCustomerId,
+        stripeSubscriptionId: input.workspace.stripeSubscriptionId,
+        createdAt: input.workspace.createdAt,
+      });
+      await tx.insert(memberships).values({
+        workspaceId: input.membership.workspaceId,
+        userId: input.membership.userId,
+        role: input.membership.role,
+      });
+    });
+  }
+}
