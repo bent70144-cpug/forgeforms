@@ -11,7 +11,8 @@ export function ImageSection({ props }: { props: ImageViewProps }) {
     <figure className="ff-section-image m-0 px-6 py-10">
       <div className="mx-auto w-full max-w-3xl">
         {src !== null ? (
-          // eslint-disable-next-line @next/next/no-img-element -- renderer stays framework-portable; snapshot URLs are CDN-resolved
+          // Plain <img> (no next/image): keeps the renderer framework-portable;
+          // width/height pass through when the snapshot carries them (CLS-safe).
           <img
             src={src}
             alt={alt}

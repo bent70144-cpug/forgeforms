@@ -11,7 +11,8 @@ export function HeroSection({ props }: { props: HeroViewProps }) {
     <section className="ff-section-hero px-6 py-16 sm:py-24">
       <div className="mx-auto w-full max-w-3xl text-center">
         {props.imageUrl !== null ? (
-          // eslint-disable-next-line @next/next/no-img-element -- renderer stays framework-portable; snapshot URLs are CDN-resolved
+          // Plain <img> (no next/image): the renderer stays framework-portable and
+          // snapshot URLs are CDN-resolved at publish time (spec §8).
           <img
             src={props.imageUrl}
             alt=""
