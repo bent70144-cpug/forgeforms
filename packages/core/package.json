@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./bridge": "./src/bridge.ts",
+    "./submissions": "./src/submissions/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
