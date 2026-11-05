@@ -13,6 +13,7 @@ const initialState: AuthFormState = {};
 function fieldErrors(state: AuthFormState): Record<string, string> {
   const out: Record<string, string> = {};
   for (const detail of state.error?.details ?? []) {
+    if (!detail.path) continue;
     if (out[detail.path] === undefined) out[detail.path] = detail.message;
   }
   return out;

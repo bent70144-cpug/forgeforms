@@ -36,7 +36,8 @@ const BASE58_CHAR = /^[1-9A-HJ-NP-Za-km-z]$/;
 /** Fixed width of the base58 encoding of a 128-bit value: 58^22 > 2^128. */
 const BASE58_UUID_LENGTH = 22;
 
-export const SHORT_ID_PREFIXES = ["doc", "sub", "ast"] as const;
+// "evt" added by T14 (event ids); extend as tickets need more prefixes.
+export const SHORT_ID_PREFIXES = ["doc", "sub", "ast", "evt"] as const;
 export type ShortIdPrefix = (typeof SHORT_ID_PREFIXES)[number];
 export type PrefixedShortId = `${ShortIdPrefix}_${string}`;
 

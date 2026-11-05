@@ -18,7 +18,7 @@ import { getIdentityDeps } from "./container";
 export type AuthErrorBody = {
   code: string;
   message: string;
-  details: Array<{ path: string; message: string }>;
+  details: ReadonlyArray<{ path?: string; message: string }>;
 };
 
 export type AuthFormState = {

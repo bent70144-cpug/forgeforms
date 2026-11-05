@@ -71,4 +71,4 @@ export {
 } from './defaults';
 export { defaultDraftValidator } from './validation';
 export { createInMemoryDocumentStore, type InMemoryDocumentStore } from './inmemory';
-export { uuidv7 } from './ids';
+// uuidv7 re-export removed at integration — root already exports it from shared/ids.

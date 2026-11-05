@@ -11,8 +11,33 @@ export * from "./shared/logger.ts";
 export * from "./shared/env.ts";
 export * from "./shared/audit.ts";
 
-// T13 (issue #13): logic engine — compile/evaluate/lint (pure, shared).
-export * from "./logic/index.ts";
-
 // T10 (issue #10): publish pipeline — versions, snapshots, unpublish→410.
-export * as documents from "./documents/index.ts";
+export * from "./documents/index.ts";
+
+// T13 (issue #13): logic engine. Routing/RouteNode intentionally NOT re-exported
+// at the root — T10's documents module owns those names at the root surface;
+// logic consumers import them from "@formforge/core/logic".
+export {
+  compile,
+  lint,
+  routeMap,
+  isRoutingShape,
+  evaluate,
+} from "./logic/index.ts";
+export type {
+  Rule,
+  RuleAction,
+  RuleCondition,
+  RuleConditionOp,
+  Operand,
+  CompiledRule,
+  CompiledCondition,
+  CompiledAction,
+  Diagnostic,
+  DiagnosticCode,
+  EvaluateCtx,
+  EvaluateResult,
+} from "./logic/index.ts";
+
+// T14 (issue #14): submissions ingest services.
+export * from "./submissions/index.ts";
