@@ -7,7 +7,6 @@ import type { BillingStore, WorkspaceBillingRow } from './store';
 import { buildStripeEvent, type StripeEvent } from './stripe/events';
 import { createFakeStripeGateway } from './stripe/fake-gateway';
 import { signStripeEvent } from './stripe/signature';
-import type { Plan } from './plans';
 
 // -- in-memory BillingStore --------------------------------------------------
 
@@ -389,9 +388,9 @@ describe('seats (spec §13: 1/3/10)', () => {
 
   it('business at 10/10 has no upgrade path (requiredPlan null)', async () => {
     const { store } = makeStore();
-    const seeded = {
+    const seeded: WorkspaceBillingRow & { members: number } = {
       workspaceId: 'ws_1',
-      plan: 'business' satisfies Plan,
+      plan: 'business',
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       members: 10,

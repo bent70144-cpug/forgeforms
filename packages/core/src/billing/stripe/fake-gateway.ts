@@ -17,12 +17,15 @@ export type FakeGatewayCall =
   | { kind: 'checkout'; input: CheckoutSessionInput; at: Date }
   | { kind: 'portal'; input: PortalSessionInput; at: Date };
 
+type FakeCheckoutCall = Extract<FakeGatewayCall, { kind: 'checkout' }>;
+type FakePortalCall = Extract<FakeGatewayCall, { kind: 'portal' }>;
+
 export type FakeStripeGateway = StripeGateway & {
   calls: FakeGatewayCall[];
   /** When set, the next call fails with this error. Reset after use. */
   failNext: AppError | null;
-  checkoutCalls: FakeGatewayCall[];
-  portalCalls: FakeGatewayCall[];
+  checkoutCalls: FakeCheckoutCall[];
+  portalCalls: FakePortalCall[];
 };
 
 export type FakeGatewayOptions = {
@@ -30,6 +33,8 @@ export type FakeGatewayOptions = {
   urlPrefix?: string;
   /** Deterministic clock for call recording. */
   now?: () => Date;
+  /** When set, the next gateway call fails with this error once. */
+  failNext?: AppError;
 };
 
 let fakeCounter = 0;
@@ -45,7 +50,9 @@ export function createFakeStripeGateway(options: FakeGatewayOptions = {}): FakeS
 
     async createCheckoutSession(input): Promise<Result<CheckoutSessionResult, AppError>> {
       fake.calls.push({ kind: 'checkout', input, at: now() });
-      fake.checkoutCalls = fake.calls.filter((call) => call.kind === 'checkout');
+      fake.checkoutCalls = fake.calls.filter(
+        (call): call is FakeCheckoutCall => call.kind === 'checkout',
+      );
       if (fake.failNext) {
         const failure = fake.failNext;
         fake.failNext = null;
@@ -62,7 +69,9 @@ export function createFakeStripeGateway(options: FakeGatewayOptions = {}): FakeS
 
     async createPortalSession(input): Promise<Result<PortalSessionResult, AppError>> {
       fake.calls.push({ kind: 'portal', input, at: now() });
-      fake.portalCalls = fake.calls.filter((call) => call.kind === 'portal');
+      fake.portalCalls = fake.calls.filter(
+        (call): call is FakePortalCall => call.kind === 'portal',
+      );
       if (fake.failNext) {
         const failure = fake.failNext;
         fake.failNext = null;
