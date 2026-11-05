@@ -32,10 +32,6 @@ export function apiErrorBody(
   return { error: { code, message, ...(details && details.length > 0 ? { details } : {}) } };
 }
 
-function withHeaders(init?: ResponseInit, extra?: Record<string, string>): ResponseInit {
-  return { ...init, headers: { ...(init?.headers ?? {}), ...(extra ?? {}) } };
-}
-
 /** JSON response with the given §4 code/status. */
 export function jsonError(
   code: ErrorCode,

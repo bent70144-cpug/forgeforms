@@ -37,6 +37,11 @@ export interface AuthenticateOptions {
   readonly now?: () => Date;
 }
 
+/** DI default: the env-backed Drizzle store (INTEGRATION-DEBT: T02 client factory). */
+export function tokenStore(): ApiTokenStore {
+  return getApiTokenStoreFromEnv();
+}
+
 /**
  * INTEGRATION-DEBT: awaiting T03/T04 (Auth.js v5 sessions + roles).
  * Returns the session's Ctx once Auth.js lands; `null` until then, so
