@@ -181,6 +181,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@formforge/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@formforge/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       next:
         specifier: ^15.5.29
         version: 15.5.29(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -270,6 +276,9 @@ importers:
       pino:
         specifier: ^10.4.0
         version: 10.4.0
+      uuid:
+        specifier: ^11.0.0
+        version: 11.1.1
       uuidv7:
         specifier: ^1.2.1
         version: 1.2.1
@@ -2303,6 +2312,10 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
+    hasBin: true
+
   uuidv7@1.2.1:
     resolution: {integrity: sha512-4kPkK3/XTQW9Hbm4CaqfICn+kY9LJtDVEOfgsRRra/+n2Ofg4NqzRFceAkxvQ/Ud/6BpHOPzj8cirqM7TzTN5Q==}
     hasBin: true
@@ -3934,6 +3947,8 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  uuid@11.1.1: {}
 
   uuidv7@1.2.1: {}
 
