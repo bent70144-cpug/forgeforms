@@ -1,10 +1,11 @@
 // Documents API schemas for /api/v1 (spec §11, endpoints marked docs:*).
-// The demo route + OpenAPI document (issue #25) are generated from these.
+// The OpenAPI document (issue #25) is generated from these.
 //
-// SPEC-NOTE: `draft` (DocumentBody) and the op vocabulary in PATCH
-// /documents/{id} are owned by T06 (blocks) / T07 (documents API). They are
-// typed as `unknown` / permissive here so this file stays stable; T07 refines.
+// T07 (issue #7) refinements: the PATCH ops vocabulary now composes the
+// canonical `DocumentOpSchema` (src/ops.ts) instead of a permissive stub, and
+// the GET /documents/{id} builder envelope + PATCH response schemas are pinned.
 import { z } from 'zod';
+import { PatchDocumentOpsSchema } from '../ops';
 import { CursorQuerySchema, paginated } from './pagination';
 
 export const DocumentTypeSchema = z.enum(['form', 'page', 'portfolio']);
@@ -47,18 +48,29 @@ export type CreateDocumentRequest = z.infer<typeof CreateDocumentRequestSchema>;
 export const ListDocumentsResponseSchema = paginated(DocumentSummarySchema);
 
 /**
- * PATCH /api/v1/documents/{id} — ops-based apply with optimistic concurrency
- * (`baseRev`). Op shape is owned by T07; kept permissive here on purpose.
+ * GET /api/v1/documents/{id} — the builder envelope (spec §11 "Get draft +
+ * metadata"; T08 DocumentTransport contract). `body` is the current draft.
  */
-export const PatchDocumentRequestSchema = z.object({
-  baseRev: z.number().int().min(0),
-  ops: z.array(
-    z
-      .object({ op: z.string().min(1) })
-      .loose(),
-  ),
+export const DocumentEnvelopeSchema = DocumentSummarySchema.extend({
+  body: z.unknown(),
+  publishedVersionId: z.string().uuid().nullable(),
 });
+export type DocumentEnvelope = z.infer<typeof DocumentEnvelopeSchema>;
+
+/**
+ * PATCH /api/v1/documents/{id} — ops-based apply with optimistic concurrency
+ * (`baseRev`); ops are the §8 vocabulary from src/ops.ts.
+ */
+export const PatchDocumentRequestSchema = PatchDocumentOpsSchema;
 export type PatchDocumentRequest = z.infer<typeof PatchDocumentRequestSchema>;
+
+/** PATCH 200 response — the authoritative rev + resulting draft body. */
+export const PatchDocumentResponseSchema = z.object({
+  rev: z.number().int().min(0),
+  updatedAt: z.string().datetime(),
+  body: z.unknown(),
+});
+export type PatchDocumentResponse = z.infer<typeof PatchDocumentResponseSchema>;
 
 export const PublishDocumentResponseSchema = z.object({
   id: z.string().uuid(),
