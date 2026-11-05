@@ -309,6 +309,3 @@ export function parseIsoDate(value: string): Date | null {
   return Number.isNaN(ms) ? null : new Date(ms);
 }
 
-
-
-/** Accepts `doc_<short58>` (public form) or a raw uuid. */
