@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./identity": "./src/identity/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
@@ -11,6 +12,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "uuid": "^11.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
