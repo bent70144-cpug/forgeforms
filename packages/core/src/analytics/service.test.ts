@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { createAnalyticsService, openAdvancedAnalyticsGate } from "./service";
 import type { AnalyticsRepositoryPort, AnalyticsService } from "./service";
 import type { PartitionPlanItem } from "./partitions";
-import type { AnalyticsEventType, AnalyticsRange, DailyRollupRow, RawAnalyticsEvent } from "./types";
+import type { AnalyticsEventType, DailyRollupRow, RawAnalyticsEvent } from "./types";
 
 /** In-memory double of the drizzle repository (same semantics, no Postgres). */
 function fakeRepo() {
