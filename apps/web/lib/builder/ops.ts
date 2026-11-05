@@ -366,8 +366,9 @@ function invertSingle(sim: EditableDoc, op: Op): Op | null {
       }
       if (seo) {
         const invSeo: Record<string, unknown> = {};
+        const oldSeo = old.seo as Record<string, unknown>;
         for (const k of Object.keys(seo)) {
-          invSeo[k] = k in old.seo ? old.seo[k] : null;
+          invSeo[k] = k in oldSeo ? oldSeo[k] : null;
         }
         inv.seo = invSeo;
       }

@@ -95,9 +95,10 @@ export class ApiTransport implements DocumentTransport {
       let body: DocumentBody | undefined;
       try {
         const json = (await res.json()) as ErrorBody & { rev?: number; body?: DocumentBody };
+        const details = json.error?.details as { rev?: number } | undefined;
         if (typeof json.rev === "number") rev = json.rev;
-        else if (typeof (json.error?.details as { rev?: number } | undefined)?.rev === "number") {
-          rev = (json.error.details as { rev: number }).rev;
+        else if (typeof details?.rev === "number") {
+          rev = details.rev;
         }
         body = json.body;
       } catch {
