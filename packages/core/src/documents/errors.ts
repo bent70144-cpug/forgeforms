@@ -15,6 +15,13 @@ const HTTP_STATUS: Readonly<Record<AppErrorCode, number>> = {
   PLAN_LIMIT: 402,
   INTERNAL: 500,
   UNPUBLISHED: 410,
+  // T27 AI-plane extensions (integration).
+  UNAUTHENTICATED: 401,
+  UNPROCESSABLE: 422,
+  AI_OUTPUT_INVALID: 502,
+  AI_PROVIDER_ERROR: 502,
+  AI_NOT_CONFIGURED: 503,
+  CONFIRMATION_REQUIRED: 422,
 };
 
 export function appErrorToHttpStatus(code: AppErrorCode): number {

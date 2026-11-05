@@ -20,6 +20,13 @@ describe("AppError", () => {
       "INTERNAL",
       // T10 extension (SPEC-NOTE in errors.ts): unpublish → 410.
       "UNPUBLISHED",
+      // T27 AI-plane extensions (SPEC-NOTE in errors.ts).
+      "UNAUTHENTICATED",
+      "UNPROCESSABLE",
+      "AI_OUTPUT_INVALID",
+      "AI_PROVIDER_ERROR",
+      "AI_NOT_CONFIGURED",
+      "CONFIRMATION_REQUIRED",
     ]);
   });
 
@@ -35,6 +42,12 @@ describe("AppError", () => {
       PLAN_LIMIT: 402,
       INTERNAL: 500,
       UNPUBLISHED: 410,
+      UNAUTHENTICATED: 401,
+      UNPROCESSABLE: 422,
+      AI_OUTPUT_INVALID: 502,
+      AI_PROVIDER_ERROR: 502,
+      AI_NOT_CONFIGURED: 503,
+      CONFIRMATION_REQUIRED: 422,
     });
     for (const code of APP_ERROR_CODES) {
       expect(toHttpStatus(code)).toBe(HTTP_STATUS_BY_CODE[code]);

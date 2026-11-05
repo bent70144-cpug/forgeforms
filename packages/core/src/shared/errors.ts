@@ -19,6 +19,13 @@ export const APP_ERROR_CODES = [
   "INTERNAL",
   // SPEC-NOTE (T10): §4 has no code for unpublish; mapped to 410 by callers.
   "UNPUBLISHED",
+  // SPEC-NOTE (T27): AI-plane extensions (see apps/web/api mapping).
+  "UNAUTHENTICATED",
+  "UNPROCESSABLE",
+  "AI_OUTPUT_INVALID",
+  "AI_PROVIDER_ERROR",
+  "AI_NOT_CONFIGURED",
+  "CONFIRMATION_REQUIRED",
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -33,6 +40,12 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = Objec
   PLAN_LIMIT: 402,
   INTERNAL: 500,
   UNPUBLISHED: 410,
+  UNAUTHENTICATED: 401,
+  UNPROCESSABLE: 422,
+  AI_OUTPUT_INVALID: 502,
+  AI_PROVIDER_ERROR: 502,
+  AI_NOT_CONFIGURED: 503,
+  CONFIRMATION_REQUIRED: 422,
 });
 
 /** Field-level detail, e.g. `{ path: "blocks[2].props.title", message: "Required" }`. */

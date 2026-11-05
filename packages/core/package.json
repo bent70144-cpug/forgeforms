@@ -12,7 +12,8 @@
     "./export": "./src/export/index.ts",
     "./templates": "./src/templates/index.ts",
     "./billing": "./src/billing/index.ts",
-    "./api": "./src/api/index.ts"
+    "./api": "./src/api/index.ts",
+    "./ai": "./src/ai/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
