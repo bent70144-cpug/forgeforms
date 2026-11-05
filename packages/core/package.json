@@ -4,16 +4,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-<<<<<<< HEAD
     "./identity": "./src/identity/index.ts",
     "./identity/policy": "./src/identity/policy.ts",
     "./bridge": "./src/bridge.ts",
     "./submissions": "./src/submissions/index.ts",
-    "./integrations": "./src/integrations/index.ts"
-=======
-    "./export": "./src/export/index.ts",
-    "./bridge": "./src/bridge.ts"
->>>>>>> ticket/18-csv-export
+    "./integrations": "./src/integrations/index.ts",
+    "./export": "./src/export/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
