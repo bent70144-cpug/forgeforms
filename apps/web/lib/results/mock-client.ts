@@ -86,7 +86,7 @@ export class MockResultsClient implements ResultsClient {
     }
   }
 
-  async getDocument(): Promise<DocumentSummary> {
+  async getDocument(_documentId: string): Promise<DocumentSummary> {
     await this.tick();
     return this.doc;
   }
@@ -135,7 +135,7 @@ export class MockResultsClient implements ResultsClient {
     return found;
   }
 
-  async getSummary(): Promise<SummaryResponse> {
+  async getSummary(_documentId: string): Promise<SummaryResponse> {
     await this.tick();
     return buildSummary(this.doc.body.blocks, this.submissions, new Date(this.now()).toISOString());
   }

@@ -26,7 +26,7 @@ function submission(id: string, completedAt: string): SubmissionDTO {
 }
 
 function page(rows: SubmissionDTO[], nextCursor: string | null): CursorPage {
-  return { rows, nextCursor };
+  return { data: rows, nextCursor };
 }
 
 const S = {

@@ -77,11 +77,13 @@ function normalizeDocument(value: unknown): DocumentSummary {
     body: {
       schemaVersion: 1,
       type,
-      theme: asRecord(body.theme) as DocumentSummary["body"]["theme"],
-      settings: asRecord(body.settings) as DocumentSummary["body"]["settings"],
-      blocks: Array.isArray(body.blocks) ? (body.blocks as DocumentSummary["body"]["blocks"]) : [],
+      theme: asRecord(body.theme) as unknown as DocumentSummary["body"]["theme"],
+      settings: asRecord(body.settings) as unknown as DocumentSummary["body"]["settings"],
+      blocks: Array.isArray(body.blocks)
+        ? (body.blocks as unknown as DocumentSummary["body"]["blocks"])
+        : [],
       endings: Array.isArray(body.endings)
-        ? (body.endings as DocumentSummary["body"]["endings"])
+        ? (body.endings as unknown as DocumentSummary["body"]["endings"])
         : [],
       logic: { rules: [] },
     },

@@ -4,9 +4,9 @@
 
 import type { SortDir, StatusFilter, SubmissionDTO } from "./types";
 
-/** A resolved page from any ResultsClient. */
+/** A resolved page from any ResultsClient (spec §4 envelope). */
 export interface CursorPage {
-  rows: SubmissionDTO[];
+  data: SubmissionDTO[];
   nextCursor: string | null;
 }
 
@@ -117,7 +117,7 @@ export function paginationReducer(state: PaginationState, action: PaginationActi
     case "firstPage": {
       // Stale-response guard: only the current query may resolve.
       if (state.queryId !== action.queryId || !state.loading) return state;
-      const rows = dedupeAppend([], action.page.rows);
+      const rows = dedupeAppend([], action.page.data);
       return {
         ...state,
         loading: false,
@@ -135,7 +135,7 @@ export function paginationReducer(state: PaginationState, action: PaginationActi
     }
     case "nextPage": {
       if (state.queryId !== action.queryId || !state.loadingMore) return state;
-      const rows = dedupeAppend(state.rows, action.page.rows);
+      const rows = dedupeAppend(state.rows, action.page.data);
       // Loop guard runs against the OLD history — a fresh cursor is new here.
       const nextCursor = acceptCursor(action.page.nextCursor, state.cursorHistory);
       const history = nextCursor ? [...state.cursorHistory, nextCursor] : state.cursorHistory;
