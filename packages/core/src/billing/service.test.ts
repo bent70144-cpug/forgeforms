@@ -404,7 +404,7 @@ describe('seats (spec §13: 1/3/10)', () => {
     if (!result.ok) {
       expect(result.error.details).toEqual([
         { path: 'capability', message: 'seats' },
-        { path: 'requiredPlan', message: 'null' },
+        { path: 'need', message: '11' },
       ]);
     } else {
       expect.unreachable('expected PLAN_LIMIT');

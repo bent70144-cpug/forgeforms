@@ -166,7 +166,7 @@ describe('planLimitError', () => {
     expect(error.code).toBe('PLAN_LIMIT');
     expect(error.details).toEqual([
       { path: 'capability', message: 'seats' },
-      { path: 'requiredPlan', message: 'null' },
+      { path: 'need', message: '11' },
     ]);
   });
 });
