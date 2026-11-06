@@ -49,6 +49,12 @@ export type PublicCspOptions = {
    * Every other public page forbids framing outside ourselves.
    */
   readonly embed: boolean;
+  /**
+   * True only when NODE_ENV=development: Next.js dev-mode HMR evaluates
+   * strings (`unsafe-eval`), so the dev server would otherwise break on every
+   * page — a dev-only relaxation; production keeps the strict policy.
+   */
+  readonly devMode?: boolean;
 };
 
 /** Build the §17 Content-Security-Policy value for a public page response. */
@@ -60,7 +66,7 @@ export function buildPublicPageCsp(options: PublicCspOptions): string {
       `'self' 'nonce-${options.nonce}' 'strict-dynamic' https: 'unsafe-inline'`
     : // Static planes (ISR-cached HTML): no nonce available — lock to our
       // origin + the Turnstile widget; inline bootstrap scripts allowed.
-      `'self' 'unsafe-inline' ${TURNSTILE_ORIGIN}`;
+      `'self' 'unsafe-inline'${options.devMode ? " 'unsafe-eval'" : ""} ${TURNSTILE_ORIGIN}`;
 
   const directives = [
     "default-src 'self'",
@@ -138,9 +144,13 @@ export function publicPageHeadersFor(
   const page = classifyPublicPagePath(pathname);
   if (page.kind === null) return null;
   if (page.kind === "embed") {
-    return publicSecurityHeaders(buildPublicPageCsp({ nonce, embed: true }));
+    return publicSecurityHeaders(
+      buildPublicPageCsp({ nonce, embed: true, devMode: process.env.NODE_ENV === "development" }),
+    );
   }
   // document + marketing: ISR/prerendered HTML — static policy (see header
   // comment for why nonce-CSP would break cached pages).
-  return publicSecurityHeaders(buildPublicPageCsp({ nonce: null, embed: false }));
+  return publicSecurityHeaders(
+      buildPublicPageCsp({ nonce: null, embed: false, devMode: process.env.NODE_ENV === "development" }),
+    );
 }
