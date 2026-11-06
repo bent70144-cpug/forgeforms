@@ -1,0 +1,94 @@
+/* Hallmark · Coral theme tokens (dealt 1/3) — scoped to the landing page so
+   the app's own --ff-* system is untouched. Custom properties inherit, so
+   everything inside .ff-land reads these. */
+
+.ff-land {
+  /* palette (oklch, all tinted toward the anchor hue) */
+  --color-paper: oklch(97% 0.006 55);
+  --color-paper-2: oklch(94.5% 0.007 55);
+  --color-paper-3: oklch(91.5% 0.009 55);
+  --color-ink: oklch(21% 0.012 38);
+  --color-ink-2: oklch(29% 0.013 40);
+  --color-muted: oklch(47% 0.013 45);
+  --color-rule: oklch(87% 0.009 55);
+  --color-rule-2: oklch(81% 0.011 55);
+  --color-accent: oklch(74% 0.125 30);
+  --color-accent-ink: oklch(21% 0.012 38);
+  --color-accent-2: oklch(54% 0.165 29);
+  --color-focus: oklch(54% 0.17 30);
+  --color-cotton: oklch(98.8% 0.0045 80);
+  --color-desk: oklch(94.3% 0.008 64);
+  --color-print: oklch(23% 0.012 38);
+  --color-board: oklch(22% 0.011 40);
+  --color-board-type: oklch(96.5% 0.006 70);
+  --color-paid: oklch(55.5% 0.15 33);
+  --color-press-shadow: oklch(40% 0.14 32);
+
+  /* textures */
+  --tex-cotton: url("/textures/cotton.svg");
+  --tex-desk: url("/textures/felt.svg");
+
+  /* light model: lit from the left, every shadow falls right */
+  --shade: 32% 0.03 50;
+  --lit: 100% 0.005 80;
+  --deep: 7% 0.01 40;
+
+  /* type */
+  --font-display: "General Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-display);
+  --font-outlier: "Geist Mono", ui-monospace, "SF Mono", monospace;
+  --tracking-display: -0.03em;
+  --display-weight: 600;
+
+  /* scale (layout.md §2, 1.25 ratio from a 16px body) */
+  --text-display: clamp(2.6rem, 5.85vw, 5.25rem);
+  --text-display-s: clamp(2rem, 4.2vw, 3.75rem);
+  --text-section: clamp(1.9rem, 3.6vw, 3.25rem);
+  --text-title: 1.5625rem;
+  --text-lead: clamp(1.125rem, 1.5vw, 1.3125rem);
+  --text-md: 1rem;
+  --text-sm: 0.875rem;
+
+  /* spacing scale */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 96px;
+  --space-4xl: 144px;
+  --section-gap-s: clamp(72px, 9vw, 120px);
+  --section-gap: clamp(88px, 11vw, 144px);
+  --section-gap-l: clamp(104px, 13vw, 176px);
+
+  /* motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 0.85, 0.6);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+
+  /* canvas */
+  --container: 1440px;
+  --gutter: clamp(20px, 5vw, 64px);
+  --gap-columns: clamp(24px, 3vw, 32px);
+
+  /* radii + edges */
+  --radius-card: 8px;
+  --radius-input: 6px;
+  --radius-pill: 999px;
+  --radius-stock: 8px;
+  --rule-hair: 1px;
+  --shadow-card: 0 1px 2px oklch(20% 0.01 35 / 0.05);
+  --edge-stock: inset 0 1px 0 oklch(var(--lit) / 0.9),
+    inset 0 -1px 0 oklch(var(--shade) / 0.07),
+    0 0 0 0.5px oklch(var(--shade) / 0.22), 0 1px 0 oklch(var(--shade) / 0.12);
+  --cast-stock: 6px 5px 10px -6px oklch(var(--shade) / 0.3);
+  --cast-stock-lift: 12px 10px 18px -8px oklch(var(--shade) / 0.3);
+  --press-groove: inset 1px 1.5px 2px oklch(var(--shade) / 0.16),
+    inset -1px -1px 0 oklch(var(--lit) / 0.9), 0 0 0 0.5px oklch(var(--shade) / 0.2);
+}

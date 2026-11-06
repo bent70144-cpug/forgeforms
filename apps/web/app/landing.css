@@ -1,0 +1,900 @@
+/* Hallmark · v2.0.0 · redesign full · page / · genre modern-minimal · theme Coral dealt 1/3 (seed formforge-multi-tenant-saas-forms-27e8·798f5a2a·2026-11-06·r0) · shape: Stage hero · signature: the desk form demo, "Submitted" pressed into the stock · kept: every link, route and product fact · redesign: full (existing app stylesheet — this section is namespaced under .ff-land, stamp lives here) */
+/* critique: F4 dismissed on the record — the theme's two letterpress recipes are quiet (cotton) and primary (ink), not competing primaries */
+
+@import "./tokens.css";
+
+/* --- Faces (self-hosted; CSP font-src 'self') ----------------------------- */
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/fonts/GeneralSans-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/fonts/GeneralSans-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/fonts/GeneralSans-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- Floor 4: no horizontal scroll anywhere; sticky keeps working --------- */
+
+html,
+body {
+  overflow-x: clip;
+}
+
+/* --- the world (tokens live in tokens.css) --------------------------------- */
+
+.ff-land {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  font-synthesis: none;
+  min-height: 100vh;
+}
+
+/* browser surfaces carry the design (F16) */
+.ff-land {
+  scrollbar-color: var(--color-rule-2) transparent;
+}
+
+.ff-land ::selection {
+  background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+  color: var(--color-ink);
+}
+
+.ff-land :focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.ff-land a:not(.ff-land-btn) {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color var(--dur-micro) var(--ease-out);
+}
+
+.ff-land a:not(.ff-land-btn):hover {
+  text-decoration-color: var(--color-accent-2);
+}
+
+/* --- canvas ---------------------------------------------------------------- */
+
+.ff-land-container {
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* --- nav: edge-aligned, one line ------------------------------------------ */
+
+.ff-land-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 64px;
+  padding-block: var(--space-sm);
+}
+
+.ff-land-wordmark {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  color: var(--color-ink);
+}
+
+.ff-land-nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.ff-land-nav-link {
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-input);
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.ff-land-nav-link:hover {
+  color: var(--color-ink);
+}
+
+/* nav actions stay quieter than the hero's */
+.ff-land-nav-cta {
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  font-size: var(--text-sm);
+}
+
+/* --- letterpress controls --------------------------------------------------- */
+
+.ff-land-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 48px;
+  padding: 0 var(--space-lg);
+  border: 0;
+  border-radius: var(--radius-stock);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--dur-short) var(--ease-out),
+    box-shadow var(--dur-short) var(--ease-out);
+}
+
+.ff-land-btn--card {
+  background-color: var(--color-cotton);
+  background-image: var(--tex-cotton);
+  color: var(--color-print);
+  text-shadow: 0.5px 0.75px 0 var(--color-cotton);
+  box-shadow: var(--edge-stock), var(--cast-stock);
+}
+
+.ff-land-btn--ink {
+  background: var(--color-board);
+  color: var(--color-board-type);
+  text-shadow: 0 -0.75px 0 var(--color-ink);
+  box-shadow: var(--cast-stock);
+}
+
+.ff-land-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--edge-stock), var(--cast-stock-lift);
+}
+
+.ff-land-btn--ink:hover {
+  box-shadow: var(--cast-stock-lift);
+}
+
+.ff-land-btn:active {
+  transform: translateY(1px);
+}
+
+.ff-land-btn:disabled,
+.ff-land-field input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- type roles -------------------------------------------------------------- */
+
+.ff-land h1,
+.ff-land h2,
+.ff-land h3 {
+  font-family: var(--font-display);
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+
+.ff-land-h1 {
+  font-size: var(--text-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--tracking-display);
+  line-height: 1.04;
+  max-width: 20ch;
+}
+
+.ff-land-lead {
+  font-size: var(--text-lead);
+  line-height: 1.45;
+  color: var(--color-muted);
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+
+.ff-land-h2 {
+  font-size: var(--text-section);
+  font-weight: var(--display-weight);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  max-width: 30ch;
+}
+
+.ff-land-h3 {
+  font-size: var(--text-title);
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ff-land-small {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.ff-land-fig {
+  font-family: var(--font-outlier);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- sections ---------------------------------------------------------------- */
+
+.ff-land-section {
+  padding-block: 0;
+  padding-top: var(--section-gap);
+}
+
+.ff-land-band {
+  background: var(--color-board);
+  color: var(--color-board-type);
+  padding-block: var(--section-gap-s);
+}
+
+/* --- the hero desk (Stage: text 5, desk 7) ----------------------------------- */
+
+.ff-land-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--space-3xl);
+  align-items: center;
+  padding-block: var(--space-xl) 0;
+}
+
+.ff-land-hero-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.ff-land-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  align-items: center;
+}
+
+.ff-land-desk {
+  background-color: var(--color-desk);
+  background-image: radial-gradient(90% 120% at 0% 30%, var(--color-cotton), transparent 62%),
+    var(--tex-desk);
+  border-radius: var(--radius-card);
+  box-shadow: var(--edge-stock);
+  padding: clamp(20px, 4vw, 48px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.ff-land-sheet {
+  position: relative;
+  width: min(440px, 100%);
+  background-color: var(--color-cotton);
+  background-image: linear-gradient(100deg, var(--color-cotton), transparent 45%),
+    var(--tex-cotton);
+  color: var(--color-print);
+  border-radius: var(--radius-stock);
+  box-shadow: var(--edge-stock), var(--cast-stock);
+  padding: clamp(20px, 3vw, 32px);
+  transform: rotate(-0.5deg);
+}
+
+.ff-land-sheet-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 var(--space-sm);
+}
+
+.ff-land-sheet-rule {
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+  margin: 0 0 var(--space-md);
+}
+
+/* sample form fields (read-only preview) */
+.ff-land-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.ff-land-field + .ff-land-field {
+  margin-top: var(--space-md);
+}
+
+.ff-land-field label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
+.ff-land-field input {
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--color-rule-2);
+  border-radius: var(--radius-input);
+  background: var(--color-paper);
+  color: var(--color-print);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+}
+
+/* the reply card, tucked over the sheet's foot */
+.ff-land-reply {
+  position: absolute;
+  right: clamp(-14px, -1vw, -6px);
+  bottom: calc(var(--space-md) * -1);
+  transform: rotate(1.5deg);
+  background-color: var(--color-cotton);
+  background-image: var(--tex-cotton);
+  color: var(--color-print);
+  border-radius: var(--radius-input);
+  box-shadow: var(--edge-stock), var(--cast-stock);
+  padding: var(--space-sm) var(--space-md);
+  max-width: 70%;
+}
+
+.ff-land-reply small {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+.ff-land-reply strong {
+  font-weight: 500;
+}
+
+/* the settled state, pressed into the stock */
+.ff-land-press-mark {
+  position: absolute;
+  top: var(--space-md);
+  right: var(--space-md);
+  transform: rotate(-3deg);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: var(--display-weight);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--color-paid);
+  filter: url("#ff-land-press");
+  pointer-events: none;
+}
+
+/* --- the groove: one document, three planes ---------------------------------- */
+
+.ff-land-groove {
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: var(--space-2xs);
+  border-radius: 12px;
+  box-shadow: var(--press-groove);
+  background-color: var(--color-paper-2);
+}
+
+.ff-land-groove-btn {
+  position: relative;
+  z-index: 1;
+  min-height: 40px;
+  padding: 0 var(--space-md);
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-card);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color var(--dur-short) var(--ease-out);
+  min-width: 84px;
+}
+
+.ff-land-groove-btn[aria-pressed="true"] {
+  color: var(--color-print);
+}
+
+.ff-land-groove-thumb {
+  position: absolute;
+  top: var(--space-2xs);
+  bottom: var(--space-2xs);
+  left: var(--space-2xs);
+  width: calc((100% - var(--space-2xs) * 2) / 3);
+  background-color: var(--color-cotton);
+  background-image: var(--tex-cotton);
+  border-radius: var(--radius-card);
+  box-shadow: var(--edge-stock);
+  transition: transform var(--dur-long) var(--ease-in-out);
+}
+
+.ff-land-groove[data-active="form"] .ff-land-groove-thumb {
+  transform: translateX(0);
+}
+
+.ff-land-groove[data-active="page"] .ff-land-groove-thumb {
+  transform: translateX(100%);
+}
+
+.ff-land-groove[data-active="embed"] .ff-land-groove-thumb {
+  transform: translateX(200%);
+}
+
+/* the three plane states */
+.ff-land-plane {
+  display: none;
+  position: relative;
+}
+
+/* pressed-ink filter shadow (token-tinted; set as CSS so no literal colour
+   leaks into markup) */
+.ff-land-press-shadow {
+  flood-color: var(--color-press-shadow);
+  flood-opacity: 0.5;
+}
+
+/* compact card control (embed plane) */
+.ff-land-btn--small {
+  min-height: 44px;
+  padding: 0 var(--space-md);
+  font-size: var(--text-sm);
+}
+
+.ff-land-embed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ff-land-embed-note {
+  margin: var(--space-md) 0 0;
+}
+
+.ff-land-planes[data-active="form"] .ff-land-plane-form {
+  display: block;
+}
+
+.ff-land-planes[data-active="page"] .ff-land-plane-page {
+  display: block;
+}
+
+.ff-land-planes[data-active="embed"] .ff-land-plane-embed {
+  display: block;
+}
+
+.ff-land-planes[data-active="form"] .ff-land-plane-form,
+.ff-land-planes[data-active="page"] .ff-land-plane-page,
+.ff-land-planes[data-active="embed"] .ff-land-plane-embed {
+  animation: ff-land-plane-in var(--dur-long) var(--ease-out);
+}
+
+@keyframes ff-land-plane-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ff-land-planes {
+  width: min(440px, 100%);
+  min-height: 248px;
+}
+
+/* page plane: the same document as a scroll page */
+.ff-land-minihead {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: var(--display-weight);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 var(--space-sm);
+}
+
+.ff-land-minibody {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-ink-2);
+  max-width: 52ch;
+  text-wrap: pretty;
+  margin: 0 0 var(--space-sm);
+}
+
+/* embed plane: the code card + the widget */
+.ff-land-code {
+  font-family: var(--font-outlier);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--color-board-type);
+  background: var(--color-board);
+  border-radius: var(--radius-input);
+  box-shadow: var(--cast-stock);
+  padding: var(--space-sm) var(--space-md);
+  overflow-wrap: break-word;
+  min-width: 0;
+  margin: 0 0 var(--space-md);
+}
+
+.ff-land-embed-frame {
+  border: var(--rule-hair) solid var(--color-rule-2);
+  border-radius: var(--radius-card);
+  padding: var(--space-md);
+  background: var(--color-paper);
+}
+
+.ff-land-embed-frame small {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  margin-bottom: var(--space-sm);
+}
+
+/* --- the authored moment: the desk job plays once, then still ---------------- */
+
+.ff-land-play .ff-land-reply {
+  animation: ff-land-reply-in 600ms var(--ease-out) 900ms both;
+}
+
+.ff-land-play .ff-land-press-mark {
+  animation: ff-land-press-in 550ms var(--ease-out) 2200ms both;
+}
+
+@keyframes ff-land-reply-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) rotate(4deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(1.5deg);
+  }
+}
+
+@keyframes ff-land-press-in {
+  0% {
+    opacity: 0;
+    transform: rotate(-3deg) scale(1.45);
+  }
+  55% {
+    opacity: 1;
+  }
+  80% {
+    transform: rotate(-3deg) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-3deg) scale(1);
+  }
+}
+
+/* --- rows: the five named moments -------------------------------------------- */
+
+.ff-land-rows {
+  border-top: var(--rule-hair) solid var(--color-rule);
+}
+
+.ff-land-row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: var(--gap-columns);
+  padding-block: var(--space-xl);
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.ff-land-row h3 {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ff-land-row p {
+  margin: 0;
+  color: var(--color-muted);
+  max-width: 58ch;
+  text-wrap: pretty;
+}
+
+.ff-land-row .ff-land-fig {
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+  margin-top: var(--space-2xs);
+}
+
+/* --- split: the envelope and your own domain ---------------------------------- */
+
+.ff-land-split {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+  gap: var(--space-2xl);
+  align-items: center;
+}
+
+.ff-land-split-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.ff-land-facts {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+}
+
+.ff-land-facts div {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: baseline;
+}
+
+.ff-land-facts dt {
+  font-weight: 500;
+  color: var(--color-ink);
+  white-space: nowrap;
+}
+
+.ff-land-facts dd {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* the window envelope, built in CSS */
+.ff-land-envelope-scene {
+  position: relative;
+  padding-block: var(--space-lg);
+}
+
+.ff-land-envelope {
+  position: relative;
+  background-color: var(--color-cotton);
+  background-image: var(--tex-cotton);
+  border-radius: var(--radius-card);
+  box-shadow: var(--edge-stock), var(--cast-stock);
+  aspect-ratio: 8 / 5;
+  max-width: 560px;
+  margin-inline: auto;
+  transform: rotate(0.75deg);
+  overflow: hidden;
+}
+
+.ff-land-envelope::before {
+  /* the address window, glassine */
+  content: "";
+  position: absolute;
+  left: 12%;
+  top: 38%;
+  width: 56%;
+  height: 44%;
+  background: linear-gradient(
+    115deg,
+    color-mix(in oklab, var(--color-paper) 75%, transparent),
+    color-mix(in oklab, var(--color-paper-3) 55%, transparent)
+  );
+  border-radius: var(--space-2xs);
+  box-shadow: inset 0 0 0 1px oklch(var(--shade) / 0.14);
+}
+
+.ff-land-envelope-address {
+  position: absolute;
+  left: calc(12% + var(--space-md));
+  top: calc(38% + var(--space-md));
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--color-print);
+}
+
+.ff-land-envelope-address strong {
+  font-family: var(--font-outlier);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  font-size: 1.0625rem;
+}
+
+.ff-land-envelope-stamp {
+  position: absolute;
+  right: 7%;
+  top: 9%;
+  width: 15%;
+  aspect-ratio: 5 / 6;
+  background: var(--color-paper-3);
+  border-radius: var(--space-3xs);
+  box-shadow: inset 0 0 0 1px oklch(var(--shade) / 0.16);
+}
+
+.ff-land-envelope-stamp::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border: var(--rule-hair) dashed oklch(var(--shade) / 0.28);
+  border-radius: var(--space-3xs);
+}
+
+/* replies fanned behind the envelope */
+.ff-land-replycard {
+  position: absolute;
+  background-color: var(--color-cotton);
+  background-image: var(--tex-cotton);
+  border-radius: var(--radius-input);
+  box-shadow: var(--edge-stock), var(--cast-stock);
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--color-print);
+}
+
+.ff-land-replycard--a {
+  top: 0;
+  left: 16%;
+  transform: rotate(-4deg);
+}
+
+.ff-land-replycard--b {
+  top: calc(var(--space-sm) * -1);
+  right: 18%;
+  transform: rotate(3deg);
+}
+
+/* --- the board close ----------------------------------------------------------- */
+
+.ff-land-close {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.ff-land-close h2 {
+  color: var(--color-board-type);
+  margin: 0;
+}
+
+.ff-land-close .ff-land-btn--card {
+  /* the action sits on stationery laid on the band */
+  box-shadow: var(--edge-stock), 8px 8px 14px -8px oklch(var(--deep) / 0.55);
+}
+
+.ff-land-close-note {
+  font-size: var(--text-sm);
+  color: color-mix(in oklab, var(--color-board-type) 72%, transparent);
+}
+
+/* --- footer: colophon under a hairline ------------------------------------------ */
+
+.ff-land-footer {
+  padding-block: var(--space-2xl) var(--space-xl);
+}
+.ff-land-footer-rule {
+  border: 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+  margin: 0 0 var(--space-lg);
+}
+
+.ff-land-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md) var(--space-lg);
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.ff-land-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.ff-land-footer-links a {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-muted);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+}
+
+.ff-land-footer-links a:hover {
+  text-decoration-color: var(--color-accent-2);
+  color: var(--color-ink);
+}
+
+.ff-land-legal {
+  margin: var(--space-lg) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+}
+
+/* --- responsive: every composition stacks in reading order under 60rem ---------- */
+
+@media (max-width: 60rem) {
+  .ff-land-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+
+  .ff-land-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+    padding-block: var(--space-lg);
+  }
+
+  .ff-land-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+
+  /* reading order on small screens: text, then the visual */
+  .ff-land-envelope-scene {
+    order: 2;
+  }
+
+  .ff-land-section {
+    padding-top: var(--section-gap-s);
+  }
+}
+
+@media (max-width: 40rem) {
+  .ff-land-nav-link {
+    padding: var(--space-xs) var(--space-2xs);
+  }
+
+  .ff-land-nav-links {
+    gap: 0;
+  }
+
+  .ff-land-btn {
+    min-height: 44px;
+    padding: 0 var(--space-md);
+  }
+
+  .ff-land-press-mark {
+    font-size: 1.375rem;
+  }
+}
+
+/* --- reduced motion: the finished state, at once --------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-land *,
+  .ff-land *::before,
+  .ff-land *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

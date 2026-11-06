@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./landing.css";
 
 /* Design tokens (spec §14.3) — app surfaces consume the --ff-* variables;
    documents carry their own theme at render time. */
