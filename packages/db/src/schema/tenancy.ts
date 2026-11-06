@@ -25,7 +25,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import {
-  documentStatusValues,
   documentTypeValues,
   documentVersions,
   documents,
@@ -33,16 +32,20 @@ import {
 } from "./documents.ts";
 
 // Canonical document-plane tables — single source of truth: ./documents.ts.
+// Types are RE-EXPORTED (not redeclared) so `export *` barrels never see two
+// distinct declarations of the same name.
 export { documents, documentVersions, snapshots } from "./documents.ts";
 export { documentTypeValues, documentStatusValues } from "./documents.ts";
-export type DocumentStatus = (typeof documentStatusValues)[number];
+export type {
+  DocumentRow,
+  NewDocumentRow,
+  SnapshotRow,
+  NewSnapshotRow,
+  DocumentStatus,
+} from "./documents.ts";
 /** Spec §7 document type union (T04 name kept for tenant-repo signatures). */
 export type DocumentType = (typeof documentTypeValues)[number];
 
-export type DocumentRow = typeof documents.$inferSelect;
-export type NewDocumentRow = typeof documents.$inferInsert;
-export type SnapshotRow = typeof snapshots.$inferSelect;
-export type NewSnapshotRow = typeof snapshots.$inferInsert;
 // SPEC-NOTE: named *DbRow to avoid colliding with the raw row type exported
 // by repositories/document-versions.ts (T10) — drizzle-typed row for the same
 // table.
