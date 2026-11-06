@@ -5,6 +5,10 @@
 set -uo pipefail
 cd /home/z/my-project || { echo "FAIL: project dir missing"; exit 1; }
 
+# 0. Sandbox file-sync keeps flipping .env.example to 0755; normalize before
+#    status so mode-bit noise doesn't pollute every checkpoint commit.
+chmod 644 .env.example 2>/dev/null || true
+
 # 1. Commit any pending work (gitignore already excludes .env, upload/, skills/)
 if [ -n "$(git status --porcelain)" ]; then
   git add -A
