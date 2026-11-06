@@ -145,10 +145,19 @@ test.describe('T28 reduced-motion emulation (spec §14.4)', () => {
     // elements return a comma-joined list — every duration must be collapsed.
     // '' = element already detached (loading finished between locate and
     // evaluate) — no element, no animation. Multi-animation elements return a
-    // comma-joined list — every duration must be collapsed.
+    // comma-joined list. Chromium may serialize small values in scientific
+    // notation ('1e-05s' === 0.00001s), so compare NUMERICALLY: every duration
+    // must be sub-millisecond (collapsed) or absent (none).
+    const collapsed = (d: string): boolean => {
+      if (d === '' || d === 'none') return true;
+      const m = /^(\d*\.?\d+)(ms|s)?$/.exec(d);
+      if (!m) return false;
+      const seconds = Number(m[1]) * (m[2] === 'ms' ? 0.001 : 1);
+      return seconds < 0.001;
+    };
     const durations = String(skeleton).split(',').map((d) => d.trim());
     expect(
-      durations.every((d) => ['', '0.01ms', '0.00001s', '0s', 'none'].includes(d)),
+      durations.every(collapsed),
       `reduced-motion must collapse the skeleton animation (computed: ${skeleton})`,
     ).toBe(true);
 
