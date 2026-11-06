@@ -150,10 +150,11 @@ test.describe('T28 reduced-motion emulation (spec §14.4)', () => {
     // must be sub-millisecond (collapsed) or absent (none).
     const collapsed = (d: string): boolean => {
       if (d === '' || d === 'none') return true;
-      const m = /^(\d*\.?\d+)(ms|s)?$/.exec(d);
-      if (!m) return false;
-      const seconds = Number(m[1]) * (m[2] === 'ms' ? 0.001 : 1);
-      return seconds < 0.001;
+      // Number() parses scientific notation — Chromium emits 0.00001s as '1e-05s'.
+      const isMs = d.endsWith('ms');
+      const num = Number(d.replace(/(ms|s)$/, ''));
+      if (!Number.isFinite(num)) return false;
+      return (isMs ? num / 1000 : num) < 0.001;
     };
     const durations = String(skeleton).split(',').map((d) => d.trim());
     expect(
