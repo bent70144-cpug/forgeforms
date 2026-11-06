@@ -37,18 +37,22 @@
   --ff-accent-soft: oklch(74% 0.125 30);
   --ff-accent-fg: #ffffff;
 
-  /* semantics (light values hold ≥4.5:1 on their soft tints) */
-  --ff-success: #177245;
-  --ff-success-soft: #e3efe6;
+  /* semantics (light values hold ≥4.5:1 on their soft tints).
+     success is a warm SAGE green — semantically unambiguous next to the red
+     danger token (a coral-family success would read as an error), while the
+     muted olive cast harmonizes with the warm paper palette. */
+  --ff-success: #3d6b4f;
+  --ff-success-soft: #e7efe6;
   --ff-warning: #966a0b;
   --ff-warning-soft: #f6ecd6;
   --ff-danger: #b3261e;
   --ff-danger-soft: #f7e5e3;
 
-  /* charts — coral / amber / teal, distinguishable on paper and in dark */
+  /* charts — coral / amber / ink, distinguishable on paper and in dark;
+     teal/green series colors are off-system for this palette */
   --ff-chart-1: var(--ff-accent);
   --ff-chart-2: #b45309;
-  --ff-chart-3: #0f766e;
+  --ff-chart-3: var(--ff-fg);
 
   /* shape */
   --ff-radius: 0.75rem;
@@ -85,8 +89,8 @@
     --ff-accent-soft: oklch(63% 0.155 29);
     --ff-accent-fg: #241009;
 
-    --ff-success: #4ade80;
-    --ff-success-soft: rgb(74 222 128 / 0.13);
+    --ff-success: #6ee7a0;
+    --ff-success-soft: rgb(110 231 160 / 0.13);
     --ff-warning: #fbbf24;
     --ff-warning-soft: rgb(251 191 36 / 0.13);
     --ff-danger: #f87171;
@@ -94,7 +98,7 @@
 
     --ff-chart-1: var(--ff-accent);
     --ff-chart-2: #fbbf24;
-    --ff-chart-3: #2dd4bf;
+    --ff-chart-3: var(--ff-fg);
 
     /* slightly stronger alphas so elevation still reads on dark paper */
     --ff-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
@@ -736,7 +740,12 @@ textarea.ff-input {
 
 .ff-doc-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr));
+  /* 19rem min: cards must fit tile + title + two badges on one row — below
+     ~19rem the squeezed title wraps per-character (overflow-wrap anywhere).
+     min(19rem, 100%) guard: on ≤320px phones the viewport is narrower than
+     19rem, and a plain 19rem track would overflow the container and clip the
+     card's badge/action edge (body is overflow-x: clip). */
+  grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
   gap: 1rem;
 }
 
@@ -772,6 +781,13 @@ textarea.ff-input {
 
 .ff-doc-card .ff-doc-title:hover {
   color: var(--ff-accent);
+}
+
+/* Pin quick actions to the card floor so unequal title heights don't pool
+   dead space at the bottom of the grid row. Grid cards only — list rows are
+   single-line and must stay vertically centered. */
+.ff-doc-card .ff-doc-actions {
+  margin-top: auto;
 }
 
 .ff-doc-meta {
@@ -824,6 +840,65 @@ textarea.ff-input {
   min-height: 2rem;
 }
 
+/* ====== MOBILE TOUCH TARGETS ==============================================
+   Phones/small tablets only (≤48rem): lift the compact recipes to ≥40px tap
+   targets (WCAG 2.5.5 / platform norms). Desktop keeps the 2rem sizing —
+   every rule here lives inside the media query.
+   NOTE: Tailwind responsive display utilities need `!` on elements that carry
+   these unlayered ff- classes (see app-shell chip / mobile menu button).
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 48rem) {
+  /* icon-only actions: sign-out, menu, modal/drawer close, doc row actions */
+  .ff-icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  /* the auth password eye sits inside the 2.75rem input — give it the full
+     44px row height so the toggle itself is a 44px target */
+  .ff-field .ff-icon-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  /* compact buttons: Refresh / Try again / Create token / Revoke / Undo… */
+  .ff-btn-sm {
+    min-height: 2.5rem;
+  }
+
+  /* segmented controls: grid/list toggle, status filter, analytics range */
+  .ff-seg > button,
+  .ff-seg-btn {
+    min-height: 2.5rem;
+  }
+
+  /* dashboard card quick actions ("Open" + icons) */
+  .ff-doc-actions > * {
+    min-height: 2.5rem;
+  }
+
+  /* auth secondary links (Forgot password? / Create an account / Sign in) */
+  .ff-auth-alt a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+  }
+}
+
+/* Trend chart axis: the 720-unit viewBox scales down to ~320px on phones,
+   which renders the 12px axis labels at ~5.5px. Double the in-viewBox size
+   and thin the labels on phones only (≥40rem keeps the desktop chart as-is). */
+@media (max-width: 40rem) {
+  .ff-trend-axis text {
+    font-size: 28px;
+  }
+
+  .ff-trend-axis text[data-alt] {
+    display: none;
+  }
+}
+
 /* ====== OVERLAYS (modal + drawer, components/ui/*) ========================= */
 
 .ff-overlay {
@@ -865,6 +940,9 @@ textarea.ff-input {
 
 .ff-modal-footer {
   display: flex;
+  /* wrap, don't overflow: at 320px the panel interior (~15rem) is narrower
+     than two nowrap buttons side by side */
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.5rem;
   padding: 1rem 1.5rem 1.25rem;

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { BTN_GHOST, BTN_PRIMARY } from "@/lib/ui";
 
 /**
@@ -9,9 +11,11 @@ import { BTN_GHOST, BTN_PRIMARY } from "@/lib/ui";
 export default function PublicPageNotFound() {
   return (
     <main className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
+      {/* Coral wash instead of gray: ties the dead-end into the brand and
+          lifts it off the paper (14% ink read as a washed-out mistake). */}
       <div
         aria-hidden="true"
-        className="select-none text-6xl font-semibold leading-none text-[color-mix(in_srgb,var(--ff-fg)_14%,transparent)]"
+        className="select-none text-6xl font-semibold leading-none text-[color-mix(in_srgb,var(--ff-accent)_32%,transparent)]"
         style={{ fontFamily: "var(--ff-font-heading)" }}
       >
         404
@@ -21,12 +25,12 @@ export default function PublicPageNotFound() {
         This page was moved, deleted, or never existed.
       </p>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-        <a href="/" className={BTN_PRIMARY}>
+        <Link href="/" className={BTN_PRIMARY}>
           Go home
-        </a>
-        <a href="/templates" className={BTN_GHOST}>
+        </Link>
+        <Link href="/templates" className={BTN_GHOST}>
           Browse templates
-        </a>
+        </Link>
       </div>
     </main>
   );

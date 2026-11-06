@@ -13,6 +13,9 @@
 //   same links, workspace name, user email and a sign-out form. The Drawer
 //   primitive owns Esc / backdrop / focus handling; this component only closes
 //   on route change so tapping a link dismisses the sheet.
+//   (`md:hidden!` carries an important modifier: .ff-icon-btn is unlayered CSS
+//   and would otherwise beat the layered md:hidden utility, leaving the
+//   hamburger visible on desktop.)
 
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -139,7 +142,7 @@ export function MobileMenu({
     <>
       <button
         type="button"
-        className={`${ICON_BTN} md:hidden`}
+        className={`${ICON_BTN} md:hidden!`}
         aria-label="Menu"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -158,7 +161,7 @@ export function MobileMenu({
       >
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[var(--ff-muted)]">
+            <span className="text-xs font-medium text-[var(--ff-muted)]">
               Workspace
             </span>
             <span className="ff-chip max-w-full truncate" title={workspaceName}>

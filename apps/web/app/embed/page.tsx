@@ -9,6 +9,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
+import Link from "next/link";
 
 import { CodeBlock } from "@/components/embed/code-block";
 import { EMBED_LOADER_VERSION } from "../api/public/embed/embed.js/loader";
@@ -45,7 +46,7 @@ function TypeChip({ children }: { children: ReactNode }) {
 
 function BrandRow() {
   return (
-    <a href="/" aria-label="FormForge home" className="inline-flex shrink-0 items-center gap-2 no-underline">
+    <Link href="/" aria-label="FormForge home" className="inline-flex shrink-0 items-center gap-2 no-underline">
       <span
         aria-hidden="true"
         className="flex h-7 w-7 items-center justify-center rounded-lg"
@@ -73,7 +74,7 @@ function BrandRow() {
       <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]">
         FormForge
       </span>
-    </a>
+    </Link>
   );
 }
 
@@ -140,7 +141,7 @@ export default async function EmbedDocsPage() {
         </div>
 
         <header className="mt-12 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--ff-muted)]">Public docs</p>
+          <p className="text-xs font-medium text-[var(--ff-muted)]">Public docs</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
             Embed forms anywhere
           </h1>
@@ -253,9 +254,9 @@ export default async function EmbedDocsPage() {
 
         <p className="mt-12 border-t border-[var(--ff-border)] pt-6 text-sm text-[var(--ff-muted)]">
           See all three modes live on the{" "}
-          <a className="font-medium text-[var(--ff-fg)] underline underline-offset-4" href="/embed/demo">
+          <Link className="font-medium text-[var(--ff-fg)] underline underline-offset-4" href="/embed/demo">
             embed demo page
-          </a>
+          </Link>
           .
         </p>
       </main>

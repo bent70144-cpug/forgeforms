@@ -40,7 +40,7 @@ export function AppShell({
           borderBottom: "1px solid var(--ff-border)",
         }}
       >
-        <div className="mx-auto flex h-[3.75rem] w-full max-w-[76rem] items-center gap-4 px-[clamp(1rem,3vw,1.5rem)]">
+        <div className="mx-auto flex h-[3.75rem] w-full max-w-[72rem] items-center gap-4 px-[clamp(1rem,3vw,1.5rem)]">
           <Link
             href="/dashboard"
             aria-label="FormForge dashboard"
@@ -80,8 +80,12 @@ export function AppShell({
           </nav>
 
           <div className="ml-auto flex min-w-0 items-center gap-2.5 sm:gap-3">
+            {/* NOTE: `hidden!`/`md:inline-flex!` need the important modifier —
+                .ff-chip is unlayered CSS, which beats layered Tailwind display
+                utilities, so the plain `hidden md:inline-flex` combo leaks the
+                chip onto phones (it lives in the drawer there). */}
             <span
-              className="ff-chip hidden max-w-[10rem] truncate md:inline-flex"
+              className="ff-chip hidden! max-w-[10rem] truncate md:inline-flex!"
               title={workspaceName}
             >
               {workspaceName}

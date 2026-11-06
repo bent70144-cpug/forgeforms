@@ -106,8 +106,12 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         <p className="text-xs text-[var(--ff-muted)]">© 2026 FormForge</p>
       </aside>
 
-      {/* Form column — centered, scrolls instead of clipping on short viewports. */}
-      <main className="flex min-h-dvh flex-1 flex-col items-center justify-center overflow-y-auto p-8">
+      {/* Form column — centered, scrolls instead of clipping on short viewports.
+          `justify-center-safe` (Tailwind ≥4.1 → `justify-content: safe center`)
+          keeps the centered look when the card fits but start-aligns when it
+          overflows (landscape phones / short viewports), so the top of the card
+          stays reachable by scroll instead of being clipped. */}
+      <main className="flex min-h-dvh flex-1 flex-col items-center justify-center-safe overflow-y-auto p-8">
         <div className="mb-6 lg:hidden">
           <BrandRow />
         </div>

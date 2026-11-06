@@ -14,6 +14,7 @@
 // instead of window.confirm.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import type { CustomDomain, DnsRecordInstruction } from '@formforge/schema/api';
 import { Modal } from '@/components/ui/modal';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -258,9 +259,9 @@ export function DomainsClient() {
               another hostname.
             </p>
           </div>
-          <a href="/settings/billing" className={`${BTN_PRIMARY_SM} shrink-0`}>
+          <Link href="/settings/billing" className={`${BTN_PRIMARY_SM} shrink-0`}>
             Upgrade
-          </a>
+          </Link>
         </div>
       )}
 
@@ -356,6 +357,12 @@ export function DomainsClient() {
               placeholder="docs.example.com"
               autoComplete="off"
             />
+            {/* balances the row: the Serve document column carries a helper
+                line, so the left column gets one too — otherwise the grid
+                leaves a dead gap under the Hostname input */}
+            <p className="text-xs leading-relaxed text-[var(--ff-muted)]">
+              Use a hostname you control — ownership is proven with a DNS record.
+            </p>
           </div>
           <div className="ff-field">
             <label htmlFor="domain-document">Serve document</label>

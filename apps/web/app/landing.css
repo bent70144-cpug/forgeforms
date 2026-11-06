@@ -866,6 +866,8 @@ body {
 @media (max-width: 40rem) {
   .ff-land-nav-link {
     padding: var(--space-xs) var(--space-2xs);
+    /* ≥40px tap target on phones (R3) */
+    padding-block: var(--space-sm);
   }
 
   .ff-land-nav-links {
@@ -875,6 +877,32 @@ body {
   .ff-land-btn {
     min-height: 44px;
     padding: 0 var(--space-md);
+  }
+
+  /* nav: keep ≥8px between the "Log in" hit area and the "Start free" CTA
+     without widening the row (4px of CTA padding trades for 4px of margin,
+     so the one-line nav cannot start wrapping because of this) */
+  .ff-land-nav-cta {
+    margin-left: var(--space-2xs);
+    padding-inline: calc(var(--space-md) - var(--space-2xs));
+  }
+
+  /* hero demo: the reply card is tucked over the sheet's foot; on phones the
+     last field sits closer to that foot, so the card rode on top of the
+     "Yes, plus one" value. Reserve a blank strip under the field — the card
+     now presses into empty stock and the filled value stays readable. */
+  .ff-land-plane-form .ff-land-field + .ff-land-field {
+    margin-bottom: 4.5rem;
+  }
+
+  /* footer links: taller tap targets + a second axis of wrap gap (R3) */
+  .ff-land-footer-links {
+    gap: var(--space-sm) var(--space-md);
+  }
+
+  .ff-land-footer-links a {
+    display: inline-block;
+    padding-block: var(--space-xs);
   }
 
   .ff-land-press-mark {

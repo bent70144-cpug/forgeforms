@@ -4,6 +4,12 @@
 // the old gradient render as an empty box). Motif varies by category:
 // form → question-card stack, page → mini scroll-page, portfolio → tile grid.
 //
+// Color note: template data still ships legacy per-template accents
+// (#4f46e5 indigo, #8b5cf6 violet, #0ea5e9 sky…). The Coral system is
+// ink + coral ONLY, so every wash/motif paints from the --ff-accent token —
+// no off-system hue can leak in and dark mode flips automatically. Variety
+// comes from the category motif, not from color.
+//
 // The card root is a SpotlightCard (pointer-tracked highlight — mouse-only,
 // reduced-motion safe, nothing depends on it running). The <Link> fills the
 // whole card so the entire surface is clickable. Hover motion is
@@ -23,10 +29,13 @@ const CATEGORY_LABEL: Record<string, string> = {
   portfolio: "Portfolio",
 };
 
-/** Subtle two-stop tint built from the template accent over the page token —
- *  flips correctly in dark mode because both stops resolve at paint time. */
-function tintBackground(accent: string): string {
-  return `linear-gradient(135deg, color-mix(in srgb, ${accent} 16%, var(--ff-bg)), color-mix(in srgb, ${accent} 6%, var(--ff-bg)))`;
+/** The one brand accent, straight from the token layer. */
+const ACCENT = "var(--ff-accent)";
+
+/** Subtle two-stop coral tint over the page token — flips correctly in dark
+ *  mode because both stops resolve at paint time. */
+function tintBackground(): string {
+  return `linear-gradient(135deg, color-mix(in srgb, ${ACCENT} 16%, var(--ff-bg)), color-mix(in srgb, ${ACCENT} 6%, var(--ff-bg)))`;
 }
 
 function FormMotif() {
@@ -48,12 +57,12 @@ function FormMotif() {
   );
 }
 
-function PageMotif({ accent }: { accent: string }) {
+function PageMotif() {
   return (
     <div className="w-40 overflow-hidden rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] shadow-sm" aria-hidden>
       <div
         className="m-2.5 h-16 rounded-[calc(var(--ff-radius)*0.66)]"
-        style={{ background: `linear-gradient(135deg, ${accent}, color-mix(in srgb, ${accent} 55%, var(--ff-fg)))` }}
+        style={{ background: `linear-gradient(135deg, ${ACCENT}, color-mix(in srgb, ${ACCENT} 55%, var(--ff-fg)))` }}
       />
       <div className="space-y-2 px-3 pb-4">
         <div className="h-1.5 w-full rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_30%,transparent)]" />
@@ -63,7 +72,7 @@ function PageMotif({ accent }: { accent: string }) {
   );
 }
 
-function PortfolioMotif({ accent }: { accent: string }) {
+function PortfolioMotif() {
   return (
     <div className="grid w-40 grid-cols-2 gap-2.5" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
@@ -73,7 +82,7 @@ function PortfolioMotif({ accent }: { accent: string }) {
           style={{
             background:
               i % 3 === 0
-                ? `linear-gradient(135deg, color-mix(in srgb, ${accent} 55%, transparent), color-mix(in srgb, ${accent} 25%, transparent))`
+                ? `linear-gradient(135deg, color-mix(in srgb, ${ACCENT} 55%, transparent), color-mix(in srgb, ${ACCENT} 25%, transparent))`
                 : "var(--ff-card)",
           }}
         />
@@ -82,9 +91,9 @@ function PortfolioMotif({ accent }: { accent: string }) {
   );
 }
 
-function ThumbnailMotif({ category, accent }: { category: TemplateCategory; accent: string }) {
-  if (category === "page") return <PageMotif accent={accent} />;
-  if (category === "portfolio") return <PortfolioMotif accent={accent} />;
+function ThumbnailMotif({ category }: { category: TemplateCategory }) {
+  if (category === "page") return <PageMotif />;
+  if (category === "portfolio") return <PortfolioMotif />;
   return <FormMotif />;
 }
 
@@ -98,9 +107,9 @@ export default function TemplateCard({ template }: { template: TemplateSummary }
         <div
           aria-hidden
           className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-[var(--ff-border)]"
-          style={{ background: tintBackground(template.accent) }}
+          style={{ background: tintBackground() }}
         >
-          <ThumbnailMotif category={template.category} accent={template.accent} />
+          <ThumbnailMotif category={template.category} />
         </div>
 
         <div className="flex flex-1 flex-col p-5">

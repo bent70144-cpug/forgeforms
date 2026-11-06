@@ -89,7 +89,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
   return (
     <button
       type="button"
-      className={`${ICON_BTN} h-7! w-7! shrink-0 hover:text-[var(--ff-danger)]!`}
+      className={`${ICON_BTN} h-8! w-8! shrink-0 hover:text-[var(--ff-danger)]! max-lg:h-10! max-lg:w-10!`}
       aria-label={label}
       onClick={onClick}
     >

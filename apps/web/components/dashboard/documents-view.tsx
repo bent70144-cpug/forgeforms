@@ -394,7 +394,10 @@ function DocumentActions({
 
   if (iconOnly) {
     return (
-      <div className="relative z-10 flex shrink-0 items-center gap-1">
+      // max-sm: the 40px icon row (4 actions ≈ 172px) would squeeze the title
+      // to a sliver on phones — drop it to its own full-width, right-aligned
+      // grid row instead. Desktop keeps the single-line row.
+      <div className="relative z-10 flex shrink-0 items-center gap-1 max-sm:col-span-3 max-sm:justify-end">
         <Link
           href={openHref}
           className={ICON_BTN}

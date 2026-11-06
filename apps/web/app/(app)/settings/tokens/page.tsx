@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 /** Settings → API tokens (spec §14.1.8, issue #25). */
 export default function TokensSettingsPage() {
   return (
-    <div className="w-full max-w-3xl">
+    // Page container matches billing (max-w-5xl) so the shared SettingsTabs
+    // strip and hairline keep the same width across all three settings tabs;
+    // the client content below keeps its 48rem reading measure.
+    <div className="w-full max-w-5xl">
       <header>
         <p className="text-[13px] font-medium text-[var(--ff-muted)]">Settings</p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">API tokens</h1>
@@ -27,7 +30,9 @@ export default function TokensSettingsPage() {
           <SettingsTabs current="tokens" />
         </div>
       </header>
-      <TokensClient />
+      <div className="max-w-3xl">
+        <TokensClient />
+      </div>
     </div>
   );
 }

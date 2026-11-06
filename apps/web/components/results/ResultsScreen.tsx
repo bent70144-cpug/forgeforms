@@ -193,7 +193,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
                 tabIndex={selected ? 0 : -1}
                 onClick={() => setTab(t.id)}
                 onKeyDown={(e) => onTabKeyDown(e, i)}
-                className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-3 pt-1 text-sm font-medium transition-colors hover:text-[var(--ff-fg)] ${
+                className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-3 pt-2.5 text-sm font-medium transition-colors hover:text-[var(--ff-fg)] sm:pt-1 ${
                   selected ? "" : "text-[var(--ff-muted)]"
                 }`}
                 style={

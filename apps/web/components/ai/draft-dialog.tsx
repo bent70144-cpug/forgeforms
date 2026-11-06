@@ -96,7 +96,12 @@ export function AiDraftDialog({
           >
             <Icon name="sparkles" size={16} />
           </span>
-          <h2 className="text-base font-semibold text-[var(--ff-fg)]">Generate draft</h2>
+          <div>
+            <h2 className="text-base font-semibold text-[var(--ff-fg)]">Generate draft</h2>
+            <p className="mt-0.5 text-sm leading-relaxed text-[var(--ff-muted)]">
+              Describe the document — review the generated body before it is inserted.
+            </p>
+          </div>
         </div>
         {onClose ? (
           <button type="button" onClick={onClose} className={BTN_GHOST_SM}>

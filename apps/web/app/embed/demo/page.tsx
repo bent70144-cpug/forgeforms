@@ -8,6 +8,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Script from "next/script";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Embed demo — FormForge",
@@ -19,7 +20,7 @@ const DEFAULT_DOC = "doc_demo";
 
 function BrandRow() {
   return (
-    <a href="/" aria-label="FormForge home" className="inline-flex shrink-0 items-center gap-2 no-underline">
+    <Link href="/" aria-label="FormForge home" className="inline-flex shrink-0 items-center gap-2 no-underline">
       <span
         aria-hidden="true"
         className="flex h-7 w-7 items-center justify-center rounded-lg"
@@ -47,7 +48,7 @@ function BrandRow() {
       <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]">
         FormForge
       </span>
-    </a>
+    </Link>
   );
 }
 
@@ -122,7 +123,7 @@ export default async function EmbedDemoPage({
         </Panel>
 
         <p className="mt-10 text-sm text-[var(--ff-muted)]">
-          Full docs: <a className="font-medium text-[var(--ff-fg)] underline underline-offset-4" href="/embed">/embed</a>.
+          Full docs: <Link className="font-medium text-[var(--ff-fg)] underline underline-offset-4" href="/embed">/embed</Link>.
         </p>
 
         {/* The real loader, loaded the way a host page loads it. data-formforge-doc

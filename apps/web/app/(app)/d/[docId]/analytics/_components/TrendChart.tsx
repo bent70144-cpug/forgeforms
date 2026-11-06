@@ -4,6 +4,9 @@
 // gradient wash under the primary series, non-scaling strokes, 12px mono axis
 // labels with tabular numerals, canonical .ff-panel chrome with header legend.
 // Geometry helpers (chart-geometry.ts) are untouched.
+// R3 mobile: the svg carries .ff-trend-axis + data-alt on odd axis labels so
+// globals.css can enlarge/thin labels on phones (viewBox scaling would
+// otherwise render the 12px labels at ~5.5px on a 390px screen).
 import {
   buildAreaPath,
   buildLinePath,
@@ -71,7 +74,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         role="img"
         aria-label="Daily trend of views, starts and completions"
-        className="h-auto w-full"
+        className="ff-trend-axis h-auto w-full"
       >
         <defs>
           <linearGradient id="ff-trend-views-wash" x1="0" y1="0" x2="0" y2="1">
@@ -108,6 +111,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
             y={HEIGHT - 8}
             textAnchor="middle"
             fontSize={12}
+            data-alt={i % 2 === 1 ? "" : undefined}
             style={AXIS_TEXT_STYLE}
           >
             {i % labelEvery === 0 ? shortDayLabel(point.day) : ""}

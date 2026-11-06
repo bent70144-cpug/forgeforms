@@ -37,7 +37,7 @@ const CATEGORY_SINGULAR: Record<TemplateCategory, string> = {
 // active. Hover motion is a 1px lift; colors ride the tokens so dark mode
 // flips automatically.
 const PILL_BASE =
-  "inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-[color,border-color,translate,box-shadow] duration-200 ease-out";
+  "inline-flex min-h-[2.5rem] items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-[color,border-color,translate,box-shadow] duration-200 ease-out sm:min-h-0";
 const PILL_IDLE =
   "border-[var(--ff-border-strong)] bg-[var(--ff-card)] text-[var(--ff-muted)] hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--ff-border-strong)_60%,var(--ff-fg))] hover:text-[var(--ff-fg)]";
 const PILL_ACTIVE = "border-transparent bg-[var(--ff-primary)] text-[var(--ff-primary-fg)] shadow-sm";

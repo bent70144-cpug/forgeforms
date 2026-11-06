@@ -154,7 +154,9 @@ export default function DpaPage() {
 
         <nav aria-label="On this page" className="ff-panel mt-10 p-5">
           <p className="m-0 text-[0.8125rem] font-semibold text-[var(--ff-fg)]">On this page</p>
-          <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
+          {/* Two columns from sm up: six single-line links in one column left
+              ~60% of the 48rem panel dead. Pairs halve the height and fill. */}
+          <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0 sm:grid sm:grid-cols-2 sm:gap-x-8">
             {SECTIONS.map((s) => (
               <li key={s.anchor}>
                 <a

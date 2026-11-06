@@ -158,7 +158,10 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
   }
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-9.5rem)] min-h-[32rem] w-full max-w-[72rem] flex-col gap-3">
+    // R3 mobile: the fixed 100dvh height (incl. the stacked preview/help grid)
+    // only applies from lg up; below it the flow is auto-height and the canvas
+    // gets its own 24rem so the phone layout doesn't squeeze it to a sliver.
+    <div className="mx-auto flex w-full max-w-[72rem] flex-col gap-3 lg:h-[calc(100dvh-9.5rem)] lg:min-h-[32rem]">
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           {backLink}
@@ -232,7 +235,7 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
             </div>
           </div>
 
-          <div className={`${CARD} relative min-h-0 flex-1 overflow-hidden`}>
+          <div className={`${CARD} relative h-[24rem] overflow-hidden lg:h-auto lg:min-h-0 lg:flex-1`}>
             <LogicCanvas graph={graph} selectedId={openScope} onSelect={setOpenScope} />
           </div>
 

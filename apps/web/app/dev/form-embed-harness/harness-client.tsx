@@ -129,7 +129,7 @@ export default function HarnessClient({ docId }: { docId: string }) {
             <Icon
               name={entry.kind === "junk" ? "x" : "check"}
               size={12}
-              className={`inline-block align-[-1px] ${entry.kind === "junk" ? "text-[#f87171]" : "text-[#4ade80]"}`}
+              className={`inline-block align-[-1px] ${entry.kind === "junk" ? "text-[#f87171]" : "text-[var(--ff-accent-soft)]"}`}
             />{" "}
             <strong>{entry.kind}</strong> {entry.detail}
           </p>

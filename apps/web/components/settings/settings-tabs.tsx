@@ -35,7 +35,7 @@ export function SettingsTabs({ current }: { current: SettingsTabId }) {
             key={tab.id}
             href={tab.href}
             aria-current={active ? "page" : undefined}
-            className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-2.5 pt-1 text-[0.875rem] no-underline transition-colors hover:text-[var(--ff-fg)] ${
+            className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-2.5 pt-2 text-[0.875rem] no-underline transition-colors hover:text-[var(--ff-fg)] max-sm:pb-3 max-sm:pt-2.5 sm:pt-1 ${
               active ? "" : "text-[var(--ff-muted)]"
             }`}
             style={
