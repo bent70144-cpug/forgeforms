@@ -19,9 +19,9 @@ if [ -n "$(git status --porcelain)" ]; then
     || echo "nothing to commit (only ignored/unstaged changes)"
 fi
 
-# 2. Push if local main is ahead of origin (fetch first, no rebase)
-git fetch -q origin main 2>/dev/null
-AHEAD=$(git rev-list --count origin/main..main 2>/dev/null || echo "1")
+# 2. Push if local main is ahead of remote (fetch via one-off URL, no rebase)
+git fetch -q "https://bent70144-cpug:${TOKEN}@github.com/bent70144-cpug/forgeforms.git" main 2>/dev/null
+AHEAD=$(git rev-list --count FETCH_HEAD..main 2>/dev/null || echo "1")
 if [ "$AHEAD" = "0" ]; then
   echo "OK: nothing to push (up to date with origin/main)"
   exit 0
