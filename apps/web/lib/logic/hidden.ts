@@ -1,13 +1,12 @@
 // Hidden fields (UTM capture) + per-question prefill (spec §14.1.4 / §7.2 /
 // §10.3). Pure helpers shared by the builder UI and the public-plane wiring.
 //
-// SPEC-NOTE: spec §7's DocumentBody has no hidden-fields config field; the
-// standard UTM parameter set below is the §14.1.4 "hidden fields (UTM capture)"
-// config. An optional per-document extension list rides in
-// `settings.hiddenFields` via the `settings.update` op (client-side type in
-// lib/bridge.ts). TODO(merge): align with T07's DocumentSettings schema — if
-// T07 strips unknown settings keys, persist the extension list in the logic
-// panel state instead and keep capture client-side only.
+// SPEC-NOTE: the standard UTM parameter set below is the §14.1.4 "hidden
+// fields (UTM capture)" baseline config, always captured client-side. An
+// optional per-document extension list rides in `settings.hiddenFields` via
+// the `settings.update` op — aligned at integration with the canonical
+// DocumentSettings schema (@formforge/schema src/document.ts), so the extra
+// fields persist through server-side validation.
 
 import type { Block, DocumentBody } from "../bridge";
 

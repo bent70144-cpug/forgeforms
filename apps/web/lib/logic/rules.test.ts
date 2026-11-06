@@ -1,6 +1,6 @@
 // Tests for rule draft ↔ op mapping (T20). The ops asserted here are the
-// exact §8 wire shapes T07's PATCH endpoint must accept (TODO(merge) note in
-// rules.ts) — keep these literals in sync with the tracker's merge checklist.
+// exact §8 wire shapes the PATCH endpoint accepts (canonical vocabulary in
+// packages/schema/src/ops.ts, aligned at the T20×T07 integration).
 
 import { describe, expect, it } from "vitest";
 import type { Rule } from "../bridge";

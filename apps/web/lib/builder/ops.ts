@@ -17,7 +17,7 @@ import type {
   Ending,
   Rule,
   Theme,
-} from "../bridge";
+} from "@formforge/schema";
 import { DEFAULT_THEME_TOKENS } from "../bridge";
 import { newId } from "./id";
 

@@ -5,8 +5,9 @@
 // Two layers:
 // 1. Runtime loop over MockTransport (fake timers) — ops → 500 ms debounce →
 //    PATCH → Saved chip within 2 s.
-// 2. ApiTransport against a fetch mock — the exact JSON body T07's endpoint
-//    must accept for rule ops (TODO(merge) alignment checklist item).
+// 2. ApiTransport against a fetch mock — the exact JSON body the documents
+//    PATCH endpoint accepts for rule ops (canonical vocabulary in
+//    packages/schema/src/ops.ts).
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiTransport, ConflictError, MockTransport, seedEnvelope } from "../builder/transport";

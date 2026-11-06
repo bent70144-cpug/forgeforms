@@ -5,10 +5,10 @@
 // wire shape, and emits the spec §8 ops vocabulary consumed by
 // `PATCH /api/v1/documents/:id` (rule.upsert / rule.remove).
 //
-// TODO(merge): align with T07 ops schema — the op discriminants below follow
-// spec §8 verbatim; T07's Zod schema for PATCH ops is being built in parallel
-// and must accept exactly these shapes (apps/web/lib/builder/ops.ts already
-// applies them client-side).
+// Aligned at integration (T20×T07 merge): the op discriminants below are the
+// canonical vocabulary — packages/schema/src/ops.ts (`DocumentOpSchema`)
+// accepts exactly these shapes, and apps/web/lib/builder/ops.ts applies them
+// client-side.
 
 import type { Rule, RuleAction, RuleCondition } from "../bridge";
 

@@ -25,6 +25,13 @@ export const DocumentSettings = z.object({
   maxSubmissions: z.number().int().positive().optional(),
   // SPEC-NOTE: `z.email()` is the Zod 4 canonical form of `z.string().email()`.
   notifyEmails: z.array(z.email()).default([]),
+  // T20 (spec §14.1.4): optional hidden-field extras beyond the standard UTM
+  // set (the standard UTM params are always captured client-side). Canonical
+  // home for the extension the logic builder's settings panel sends via the
+  // `settings.update` op — see SettingsPatchSchema in src/ops.ts.
+  hiddenFields: z
+    .array(z.object({ name: z.string().min(1), label: z.string().optional() }))
+    .optional(),
 });
 
 export const Ending = z.object({

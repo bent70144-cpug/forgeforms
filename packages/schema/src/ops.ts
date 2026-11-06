@@ -50,6 +50,10 @@ export const SettingsPatchSchema = z
     closeAt: z.iso.datetime().nullable(),
     maxSubmissions: z.number().int().positive().nullable(),
     notifyEmails: z.array(z.email()),
+    // T20 (spec §14.1.4): hidden-field extras — array-replaced wholesale like
+    // notifyEmails (send [] to clear); the canonical DocumentSettings schema
+    // (src/document.ts) owns the stored shape.
+    hiddenFields: z.array(z.object({ name: z.string().min(1), label: z.string().optional() })),
   })
   .partial();
 
