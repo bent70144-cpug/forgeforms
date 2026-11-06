@@ -157,7 +157,7 @@ export function makeDomainsService(
         });
         // The ONLY place a hostname enters the routing table (unverified never
         // routes — ticket state machine: pending → verified → routed).
-        await deps.routing.put(record.hostname, record.documentId);
+        await deps.routing.put(record.hostname, record.documentId, ctx.workspaceId);
         return ok({ domain: verified, verified: true, method });
       }
 

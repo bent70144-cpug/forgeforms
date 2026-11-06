@@ -49,7 +49,8 @@ export interface DomainsStore {
  * single writer and writes only after a successful verification.
  */
 export interface DomainsRoutingTable {
-  put(hostname: string, documentId: string): Promise<void>;
+  /** Register/refresh the Host → documentId entry (verified hostnames only). */
+  put(hostname: string, documentId: string, workspaceId: string): Promise<void>;
   remove(hostname: string): Promise<void>;
   /** Returns the documentId for a verified hostname, null when unrouted. */
   get(hostname: string): Promise<string | null>;

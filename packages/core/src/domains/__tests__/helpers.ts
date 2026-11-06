@@ -88,7 +88,8 @@ export class InMemoryDomainsStore implements DomainsStore {
 export class InMemoryRoutingTable implements DomainsRoutingTable {
   readonly entries = new Map<string, string>();
 
-  async put(hostname: string, documentId: string): Promise<void> {
+  async put(hostname: string, documentId: string, workspaceId?: string): Promise<void> {
+    void workspaceId;
     this.entries.set(hostname, documentId);
   }
 

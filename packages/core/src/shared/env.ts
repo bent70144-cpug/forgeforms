@@ -52,6 +52,11 @@ export const appEnvSchema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
   // AI (Phase M8)
   AI_MODEL: z.string().min(1).default("claude-sonnet-4-6"),
+  // Edge / domains (spec §5, Phase M7): when CLOUDFLARE_API_TOKEN is set the
+  // custom-domain flow provisions via Cloudflare for SaaS; otherwise the
+  // manual DNS (TXT/CNAME) fallback is used.
+  CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
+  CLOUDFLARE_ZONE_ID: z.string().min(1).optional(),
 });
 
 export type AppEnv = z.infer<typeof appEnvSchema>;
