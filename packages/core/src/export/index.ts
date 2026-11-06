@@ -70,10 +70,14 @@ export {
 } from "./service";
 
 // ISSUE #30: T18 plane ports moved here from the retired core bridge.ts.
+// `SubmissionRow` is the bridge-era public name (the bridge variant carried
+// `answers`/`variables`); `ExportSubmissionRow` stays as a back-compat alias
+// for callers that already migrated to it.
 export type {
   EnqueueFn,
   ExportSubmissionRow,
   Mailer,
   SubmissionReader,
+  ExportSubmissionRow as SubmissionRow,
   SubmissionStreamParams,
 } from "./ports";

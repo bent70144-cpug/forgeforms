@@ -3,7 +3,7 @@
 // not preserve key order).
 import { describe, expect, it } from "vitest";
 import { SUBMISSION_COMPLETED_EVENT_TYPE, canonicalJson, parseSubmissionCompletedEvent, serializeWebhookBody, type SubmissionCompletedEvent } from "./webhook-payload";
-import { err, ok } from "../shared/result.ts";;
+import { err, ok } from "../shared/result.ts";
 
 const validEvent: SubmissionCompletedEvent = {
   id: "e3333333-3333-3333-3333-333333333333",

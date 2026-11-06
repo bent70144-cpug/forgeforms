@@ -4,7 +4,7 @@
 // inject a fetch stub (issue #23 hard rule: "Do NOT add the stripe SDK").
 
 import { AppError } from "../../shared/errors.ts";
-import { err, ok, type Result } from "../../shared/result.ts";;
+import { err, ok, type Result } from "../../shared/result.ts";
 import type { PaidPlan } from '../plans';
 import type {
   CheckoutSessionInput,

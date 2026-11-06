@@ -23,7 +23,7 @@ import {
   type IngestDeps,
   type IngestRequestCtx,
 } from "@formforge/core/submissions";
-import { IngestSnapshot } from "@formforge/core";;
+import type { IngestSnapshot } from "@formforge/core";
 import { captureHiddenFields } from "../logic/hidden";
 import { npsScenarioRules } from "../logic/rules";
 import { compiledRouting, engineEvaluate } from "./engine";
@@ -175,13 +175,10 @@ describe("compiledRouting fallback", () => {
       [{ id: "end_a" }, { id: "end_b" }],
     );
     expect(routing["q_nps"]?.defaultNext).toBe("end:end_a");
-    const rules = (routing["q_nps"]?.rules ?? []) as Array<{
-      id?: string;
-      conditions?: Array<{ ref?: { name?: string } }>;
-      actions?: Array<{ kind?: string; target?: string }>;
-    }>;
-    expect(rules[0]?.id).toBe("rule_nps_detractor");
-    expect(rules[0]?.conditions?.[0]?.ref).toMatchObject({ name: "q_nps" });
-    expect(rules[0]?.actions?.[0]).toMatchObject({ kind: "goto", target: "end:end_b" });
+    // Canonical compiled route nodes (T13 CompiledRule): readonly, pre-parsed.
+    const rule = routing["q_nps"]?.rules[0];
+    expect(rule?.id).toBe("rule_nps_detractor");
+    expect(rule?.conditions[0]?.ref).toMatchObject({ name: "q_nps" });
+    expect(rule?.actions[0]).toMatchObject({ kind: "goto", target: "end:end_b" });
   });
 });

@@ -11,7 +11,7 @@ import {
   type CrudDeps,
 } from "../crud";
 import { createInMemoryCrudDocumentStore, type InMemoryCrudDocumentStore } from "../crud-inmemory";
-import { type Ctx } from "../../shared/ctx.ts";;
+import { type Ctx } from "../../shared/ctx.ts";
 import { defaultDraftValidator } from "../validation";
 import type { DraftValidationIssue } from "../ports";
 import type { DocumentBodyJson } from "../model";

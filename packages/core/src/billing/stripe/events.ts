@@ -6,7 +6,7 @@
 
 import { z } from 'zod';
 import { AppError } from "../../shared/errors.ts";
-import { err, ok, type Result } from "../../shared/result.ts";;
+import { err, ok, type Result } from "../../shared/result.ts";
 import { isPaidPlan, type PaidPlan } from '../plans';
 
 export const HANDLED_EVENT_TYPES = [

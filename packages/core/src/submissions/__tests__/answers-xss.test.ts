@@ -39,10 +39,6 @@ import { validateAnswers } from "../blocks";
 
 const registry: BlockRegistry = createBootstrapBlockRegistry();
 
-function isQuestion(block: Block): boolean {
-  return registry.get(block.kind)?.family === "question";
-}
-
 const FORM_BLOCKS: Block[] = [
   { id: "b1", kind: "short-text", props: { label: "Name" } },
   { id: "b2", kind: "email", props: { label: "Email" } },

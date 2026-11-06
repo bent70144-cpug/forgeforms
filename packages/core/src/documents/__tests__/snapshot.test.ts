@@ -32,7 +32,7 @@ describe('buildSnapshot (spec §8 shape)', () => {
     });
 
     const { snapshot, issues } = await buildSnapshot({
-      document: { id: 'doc_1', title: 'My form', type: 'form' },
+      document: { id: 'doc_1', workspaceId: 'ws_a', title: 'My form', type: 'form' },
       versionId: 'ver_1',
       body: draft,
       assets: { resolve: async (id) => (id === 'ast_1' ? 'https://cdn.test/ast_1' : null) },
@@ -40,11 +40,12 @@ describe('buildSnapshot (spec §8 shape)', () => {
     });
 
     expect(issues).toEqual([]);
-    // exact §8 Snapshot shape
+    // exact §8 Snapshot shape (workspaceId: ISSUE #30 — ingest-plane tenancy)
     expect(Object.keys(snapshot).sort()).toEqual(
-      ['blocks', 'cssVars', 'documentId', 'endings', 'locale', 'routing', 'seo', 'settings', 'title', 'type', 'versionId'].sort(),
+      ['blocks', 'cssVars', 'documentId', 'endings', 'locale', 'routing', 'seo', 'settings', 'title', 'type', 'versionId', 'workspaceId'].sort(),
     );
     expect(snapshot.documentId).toBe('doc_1');
+    expect(snapshot.workspaceId).toBe('ws_a');
     expect(snapshot.versionId).toBe('ver_1');
     expect(snapshot.type).toBe('form');
     expect(snapshot.title).toBe('SEO title'); // seo title overrides document title
@@ -76,7 +77,7 @@ describe('buildSnapshot (spec §8 shape)', () => {
       blocks: [{ id: 't1', kind: 'text', props: { richText: { type: 'doc', content: [] } } }],
     });
     const { snapshot } = await buildSnapshot({
-      document: { id: 'doc_1', title: 'T', type: 'page' },
+      document: { id: 'doc_1', workspaceId: 'ws_a', title: 'T', type: 'page' },
       versionId: 'ver_1',
       body: draft,
       assets: { resolve: async () => null },
@@ -102,7 +103,7 @@ describe('buildSnapshot (spec §8 shape)', () => {
       ],
     });
     const { snapshot } = await buildSnapshot({
-      document: { id: 'doc_1', title: 'T', type: 'page' },
+      document: { id: 'doc_1', workspaceId: 'ws_a', title: 'T', type: 'page' },
       versionId: 'ver_1',
       body: draft,
       assets: { resolve: async () => null },
@@ -117,7 +118,7 @@ describe('buildSnapshot (spec §8 shape)', () => {
   it('derives a stable etag from the rendered payload', async () => {
     const draft = makeDraft();
     const args = {
-      document: { id: 'doc_1', title: 'My form', type: 'form' as const },
+      document: { id: 'doc_1', workspaceId: 'ws_a', title: 'My form', type: 'form' as const },
       versionId: 'ver_1',
       body: draft,
       assets: { resolve: async (id: string) => (id === 'ast_1' ? 'https://cdn.test/ast_1' : null) },

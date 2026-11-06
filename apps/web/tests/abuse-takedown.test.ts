@@ -155,6 +155,7 @@ describe("POST admin takedown", () => {
       versionId: "ver_1",
       rendered: {
         documentId: docId,
+        workspaceId: WS,
         versionId: "ver_1",
         type: "page",
         title: "Abusive page",

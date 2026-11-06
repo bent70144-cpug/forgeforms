@@ -7,6 +7,7 @@ export * from "./shared/ctx.ts";
 export * from "./shared/result.ts";
 export * from "./shared/errors.ts";
 export * from "./shared/ids.ts";
+export * from "./shared/datetime.ts";
 export * from "./shared/logger.ts";
 export * from "./shared/env.ts";
 export * from "./shared/audit.ts";
@@ -44,3 +45,10 @@ export type {
 
 // T14 (issue #14): submissions ingest services.
 export * from "./submissions/index.ts";
+
+// ISSUE #30: bridge-only aliases preserved at the root so former
+// `@formforge/core/bridge` importers resolve against the canonical kernel.
+// (`AppErrorDetail` reaches the root via the documents barrel below; these two
+// have no other root home.)
+export { toHttpStatus as httpStatusFor } from "./shared/errors.ts";
+export type { AppErrorCode as ErrorCode } from "./shared/errors.ts";

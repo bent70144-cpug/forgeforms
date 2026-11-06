@@ -6,7 +6,7 @@
 // `shortId` helper, the id is an opaque string and T17 passes through whatever
 // ingest provides (uuid v7 today, `evt_…` short id later).
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 
 export const SUBMISSION_COMPLETED_EVENT_TYPE = "submission.completed";
 

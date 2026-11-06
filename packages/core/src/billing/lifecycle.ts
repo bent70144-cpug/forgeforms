@@ -4,7 +4,7 @@
 // persists the resulting BillingState through the BillingStore.
 
 import { type AppError } from "../shared/errors.ts";
-import { ok, type Result } from "../shared/result.ts";;
+import { ok, type Result } from "../shared/result.ts";
 import type { PaidPlan, Plan } from './plans';
 import {
   parseCheckoutSessionObject,

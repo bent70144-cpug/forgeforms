@@ -5,7 +5,7 @@
 export { AppError } from "../shared/errors.ts";
 export { err, ok } from "../shared/result.ts";
 export { makeCtx } from './ctx';
-export { toHttpStatus } from '../shared/errors.ts';
+export { toHttpStatus, toHttpStatus as httpStatusFor } from '../shared/errors.ts';
 export type { AuthActor, Ctx, Role } from './ctx';
 export type { AppErrorCode as ErrorCode } from '../shared/errors.ts';
 export type { Result } from '../shared/result.ts';

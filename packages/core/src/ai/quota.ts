@@ -4,7 +4,7 @@
 // injected repo — never inline SQL here.
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { type CanFn } from "./types";
 
 export type Plan = "free" | "pro" | "business";

@@ -6,22 +6,28 @@
 // Also provides the compiled-routing fallback for snapshots that predate the
 // T13-based publish compiler (routing empty + raw logic rules present): it
 // compiles through the SAME engine instead of the old raw-rule `compileLite`.
+//
+// ISSUE #30: the retired core bridge's legacy `LogicEvaluate`/`Snapshot`
+// types are gone — `LogicEvaluate` is now the canonical T13 alias and
+// `IngestSnapshot` (routing: RouteMap) comes from @formforge/core
+// (submissions plane), so the old `as unknown as` casts dropped out.
 
 import { compile as engineCompile, evaluate as engineEvaluateFn, routeMap as engineRouteMap } from "@formforge/core/logic";
-import { Block, Rule } from "@formforge/core";;
-import typeimport { LogicEvaluate, IngestSnapshot } from "@formforge/core";LogicEvaluate` adapter over T13's `evaluate`. T13 accepts the flat
+import type { Block, Rule } from "@formforge/core/logic";
+import type { IngestSnapshot } from "@formforge/core";
+
+/**
+ * `LogicEvaluate` adapter over T13's `evaluate`. T13 accepts the flat
  * `Record<string, RouteNode>` snapshot routing (structural detection) plus
- * partial ctx, so the adapter is a straight pass-through; the cast keeps the
- * bridge's legacy `LogicEvaluate` signature (flat raw routing) happy until
- * the lead unifies the bridge types with the engine package.
+ * partial ctx — a straight pass-through now that the DI type is canonical.
  */
-export const engineEvaluate = engineEvaluateFn as unknown as LogicEvaluate;
+export const engineEvaluate = engineEvaluateFn;
 
 /**
  * Compiled routing (T13 `routeMap` projection of `compile()`) for snapshots
  * built before the T13-based publish compiler landed. Produces COMPILED
  * route nodes (pre-parsed conditions/actions) — exactly what T13's evaluate
- * consumes. Cast mirrors `engineEvaluate` (structural bridge debt).
+ * consumes, and exactly `IngestSnapshot["routing"]`.
  */
 export function compiledRouting(
   rules: readonly Rule[] | null | undefined,
@@ -31,6 +37,5 @@ export function compiledRouting(
   const endingIds = (endings ?? []).map((e) =>
     typeof e === "string" ? e : (e as { id: string }).id,
   );
-  const compiled = engineCompile(rules ?? [], blocks ?? [], endingIds);
-  return engineRouteMap(compiled) as unknown as IngestSnapshot["routing"];
+  return engineRouteMap(engineCompile(rules ?? [], blocks ?? [], endingIds));
 }

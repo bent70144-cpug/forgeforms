@@ -2,7 +2,7 @@
 // provider call; PLAN_LIMIT carries capability=ai and HTTP 402.
 import { describe, expect, it } from "vitest";
 import { AppError } from "../../shared/errors.ts";
-import { err, ok } from "../../shared/result.ts";;
+import { err, ok } from "../../shared/result.ts";
 import type { DocumentBody } from "../types";
 import { createRequestCtx, runAiDraft, runAiEdit } from "../index";
 import { checkAiQuota, planLimitFor, usagePeriod, AI_DRAFT_METRIC, AI_EDIT_METRIC } from "../quota";

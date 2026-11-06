@@ -1,7 +1,7 @@
 // T29 — GDPR ports (spec §17: "workspace data export, workspace and account
 // deletion, per-form retention setting"). Storage-agnostic contracts; SQL
 // implementations live in @formforge/db, fakes in this package's tests.
-import { type Ctx } from "../shared/ctx.ts";;
+import { type Ctx } from "../shared/ctx.ts";
 
 // ---------------------------------------------------------------------------
 // Export (right of access / data portability)

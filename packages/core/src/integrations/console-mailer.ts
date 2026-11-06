@@ -3,7 +3,7 @@
 // visibly. Logs metadata only: never subject content that could embed answer
 // values, never the html/text bodies.
 import { AppError } from "../shared/errors.ts";
-import { ok, type Result } from "../shared/result.ts";;
+import { ok, type Result } from "../shared/result.ts";
 import type { MailMessage, Mailer, MailSendResult } from "./mailer";
 
 export type ConsoleMailerConfig = {

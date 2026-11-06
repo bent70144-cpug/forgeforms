@@ -2,7 +2,7 @@
 // Scope names are part of the public API contract — T26/T27 and the OpenAPI
 // document in @formforge/schema/api all reference these exact strings.
 
-import { AppError } from "../shared/errors.ts";;
+import { AppError } from "../shared/errors.ts";
 
 /** The complete set of grantable scopes. Exact strings, never renamed casually. */
 export const API_SCOPES = [

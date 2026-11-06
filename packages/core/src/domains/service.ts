@@ -16,7 +16,7 @@
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
 import { uuidv7 } from "../shared/ids.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { planLimitError, type Capability } from '../billing/index.ts';
 import { docTag } from '../documents/index.ts';
 import {

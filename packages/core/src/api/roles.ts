@@ -13,7 +13,7 @@
 // Scoped routes map 1:1 onto API scopes (see ./scopes):
 //   docs:read / submissions:read → viewer, docs:write / docs:publish → editor.
 
-import { AppError } from "../shared/errors.ts";;
+import { AppError } from "../shared/errors.ts";
 import type { Ctx, Role } from './ctx';
 
 /** Rank per role — higher wins. Comparison is `>=` (minimum, not exact). */

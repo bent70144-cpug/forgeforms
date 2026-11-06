@@ -12,7 +12,7 @@
 // rev AND body, which the API layer answers as 409 CONFLICT.
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { uuidv7 } from '../shared/ids';
 import { sanitizeDocumentBodyRichText } from './sanitize';
 import type { DocumentBodyJson, DocumentRecord, DocumentType } from './model';

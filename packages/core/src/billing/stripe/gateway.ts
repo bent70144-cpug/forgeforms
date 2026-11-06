@@ -6,7 +6,7 @@
 //   • fake-gateway.ts  — recording fake for tests (no keys in this sandbox)
 
 import { type AppError } from "../../shared/errors.ts";
-import { type Result } from "../../shared/result.ts";;
+import { type Result } from "../../shared/result.ts";
 import type { PaidPlan } from '../plans';
 
 export type CheckoutSessionInput = {

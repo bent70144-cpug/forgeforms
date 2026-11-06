@@ -5,7 +5,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import type { IdentityDeps } from "./ports";
 import { LoginInputSchema, RegisterInputSchema, zodToDetails } from "./schemas";
 import type { MembershipRole, SessionRecord, UserRecord, WorkspaceRecord } from "./types";

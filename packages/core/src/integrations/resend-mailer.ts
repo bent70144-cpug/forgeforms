@@ -2,7 +2,7 @@
 // Zero new deps: uses global fetch; injectable for tests. Never throws —
 // returns Result per spec §3. Never logs message bodies (may contain answers).
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import type { MailMessage, Mailer, MailSendResult } from "./mailer";
 
 export type ResendMailerConfig = {

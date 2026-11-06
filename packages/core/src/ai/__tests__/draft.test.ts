@@ -3,7 +3,7 @@
 // invalid fixture → exactly one repair attempt → clear failure.
 import { describe, expect, it } from "vitest";
 import { AppError } from "../../shared/errors.ts";
-import { err } from "../../shared/result.ts";;
+import { err } from "../../shared/result.ts";
 import {
   buildDraftSystemPrompt,
   buildDraftUserPrompt,

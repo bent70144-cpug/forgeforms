@@ -13,7 +13,7 @@
 import { v7 as uuidv7 } from "uuid";
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { defaultAuthEmailRenderer } from "./emails";
 import type { IdentityDeps } from "./ports";
 import { ResetPasswordInputSchema, RequestPasswordResetInputSchema, zodToDetails } from "./schemas";

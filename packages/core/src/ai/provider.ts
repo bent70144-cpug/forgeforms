@@ -2,7 +2,7 @@
 // Tests always inject a FakeProvider with fixture responses; the Anthropic
 // Messages implementation below uses plain fetch (no SDK, spec-pinned).
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 
 export type AiCompletionRequest = {
   system: string;

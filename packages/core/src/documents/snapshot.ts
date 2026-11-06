@@ -8,7 +8,7 @@
  */
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { canonicalHash, deepFreeze, structuralClone } from './hash';
 import { sanitizeRichTextProp } from './sanitize';
 import type {
@@ -31,7 +31,8 @@ import type {
 // ---------------------------------------------------------------------------
 
 export type BuildSnapshotArgs = {
-  document: Readonly<Pick<DocumentRecord, 'id' | 'title' | 'type'>>;
+  /** ISSUE #30: must carry `workspaceId` — it is stamped onto the snapshot. */
+  document: Readonly<Pick<DocumentRecord, 'id' | 'workspaceId' | 'title' | 'type'>>;
   versionId: string;
   body: DocumentBodyJson;
   assets: AssetUrlResolver;
@@ -172,6 +173,9 @@ export async function buildSnapshot(args: BuildSnapshotArgs): Promise<BuildSnaps
 
   const snapshot: Snapshot = {
     documentId: document.id,
+    // ISSUE #30: publish-plane snapshots carry the owning workspace so the
+    // ingest plane can scope submissions/events without re-reading the row.
+    workspaceId: document.workspaceId,
     versionId,
     type: body.type ?? document.type,
     title: seo.title ?? document.title,

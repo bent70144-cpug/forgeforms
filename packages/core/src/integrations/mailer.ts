@@ -4,7 +4,7 @@
 // it is unit-testable without any transport. Rendering NEVER includes answer
 // values (spec §4 logging rule / issue #17 "never log answer values").
 import { type AppError } from "../shared/errors.ts";
-import { type Result } from "../shared/result.ts";;
+import { type Result } from "../shared/result.ts";
 
 export type MailMessage = {
   to: string;

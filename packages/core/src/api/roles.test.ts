@@ -5,7 +5,7 @@
 // DB-free: pure Ctx objects, no repositories.
 
 import { describe, expect, it } from 'vitest';
-import { AppError } from "../shared/errors.ts";;
+import { AppError } from "../shared/errors.ts";
 import { makeCtx, type Ctx, type Role } from './ctx';
 import {
   ROLE_MINIMUM_FOR,

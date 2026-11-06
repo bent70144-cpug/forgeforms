@@ -7,7 +7,7 @@
  */
 export { type Ctx } from "../shared/ctx.ts";
 export { AppError, type AppErrorCode, type ErrorDetail as AppErrorDetail } from "../shared/errors.ts";
-export { ok, err, type Result } from "../shared/result.ts";;
+export { ok, err, type Result } from "../shared/result.ts";
 
 export type {
   BlockJson,

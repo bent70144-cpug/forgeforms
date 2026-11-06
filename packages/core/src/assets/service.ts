@@ -12,7 +12,7 @@
 // download, signed URLs only").
 
 import { z } from "zod";
-import { AppError, type ErrorDetail } from "../shared/errors.ts";;
+import { AppError, type ErrorDetail } from "../shared/errors.ts";
 import { InMemoryObjectStore, type ObjectStore } from "../shared/object-store.ts";
 import { SNIFF_WINDOW_BYTES, familyOf, isAllowedUploadMime, isTypeSpoof, sniffMime } from "./mime.ts";
 

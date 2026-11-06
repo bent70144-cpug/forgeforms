@@ -14,7 +14,7 @@
  */
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { canonicalHash } from './hash';
 import { uuidv7 } from './ids';
 import type { DocumentBodyJson, PublishOutcome } from './model';
@@ -80,7 +80,7 @@ export function makePublishDocument(deps: PublishPipelineDeps): PublishDocument 
     // so an invalid draft writes nothing at all — not even a version row.
     const versionId = uuidv7();
     const built = await buildSnapshot({
-      document: { id: doc.id, title: doc.title, type: doc.type },
+      document: { id: doc.id, workspaceId: doc.workspaceId, title: doc.title, type: doc.type },
       versionId,
       body,
       assets: deps.assets,

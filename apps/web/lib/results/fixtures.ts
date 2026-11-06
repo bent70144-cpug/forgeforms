@@ -30,6 +30,7 @@ export const FIXTURE_DOCUMENT: DocumentSummary = {
     type: "form",
     theme: { tokens: {}, fontHeading: "Inter", fontBody: "Inter", radius: "md" },
     settings: {
+      seo: {},
       locale: "en",
       progressBar: true,
       autoAdvance: true,

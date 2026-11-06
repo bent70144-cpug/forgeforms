@@ -3,7 +3,7 @@
 
 import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { AppError } from "../shared/errors.ts";;
+import { AppError } from "../shared/errors.ts";
 import { makeCtx, type Ctx } from './ctx';
 import {
   API_SCOPES,

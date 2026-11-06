@@ -1,10 +1,10 @@
 // @formforge/core — integrations module (T17, issue #17).
 // Public interface per spec §3: mailer transports + renderers, webhook
 // signing/backoff/dispatch, and the webhook/event payload contract.
-// Kernel types come from ./bridge until T02 lands (INTEGRATION-DEBT).
+// ISSUE #30: kernel types come from ../shared/* (the core bridge.ts is retired).
 export { type Ctx } from "../shared/ctx.ts";
 export { AppError, type AppErrorCode } from "../shared/errors.ts";
-export { ok, err, type Result } from "../shared/result.ts";;
+export { ok, err, type Result } from "../shared/result.ts";
 export {
   EMAIL_JOB_NAMES,
   renderNotificationEmail,

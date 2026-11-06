@@ -10,7 +10,7 @@ import {
   requiredPlanFor,
 } from './entitlements';
 import { PLANS } from './plans';
-import { AppError } from "../shared/errors.ts";;
+import { AppError } from "../shared/errors.ts";
 
 describe('ENTITLEMENTS matrix (spec §13)', () => {
   it('has exactly the §13 rows, free column', () => {

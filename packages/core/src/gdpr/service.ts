@@ -3,7 +3,7 @@
 // agnostic and clock-injected. See ./types.ts for the ports.
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import type {
   AccountDeletionDeps,
   RetentionDeps,

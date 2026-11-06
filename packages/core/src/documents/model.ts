@@ -6,7 +6,7 @@
  * phrasing "current_version_id / published_at" is realized as these spec columns;
  * the lifecycle transitions are identical).
  */
-import { type Ctx } from "../shared/ctx.ts";;
+import { type Ctx } from "../shared/ctx.ts";
 
 export type DocumentType = 'form' | 'page' | 'portfolio';
 export type DocumentStatus = 'draft' | 'published' | 'archived';
@@ -84,6 +84,10 @@ export type DocumentVersionRecord = {
 /**
  * Snapshot per spec §8 (`snapshots.rendered`). Blocks are sanitized with asset
  * URLs resolved; routing is the compiled logic keyed by blockId.
+ *
+ * ISSUE #30: `workspaceId` rides on the snapshot so the public ingest plane can
+ * scope submissions/events by workspace without re-reading the document row
+ * (the retired core `bridge.ts` snapshot variant already carried it).
  */
 export type SnapshotSeo = { title?: string; description?: string; ogImageUrl?: string };
 
@@ -103,6 +107,8 @@ export type SnapshotSettings = {
 
 export type Snapshot = {
   documentId: string;
+  /** Owning workspace (spec §6 tenancy) — consumed by the ingest plane (§10.3). */
+  workspaceId: string;
   versionId: string;
   type: DocumentType;
   title: string;

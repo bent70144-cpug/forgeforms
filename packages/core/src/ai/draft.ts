@@ -3,7 +3,7 @@
 // repair attempt; a clear AppError otherwise. The provider is injected so
 // tests use a FakeProvider with fixture responses.
 import { AppError } from "../shared/errors.ts";
-import { err, ok, type Result } from "../shared/result.ts";;
+import { err, ok, type Result } from "../shared/result.ts";
 import { DocumentBody as DocumentBodySchema } from "./types";
 import { BLOCK_KIND_CHEATSHEET, KNOWN_BLOCK_KINDS, type Block, type DocumentBody, type DocumentType } from "./types";
 import { extractJson, zodIssuesToDetails, AI_JSON_CONTRACT, blockKindCheatsheet } from "./prompt";

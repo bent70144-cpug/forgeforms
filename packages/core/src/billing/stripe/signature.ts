@@ -9,7 +9,7 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { AppError } from "../../shared/errors.ts";
-import { ok, err, type Result } from "../../shared/result.ts";;
+import { ok, err, type Result } from "../../shared/result.ts";
 
 export const DEFAULT_TOLERANCE_SECONDS = 300;
 

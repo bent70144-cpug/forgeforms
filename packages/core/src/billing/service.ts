@@ -7,7 +7,7 @@
 
 import { type Ctx } from "../shared/ctx.ts";
 import { AppError } from "../shared/errors.ts";
-import { ok, type Result } from "../shared/result.ts";;
+import { ok, type Result } from "../shared/result.ts";
 import { createEntitlementsService, type EntitlementsService, type OverridesFn } from './can';
 import type { Capability, Entitlements } from './entitlements';
 import { planLimitError } from './entitlements';
