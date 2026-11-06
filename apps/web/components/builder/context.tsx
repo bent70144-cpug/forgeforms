@@ -31,16 +31,31 @@ type BuilderContextValue = {
   dispatch: Dispatch<EditorAction>;
 };
 
-const BuilderContext = createContext<BuilderContextValue | null>(null);
+// Exported so static-render tests (vitest node env, react-dom/server) can
+// seed a loaded EditorState without a DOM/Provider dispatch cycle. Production
+// code must go through BuilderProvider.
+export const BuilderContext = createContext<BuilderContextValue | null>(null);
 
 export function BuilderProvider({
   docId,
+  initialState,
   children,
 }: {
   docId: string;
+  /**
+   * Test/preload seam (B3): start from a fully-built EditorState instead of
+   * the empty one. Component tests use it because renderToStaticMarkup never
+   * runs effects — they build the state by pure `editorReducer` calls and
+   * inject it here. Production code passes nothing (normal empty start).
+   */
+  initialState?: EditorState;
   children: ReactNode;
 }) {
-  const [state, dispatch] = useReducer(editorReducer, docId, initialEditorState);
+  const [state, dispatch] = useReducer(
+    editorReducer,
+    initialState ?? docId,
+    (arg: EditorState | string) => (typeof arg === "string" ? initialEditorState(arg) : arg),
+  );
   const value = useMemo<BuilderContextValue>(() => ({ state, dispatch }), [state]);
   return <BuilderContext.Provider value={value}>{children}</BuilderContext.Provider>;
 }

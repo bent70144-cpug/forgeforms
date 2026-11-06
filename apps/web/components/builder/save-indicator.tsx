@@ -49,6 +49,8 @@ const LABELS: Record<AutosaveStatus, string> = {
   saved: 'Saved',
   conflict: 'Conflict — recovering…',
   error: 'Save failed',
+  // §4/§7.1: offline keeps the queue — never show a scary error for it.
+  offline: 'Offline — changes kept',
 };
 
 /** Chip text for a status (exported for tests). */

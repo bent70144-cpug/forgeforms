@@ -1,7 +1,13 @@
-// DocumentTransport — the builder's seam to the documents API (spec §11).
+// DocumentTransport — the builder's seam to the documents API (spec §11 + §22.1).
 //
 // - ApiTransport talks to `PATCH /api/v1/documents/:id` with `{ baseRev, ops }`
-//   and maps `409 CONFLICT` to ConflictError carrying the server's current rev.
+//   and maps `409 CONFLICT` to ConflictError carrying the server's current rev
+//   AND body (`409 { rev, body }`, spec §22.1) so the autosave controller can
+//   rebase without a refetch round-trip.
+// - `422 { opIndex, code, message }` (spec §22.1) maps to OpRejectedError so
+//   the autosave controller can roll back exactly one op (spec §14). The
+//   current server still answers with the §4 envelope (index buried in
+//   `error.details[].path` as `"ops[3].id"`) — both shapes are parsed.
 // - MockTransport is an in-memory store with simulated latency and a manual
 //   `bumpRev` hook (simulating a concurrent writer) used by the dev toggle and
 //   by the autosave tests.
@@ -46,7 +52,67 @@ export class ConflictError extends TransportError {
   }
 }
 
+/**
+ * `422 VALIDATION` — the server rejected exactly one op of the batch
+ * (spec §22.1 `{ opIndex, code, message }`, §14 rollback semantics).
+ * `opIndex` is `null` when the server answered 422 without a parsable index
+ * (callers must then treat the batch as transiently failed rather than guess).
+ */
+export class OpRejectedError extends TransportError {
+  constructor(
+    public readonly opIndex: number | null,
+    code: string,
+    message: string,
+  ) {
+    super(code, message, 422);
+    this.name = "OpRejectedError";
+  }
+}
+
 type ErrorBody = { error?: { code?: string; message?: string; details?: unknown } };
+
+/** `ops[3].id` → 3 (the §4 detail path is where the current server buries it). */
+function opIndexFromDetails(details: unknown): number | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    const path = typeof item === "object" && item !== null ? (item as { path?: unknown }).path : undefined;
+    if (typeof path !== "string") continue;
+    const match = /^ops\[(\d+)\]/.exec(path);
+    if (match) return Number.parseInt(match[1] ?? "", 10);
+  }
+  return null;
+}
+
+/** `details: [{ rev: 4 }]` → 4 (legacy conflict-detail fallback). */
+function revFromDetails(details: unknown): number | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    const rev = typeof item === "object" && item !== null ? (item as { rev?: unknown }).rev : undefined;
+    if (typeof rev === "number") return rev;
+  }
+  return null;
+}
+
+/** Parse a 422 response into OpRejectedError (spec §22.1 wire shape first). */
+async function parseOpRejected(res: Response): Promise<OpRejectedError> {
+  let opIndex: number | null = null;
+  let code = "VALIDATION";
+  let message = `Request failed with ${res.status}`;
+  let details: unknown;
+  try {
+    const body = (await res.json()) as ErrorBody & { opIndex?: unknown; code?: unknown; message?: unknown };
+    if (typeof body.opIndex === "number") opIndex = body.opIndex;
+    if (typeof body.code === "string") code = body.code;
+    if (typeof body.message === "string") message = body.message;
+    code = body.error?.code ?? code;
+    message = body.error?.message ?? message;
+    details = body.error?.details;
+  } catch {
+    // non-JSON body — keep defaults
+  }
+  if (opIndex === null) opIndex = opIndexFromDetails(details);
+  return new OpRejectedError(opIndex, code, message);
+}
 
 async function parseError(res: Response): Promise<TransportError> {
   let code = "INTERNAL";
@@ -91,14 +157,16 @@ export class ApiTransport implements DocumentTransport {
       body: JSON.stringify({ baseRev, ops }),
     });
     if (res.status === 409) {
+      // Spec §22.1: `409 { rev, body }` on the top level. Older shape kept as
+      // a fallback: rev inside the `error.details` list.
       let rev = baseRev;
       let body: DocumentBody | undefined;
       try {
         const json = (await res.json()) as ErrorBody & { rev?: number; body?: DocumentBody };
-        const details = json.error?.details as { rev?: number } | undefined;
         if (typeof json.rev === "number") rev = json.rev;
-        else if (typeof details?.rev === "number") {
-          rev = details.rev;
+        else {
+          const fromDetails = revFromDetails(json.error?.details);
+          if (fromDetails !== null) rev = fromDetails;
         }
         body = json.body;
       } catch {
@@ -106,6 +174,7 @@ export class ApiTransport implements DocumentTransport {
       }
       throw new ConflictError(rev, "Document changed on the server", body);
     }
+    if (res.status === 422) throw await parseOpRejected(res);
     if (!res.ok) throw await parseError(res);
     return (await res.json()) as PatchResult;
   }
@@ -123,6 +192,19 @@ export class ApiTransport implements DocumentTransport {
 // ---------------------------------------------------------------------------
 // MockTransport
 // ---------------------------------------------------------------------------
+
+/** Index of the first op that fails to apply on `doc` (mock-server helper). */
+function firstFailingIndex(doc: EditableDoc, ops: readonly Op[]): number | null {
+  let sim = doc;
+  for (let i = 0; i < ops.length; i++) {
+    try {
+      sim = applyOps(sim, [ops[i] as Op]);
+    } catch {
+      return i;
+    }
+  }
+  return null;
+}
 
 export type MockTransportOptions = {
   /** Simulated latency in ms; a number or a sampler. Default: 40–120ms. */
@@ -167,14 +249,19 @@ export class MockTransport implements DocumentTransport {
       meta: { title: doc.title, slug: doc.slug },
       body: doc.body,
     };
-    let next: EditableDoc;
+    let next: EditableDoc = editable;
     try {
-      next = applyOps(editable, ops);
+      for (let i = 0; i < ops.length; i++) {
+        next = applyOps(next, [ops[i] as Op]);
+      }
     } catch (err) {
-      throw new TransportError(
+      // Mimic the server's §22.1 422: exactly one op rejected with its index
+      // (op failures are always field-level VALIDATION 422s on the wire).
+      const failing = firstFailingIndex(editable, ops);
+      throw new OpRejectedError(
+        failing,
         "VALIDATION",
         `Invalid ops: ${err instanceof Error ? err.message : String(err)}`,
-        422,
       );
     }
     doc.rev += 1;

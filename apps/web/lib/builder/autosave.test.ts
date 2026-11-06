@@ -1,8 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DocumentEnvelope } from "../bridge";
 import { emptyBody, type Op } from "./ops";
-import { AutosaveController, type AutosaveStatus } from "./autosave";
-import { ConflictError, MockTransport, TransportError, seedEnvelope } from "./transport";
+import {
+  AutosaveController,
+  type AutosaveStatus,
+  type ConflictEvent,
+  type OpRejectedEvent,
+  type RebasedEvent,
+} from "./autosave";
+import { ConflictError, MockTransport, OpRejectedError, TransportError, seedEnvelope } from "./transport";
+import type { OfflineQueuePort, PendingBatchRecord } from "./offline";
 
 type Call = { baseRev: number; ops: readonly Op[] };
 
@@ -18,7 +25,7 @@ function env(overrides: Partial<DocumentEnvelope> = {}): DocumentEnvelope {
   };
 }
 
-/** Records _calls and delegates each patch to the next queued behavior. */
+/** Records calls and delegates each patch to the next queued behavior. */
 function recordedTransport(
   start: DocumentEnvelope,
   behaviors: Array<(call: Call, n: number) => Promise<{ rev: number }> | { rev: number }>,
@@ -43,6 +50,17 @@ function recordedTransport(
     patches,
     loadCount: () => loads,
   };
+}
+
+function fakeQueue() {
+  const saved: PendingBatchRecord[] = [];
+  const cleared: string[] = [];
+  const port: OfflineQueuePort = {
+    saveQueue: (record) => void saved.push(record),
+    loadQueue: async (docId) => saved.find((r) => r.docId === docId) ?? null,
+    clearQueue: async (docId) => void cleared.push(docId),
+  };
+  return { saved, cleared, port };
 }
 
 describe("AutosaveController", () => {
@@ -120,6 +138,48 @@ describe("AutosaveController", () => {
     controller.destroy();
   });
 
+  it("flushes after the 5s max wait under continuous typing (§7.1)", async () => {
+    const { transport, patches } = recordedTransport(env(), [() => ({ rev: 2 })]);
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+    });
+
+    const op = (i: number): Op => ({ op: "meta.update", patch: { title: `t${i}` } });
+    controller.enqueue([op(1)]);
+    for (let i = 2; i <= 13; i++) {
+      await vi.advanceTimersByTimeAsync(400); // debounce (500ms) never settles
+      controller.enqueue([op(i)]);
+    }
+    await vi.advanceTimersByTimeAsync(199); // t=4999 — still waiting
+    expect(patches.length).toBe(0);
+
+    await vi.advanceTimersByTimeAsync(1); // t=5000 — max wait reached
+    expect(patches.length).toBe(1);
+    expect(patches[0]?.baseRev).toBe(1);
+    expect(patches[0]?.ops.length).toBe(13);
+    controller.destroy();
+  });
+
+  it("flushNow() bypasses the debounce (Cmd+S / pagehide)", async () => {
+    const { transport, patches } = recordedTransport(env(), [() => ({ rev: 2 })]);
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "now" } }]);
+    expect(patches.length).toBe(0);
+    await controller.flushNow();
+
+    expect(patches.length).toBe(1);
+    await vi.advanceTimersByTimeAsync(5000); // cancelled debounce must not re-fire
+    expect(patches.length).toBe(1);
+    controller.destroy();
+  });
+
   it("recovers from 409: reloads, replays ops on the fresh body, re-sends with the fresh rev", async () => {
     const fresh = env({ rev: 5, body: { ...emptyBody("form"), blocks: [{ id: "a", kind: "text", props: {} }] } });
     const { transport, patches, loadCount } = recordedTransport(fresh, [
@@ -157,6 +217,40 @@ describe("AutosaveController", () => {
     expect(c.acks).toEqual([5, 6]);
     expect(c.statuses[c.statuses.length - 1]).toBe("saved");
     expect(controller.currentRev).toBe(6);
+    controller.destroy();
+  });
+
+  it("rebases automatically from the 409 body without a refetch round-trip", async () => {
+    const serverBody = { ...emptyBody("form"), blocks: [{ id: "a", kind: "text", props: {} }] };
+    const { transport, patches, loadCount } = recordedTransport(env(), [
+      () => {
+        throw new ConflictError(5, "stale", serverBody);
+      },
+      () => ({ rev: 6 }),
+    ]);
+    const c = collector();
+    const rebased: RebasedEvent[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onRebased: (event) => void rebased.push(event),
+    });
+
+    controller.enqueue([{ op: "block.update", id: "a", props: { label: "Local edit" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(loadCount()).toBe(0); // 409 { rev, body } → rebase without a GET
+    expect(rebased.length).toBe(1);
+    expect(rebased[0]?.rev).toBe(5);
+    expect(rebased[0]?.droppedCount).toBe(0);
+    expect(rebased[0]?.doc.body.blocks[0]).toMatchObject({ id: "a", props: { label: "Local edit" } });
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.baseRev).toBe(5); // patched batch re-sent with the new baseRev
+    expect(c.acks).toEqual([5, 6]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
     controller.destroy();
   });
 
@@ -201,30 +295,150 @@ describe("AutosaveController", () => {
     controller.destroy();
   });
 
-  it("drops ops whose targets no longer exist on the server (recovery)", async () => {
-    const fresh = env({ rev: 7 });
-    const { transport, patches } = recordedTransport(fresh, [
+  it("raises onConflict when the rebase cannot apply local ops cleanly (§7.3.3)", async () => {
+    const serverBody = { ...emptyBody("form"), blocks: [{ id: "a", kind: "text", props: {} }] };
+    const { transport, patches, loadCount } = recordedTransport(env({ rev: 5, body: serverBody }), [
       () => {
-        throw new ConflictError(7, "stale");
+        throw new ConflictError(5, "stale", serverBody);
       },
-      () => ({ rev: 8 }),
     ]);
-    const reconciled: Array<{ droppedCount: number }> = [];
+    const c = collector();
+    const conflicts: ConflictEvent[] = [];
+    const reconciled: unknown[] = [];
     const controller = new AutosaveController({
       transport: transport as unknown as MockTransport & typeof transport,
       docId: "doc1",
       initialRev: 1,
-      onReconciled: (_doc, _rev, droppedCount) => reconciled.push({ droppedCount }),
+      onStatus: c.onStatus,
+      onConflict: (event) => void conflicts.push(event),
+      onReconciled: (doc) => void reconciled.push(doc),
     });
 
     controller.enqueue([
-      { op: "block.update", id: "ghost", props: { label: "gone" } }, // will be dropped
+      { op: "block.update", id: "ghost", props: { label: "deleted on the server" } }, // target gone
       { op: "meta.update", patch: { title: "kept" } },
     ]);
     await vi.advanceTimersByTimeAsync(500);
 
-    expect(reconciled[0]?.droppedCount).toBe(1);
-    expect(patches[1]?.ops).toEqual([{ op: "meta.update", patch: { title: "kept" } }]);
+    expect(loadCount()).toBe(1); // meta.update in the replay → full envelope
+    expect(conflicts.length).toBe(1);
+    expect(conflicts[0]?.rev).toBe(5);
+    expect(conflicts[0]?.pendingOps.length).toBe(2);
+    expect(conflicts[0]?.serverDoc?.meta.title).toBe("Doc");
+    expect(controller.conflict).toBe(conflicts[0] ?? null);
+    expect(reconciled.length).toBe(0); // no silent rebase — user must choose
+    expect(patches.length).toBe(1); // nothing is re-sent while unresolved
+    expect(c.statuses).toContain("conflict");
+    expect(controller.pendingCount).toBe(2);
+    controller.destroy();
+  });
+
+  it("resolveConflict('mine') re-sends the losing ops as a new revision", async () => {
+    const serverBody = { ...emptyBody("form"), blocks: [{ id: "a", kind: "text", props: {} }] };
+    const { transport, patches } = recordedTransport(env({ rev: 5, body: serverBody }), [
+      () => {
+        throw new ConflictError(5, "stale", serverBody);
+      },
+      () => ({ rev: 6 }),
+    ]);
+    const c = collector();
+    const resolved: string[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onConflictResolved: (mode) => void resolved.push(mode),
+    });
+
+    controller.enqueue([
+      { op: "block.update", id: "ghost", props: { label: "x" } },
+      { op: "meta.update", patch: { title: "kept" } },
+    ]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(1);
+
+    await controller.resolveConflict("mine");
+
+    expect(resolved).toEqual(["mine"]);
+    expect(controller.conflict).toBeNull();
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.baseRev).toBe(5); // fresh baseRev from the server body
+    expect(patches[1]?.ops.map((o) => o.op)).toEqual(["block.update", "meta.update"]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    expect(controller.currentRev).toBe(6);
+    controller.destroy();
+  });
+
+  it("resolveConflict('theirs') adopts the server document and drops local ops", async () => {
+    const serverBody = { ...emptyBody("form"), blocks: [{ id: "a", kind: "text", props: {} }] };
+    const { transport, patches } = recordedTransport(env({ rev: 5, body: serverBody }), [
+      () => {
+        throw new ConflictError(5, "stale", serverBody);
+      },
+    ]);
+    const c = collector();
+    const rebased: RebasedEvent[] = [];
+    const resolved: string[] = [];
+    const queue = fakeQueue();
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onRebased: (event) => void rebased.push(event),
+      onConflictResolved: (mode) => void resolved.push(mode),
+      offlineQueue: queue.port,
+    });
+
+    controller.enqueue([{ op: "block.update", id: "ghost", props: { label: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(1);
+
+    await controller.resolveConflict("theirs");
+
+    expect(resolved).toEqual(["theirs"]);
+    expect(controller.conflict).toBeNull();
+    expect(controller.pendingCount).toBe(0);
+    expect(patches.length).toBe(1); // no new PATCH — local state == server state
+    expect(rebased.length).toBe(1);
+    expect(rebased[0]?.rev).toBe(5);
+    expect(rebased[0]?.doc.body.blocks[0]).toMatchObject({ id: "a" });
+    expect(c.acks).toContain(5);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    expect(queue.cleared).toContain("doc1"); // §22.2: record dropped on "Use theirs"
+    controller.destroy();
+  });
+
+  it("pauses network activity while a conflict is unresolved", async () => {
+    const serverBody = { ...emptyBody("form"), blocks: [{ id: "a", kind: "text", props: {} }] };
+    const { transport, patches } = recordedTransport(env({ rev: 5, body: serverBody }), [
+      () => {
+        throw new ConflictError(5, "stale", serverBody);
+      },
+      () => ({ rev: 6 }),
+    ]);
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+    });
+
+    controller.enqueue([{ op: "block.update", id: "ghost", props: { label: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(1);
+
+    // Keep editing + waiting: nothing may hit the network before the choice.
+    controller.enqueue([{ op: "meta.update", patch: { title: "more" } }]);
+    await vi.advanceTimersByTimeAsync(10_000);
+    await controller.flushNow();
+    expect(patches.length).toBe(1);
+
+    await controller.resolveConflict("mine");
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops.length).toBe(2); // losing ops + edits made meanwhile
     controller.destroy();
   });
 
@@ -250,41 +464,240 @@ describe("AutosaveController", () => {
     });
 
     controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
-    await vi.advanceTimersByTimeAsync(500); // first attempt fails
-    await vi.advanceTimersByTimeAsync(500); // backoff 1 → second attempt fails
-    await vi.advanceTimersByTimeAsync(1000); // backoff 2 → third attempt succeeds
+    await vi.advanceTimersByTimeAsync(500); // attempt 1 fails
+    await vi.advanceTimersByTimeAsync(1000); // backoff 1s → attempt 2 fails
+    await vi.advanceTimersByTimeAsync(2000); // backoff 2s → attempt 3 succeeds
     expect(patches.length).toBe(3); // 2 failed attempts + 1 success
     expect(c.statuses[c.statuses.length - 1]).toBe("saved");
     controller.destroy();
   });
 
-  it("surfaces an error after maxRetries and keeps the ops queued", async () => {
-    const { transport } = recordedTransport(env(), [
-      () => {
-        throw new TransportError("NETWORK", "offline");
-      },
-      () => {
-        throw new TransportError("NETWORK", "offline");
-      },
-      () => {
-        throw new TransportError("NETWORK", "offline");
-      },
-      () => {
-        throw new TransportError("NETWORK", "offline");
-      },
-    ]);
+  it("follows the spec backoff 1s,2s,5s,10s then 30s, reset by success (§7.1)", async () => {
+    let fail = true;
+    const behavior = () => {
+      if (fail) throw new TransportError("INTERNAL", "boom", 500);
+      return { rev: 99 };
+    };
+    const { transport, patches } = recordedTransport(env(), Array.from({ length: 12 }, () => behavior));
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500 + 1_000); // attempt 1 @500, attempt 2 @1500
+    expect(patches.length).toBe(2);
+    await vi.advanceTimersByTimeAsync(2_000); // attempt 3 @3500 (backoff 2s → 5s)
+    expect(patches.length).toBe(3);
+    await vi.advanceTimersByTimeAsync(5_000); // attempt 4 @8500
+    expect(patches.length).toBe(4);
+    await vi.advanceTimersByTimeAsync(10_000); // attempt 5 @18500
+    expect(patches.length).toBe(5);
+    await vi.advanceTimersByTimeAsync(30_000); // attempt 6 @48500 (steady 30s)
+    expect(patches.length).toBe(6);
+    await vi.advanceTimersByTimeAsync(29_999);
+    expect(patches.length).toBe(6); // still on the 30s cadence
+    await vi.advanceTimersByTimeAsync(1);
+    expect(patches.length).toBe(7);
+
+    // Success resets the sequence: the next failure waits 1s again.
+    fail = false;
+    await vi.advanceTimersByTimeAsync(30_000); // attempt 7 succeeds
+    expect(patches.length).toBe(8);
+    expect(controller.status).toBe("saved");
+
+    fail = true;
+    controller.enqueue([{ op: "meta.update", patch: { title: "y" } }]);
+    await vi.advanceTimersByTimeAsync(500); // attempt 8 fails → backoff restarts at 1s
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(9); // no attempt at +1000 (would be 2s if not reset)
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(10); // attempt 9 at +1500
+    controller.destroy();
+  });
+
+  it("surfaces an error and stops after maxRetries, keeping the ops queued", async () => {
+    const behavior = () => {
+      throw new TransportError("NETWORK", "offline");
+    };
+    const { transport, patches } = recordedTransport(env(), Array.from({ length: 10 }, () => behavior));
     const c = collector();
     const controller = new AutosaveController({
       transport: transport as unknown as MockTransport & typeof transport,
       docId: "doc1",
       initialRev: 1,
+      maxRetries: 3,
       onStatus: c.onStatus,
     });
 
     controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
-    await vi.advanceTimersByTimeAsync(500 + 500 + 1000 + 2000);
+    await vi.advanceTimersByTimeAsync(500 + 1_000 + 2_000 + 5_000 + 30_000);
     expect(c.statuses).toContain("error");
     expect(controller.pendingCount).toBe(1);
+    expect(patches.length).toBe(4); // initial + 3 retries, then it gives up
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(patches.length).toBe(4); // no further automatic attempts
+    controller.destroy();
+  });
+
+  it("destroys cancel pending retries", async () => {
+    const behavior = () => {
+      throw new TransportError("INTERNAL", "boom", 500);
+    };
+    const { transport, patches } = recordedTransport(env(), Array.from({ length: 5 }, () => behavior));
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500); // attempt 1 fails, sleeping 1s
+    controller.destroy();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(patches.length).toBe(1); // the backoff sleep was cancelled
+  });
+
+  it("enters offline when isOnline() is false and flushes on the online event (§7.1)", async () => {
+    const { transport, patches } = recordedTransport(env(), [() => ({ rev: 2 })]);
+    const c = collector();
+    let online = false;
+    let fireOnline: () => void = () => undefined;
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      isOnline: () => online,
+      addOnlineListener: (cb) => {
+        fireOnline = cb;
+        return () => {
+          fireOnline = () => undefined;
+        };
+      },
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept while offline" } }]);
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    expect(patches.length).toBe(0); // never touched the network
+    expect(c.statuses).toContain("offline");
+    expect(controller.pendingCount).toBe(1); // ops retained
+
+    online = true;
+    fireOnline(); // window 'online'
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(patches.length).toBe(1);
+    expect(patches[0]?.ops).toEqual([{ op: "meta.update", patch: { title: "kept while offline" } }]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    expect(c.acks).toEqual([2]);
+    controller.destroy();
+  });
+
+  it("enters offline when fetch throws TypeError and flushes on reconnect (§7.1)", async () => {
+    const { transport, patches } = recordedTransport(env(), [
+      () => {
+        throw new TypeError("Failed to fetch");
+      },
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    let fireOnline: () => void = () => undefined;
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      addOnlineListener: (cb) => {
+        fireOnline = cb;
+        return () => undefined;
+      },
+      onStatus: c.onStatus,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(c.statuses).toContain("offline");
+    expect(controller.pendingCount).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(60_000); // no backoff churn while offline
+    expect(patches.length).toBe(1);
+
+    fireOnline();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(patches.length).toBe(2);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    controller.destroy();
+  });
+
+  it("rolls back exactly the op rejected with 422 and retries the rest (§14)", async () => {
+    const ghost: Op = { op: "block.update", id: "ghost", props: { label: "x" } };
+    const { transport, patches } = recordedTransport(env(), [
+      () => {
+        throw new OpRejectedError(1, "NOT_FOUND", "block ghost not found");
+      },
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const rejected: OpRejectedEvent[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onOpRejected: (event) => void rejected.push(event),
+    });
+
+    controller.enqueue([
+      { op: "meta.update", patch: { title: "a" } },
+      ghost,
+      { op: "meta.update", patch: { title: "b" } },
+    ]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(rejected.length).toBe(1);
+    expect(rejected[0]?.op).toEqual(ghost);
+    expect(rejected[0]?.index).toBe(1);
+    expect(rejected[0]?.code).toBe("NOT_FOUND");
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.baseRev).toBe(1);
+    expect(patches[1]?.ops).toEqual([
+      { op: "meta.update", patch: { title: "a" } },
+      { op: "meta.update", patch: { title: "b" } },
+    ]);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    controller.destroy();
+  });
+
+  it("mirrors pending ops into the offline queue and clears on ack (§22.2)", async () => {
+    const { transport, patches } = recordedTransport(env(), [() => ({ rev: 2 })]);
+    const queue = fakeQueue();
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      offlineQueue: queue.port,
+    });
+
+    const ops: Op[] = [
+      { op: "meta.update", patch: { title: "a" } },
+      { op: "meta.update", patch: { title: "b" } },
+    ];
+    controller.enqueue(ops);
+    await vi.advanceTimersByTimeAsync(100); // 100ms debounced write
+
+    expect(queue.saved.length).toBe(1);
+    expect(queue.saved[0]).toMatchObject({ docId: "doc1", baseRev: 1 });
+    expect(queue.saved[0]?.ops).toEqual(ops);
+    expect(typeof queue.saved[0]?.updatedAt).toBe("number");
+
+    await vi.advanceTimersByTimeAsync(400); // flush + ack
+    expect(patches.length).toBe(1);
+    expect(queue.cleared).toEqual(["doc1"]); // deleted on 200 OK, nothing in flight
     controller.destroy();
   });
 

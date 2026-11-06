@@ -34,6 +34,10 @@ export const ThemePatchSchema = z
 /** settings.update — partial settings; nullable fields reset to unset/default. */
 export const SettingsPatchSchema = z
   .object({
+    // SPEC-NOTE (B1/§21): `hiddenFields` is nullable in the PATCH so the undo
+    // inverse of "added hiddenFields" can delete the key again (merge-patch
+    // convention above: null = delete). The canonical DocumentSettings schema
+    // (src/document.ts) still treats the key as optional — never null.
     seo: z
       .object({
         title: z.string().nullable(),
@@ -56,7 +60,7 @@ export const SettingsPatchSchema = z
     // T20 (spec §14.1.4): hidden-field extras — array-replaced wholesale like
     // notifyEmails (send [] to clear); the canonical DocumentSettings schema
     // (src/document.ts) owns the stored shape.
-    hiddenFields: z.array(z.object({ name: z.string().min(1), label: z.string().optional() })),
+    hiddenFields: z.array(z.object({ name: z.string().min(1), label: z.string().optional() })).nullable(),
   })
   .partial();
 
@@ -70,7 +74,9 @@ export const SettingsPatchSchema = z
 export const MetaPatchSchema = z
   .object({
     title: z.string().trim().min(1).max(300),
-    slug: z.string().min(1).max(300),
+    // SPEC-NOTE (B1/§21): nullable so the undo inverse of "slug was added" can
+    // delete the key again (merge-patch convention: null = delete/unset).
+    slug: z.string().min(1).max(300).nullable(),
   })
   .partial();
 
@@ -117,6 +123,10 @@ export const ThemeUpdateOpSchema = z.object({
 
 export const EndingUpsertOpSchema = z.object({
   op: z.literal("ending.upsert"),
+  // SPEC-NOTE (B1/§21): `index?` positions a NEW ending (clamped server-side);
+  // ignored when the ending already exists (replace in place). Required by the
+  // §21 inverse of ending.remove: `ending.upsert { index: oldIndex, ending }`.
+  index: z.number().int().min(0).optional(),
   ending: Ending,
 });
 
@@ -127,6 +137,9 @@ export const EndingRemoveOpSchema = z.object({
 
 export const RuleUpsertOpSchema = z.object({
   op: z.literal("rule.upsert"),
+  // SPEC-NOTE (B1/§21): same as EndingUpsertOpSchema.index — positions a NEW
+  // rule; the §21 inverse of rule.remove carries the old index.
+  index: z.number().int().min(0).optional(),
   rule: Rule,
 });
 
