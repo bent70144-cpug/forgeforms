@@ -283,9 +283,10 @@ export const BLOCK_CATALOG: BlockMeta[] = [
       { key: "label", label: "Question", type: "text" },
       OPTIONS_FIELD,
       { key: "allowOther", label: "Allow “other”", type: "boolean" },
+      { key: "randomize", label: "Randomize order", type: "boolean" }, // T09 §7.2
       ...questionGeneric,
     ],
-    defaultProps: () => ({ label: "Pick one", required: false, options: twoOptions(), allowOther: false }),
+    defaultProps: () => ({ label: "Pick one", required: false, options: twoOptions(), allowOther: false, randomize: false }),
   },
   {
     kind: "multi-select",
