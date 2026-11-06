@@ -49,7 +49,6 @@ function emailProcessor(deps: WorkerDeps): JobProcessor {
 // ---------------------------------------------------------------------------
 function loudSubmissionReader(): SubmissionReader {
   return {
-    // eslint-disable-next-line require-yield
     async *streamByCursor(): AsyncIterable<ExportSubmissionRow> {
       throw new Error(
         "db not wired: csv-export streamByCursor needs the submissions export reader (re-ticketed with the issue #30 follow-up)",

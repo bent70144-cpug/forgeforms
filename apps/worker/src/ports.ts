@@ -9,7 +9,7 @@
 // shapes already match, so the swap is mechanical.
 import { AppError } from "@formforge/core";
 import type { Ctx, Result } from "@formforge/core";
-import type { DeliveryOutcome, HttpPost, MailMessage, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
+import type { DeliveryOutcome, HttpPost, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
 import type { ObjectStore } from "@formforge/core/assets";
 import type { GdprStoresPort } from "./jobs/retention-purge";
 import type { JobName, QueueName } from "./queues/names";
