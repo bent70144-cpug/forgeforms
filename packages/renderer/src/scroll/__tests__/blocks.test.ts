@@ -117,12 +117,57 @@ describe("normalizeImageProps", () => {
   it("maps src/alt/caption and optional dimensions", () => {
     expect(
       normalizeImageProps({ src: "https://cdn/i.png", alt: "An image", caption: "Cap", width: "800", height: 600 }),
-    ).toEqual({ src: "https://cdn/i.png", alt: "An image", caption: "Cap", width: 800, height: 600 });
+    ).toEqual({
+      src: "https://cdn/i.png",
+      alt: "An image",
+      caption: "Cap",
+      width: 800,
+      height: 600,
+      srcSet: null,
+      sizes: null,
+      blurDataURL: null,
+    });
   });
 
   it("keeps src null when the asset was not resolved", () => {
     expect(normalizeImageProps({ assetId: "ast_1", alt: "alt" }).src).toBeNull();
     expect(normalizeImageProps({ alt: "alt", width: Number.NaN }).width).toBeNull();
+  });
+
+  // T16 (issue #16) — resolved ImageAssetRef record under `src` (spec §8:
+  // publish resolves asset ids → { src, srcSet, sizes, blurDataURL, ... }).
+  it("carries the T16 variant fields from a resolved record (srcSet + sizes + blur)", () => {
+    const props = normalizeImageProps({
+      src: {
+        assetId: "ast_1",
+        src: "https://cdn/photo.png",
+        srcSet: "https://cdn/photo.320w.webp 320w, https://cdn/photo.640w.avif 640w",
+        sizes: "(max-width: 640px) 100vw, 640px",
+        blurDataURL: "data:image/svg+xml,%3Csvg…%3E",
+        width: 1000,
+        height: 600,
+      },
+      alt: "A photo",
+    });
+    expect(props.src).toBe("https://cdn/photo.png");
+    expect(props.srcSet).toContain("photo.320w.webp 320w");
+    expect(props.sizes).toBe("(max-width: 640px) 100vw, 640px");
+    expect(props.blurDataURL).toMatch(/^data:image\/svg\+xml,/);
+    expect(props.width).toBe(1000);
+    expect(props.height).toBe(600);
+  });
+
+  it("accepts flat srcSet/sizes/blurDataURL props (snapshot-builder flattening)", () => {
+    const props = normalizeImageProps({
+      src: "https://cdn/photo.png",
+      srcSet: "https://cdn/photo.320w.webp 320w",
+      sizes: "100vw",
+      blurDataURL: "data:image/svg+xml,%3Csvg%3E",
+      alt: "flat",
+    });
+    expect(props.srcSet).toBe("https://cdn/photo.320w.webp 320w");
+    expect(props.sizes).toBe("100vw");
+    expect(props.blurDataURL).toMatch(/^data:image\/svg\+xml,/);
   });
 });
 

@@ -19,6 +19,12 @@ export type ImageViewProps = {
   caption: string;
   width: number | null;
   height: number | null;
+  // T16 (issue #16) — variant fields from a resolved ImageAssetRef record
+  // (spec §12 process-image): null when the asset has no variants yet, so a
+  // missing pipeline degrades to a plain <img>.
+  srcSet: string | null;
+  sizes: string | null;
+  blurDataURL: string | null;
 };
 
 export type ButtonViewProps = {
@@ -179,13 +185,35 @@ export function normalizeTextProps(props: Record<string, unknown>): TextViewProp
 }
 
 export function normalizeImageProps(props: Record<string, unknown>): ImageViewProps {
+  // The resolved ImageAssetRef record (T16 resolveImageAssetRef output) may
+  // sit under any asset-url key — find it to lift srcSet/sizes/blurDataURL.
+  const resolved = pickResolvedImageRecord(props);
   return {
     src: pickAssetUrl(props),
     alt: str(props.alt),
     caption: str(props.caption),
-    width: num(props.width),
-    height: num(props.height),
+    width: num(props.width) ?? num(resolved?.width),
+    height: num(props.height) ?? num(resolved?.height),
+    srcSet: nonEmptyStr(resolved?.srcSet) ?? nonEmptyStr(props.srcSet),
+    sizes: nonEmptyStr(resolved?.sizes) ?? nonEmptyStr(props.sizes),
+    blurDataURL: nonEmptyStr(resolved?.blurDataURL) ?? nonEmptyStr(props.blurDataURL),
   };
+}
+
+function nonEmptyStr(value: unknown): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+
+/**
+ * The first asset-url key whose value is a RECORD (the resolved ImageAssetRef
+ * shape, not a nested {url} string wrapper). Null when everything is strings.
+ */
+function pickResolvedImageRecord(props: Record<string, unknown>): Record<string, unknown> | null {
+  for (const key of ASSET_URL_KEYS) {
+    const value = props[key];
+    if (isRecord(value)) return value;
+  }
+  return null;
 }
 
 export function normalizeButtonProps(props: Record<string, unknown>): ButtonViewProps {
