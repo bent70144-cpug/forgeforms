@@ -1,5 +1,5 @@
-// Tenancy tables (T04, spec §6): documents, document_versions, snapshots,
-// submissions, answers. Columns mirror the spec §6 DDL verbatim.
+// Tenancy tables (T04, spec §6): submissions, answers. Columns mirror the
+// spec §6 DDL verbatim.
 //
 // OWNERSHIP: T02 owns src/schema/** and deliberately shipped identity-only
 // (see identity.ts SPEC-NOTE). T04 adds THIS NEW FILE because the ticket
@@ -9,76 +9,45 @@
 //
 // RLS (spec §6 note): policies live in drizzle/0003 (hand-written, idempotent)
 // keyed on current_setting('app.workspace_id'); this file is table DDL only.
+//
+// INTEGRATION (T04×T07 merge): the documents/document_versions/snapshots DDL
+// now lives ONLY in ./documents.ts (T07's canonical definitions); this module
+// re-exports it so tenant-scoped repositories (repositories/tenant.ts) and
+// downstream packages keep importing the document tables from here unchanged.
 
 import {
   index,
-  integer,
   jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
-  unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import { users, workspaces } from "./identity.ts";
+import {
+  documentStatusValues,
+  documentTypeValues,
+  documentVersions,
+  documents,
+  snapshots,
+} from "./documents.ts";
 
-export const documents = pgTable(
-  "documents",
-  {
-    id: uuid("id").primaryKey(),
-    workspaceId: uuid("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    // form | page | portfolio
-    type: text("type").notNull(),
-    title: text("title").notNull(),
-    // unique per workspace (spec §6)
-    slug: text("slug").notNull(),
-    // draft | published | archived
-    status: text("status").notNull().default("draft"),
-    // optimistic concurrency counter (spec §6)
-    rev: integer("rev").notNull().default(0),
-    // current working body (DocumentBody)
-    draft: jsonb("draft").notNull(),
-    publishedVersionId: uuid("published_version_id"),
-    createdBy: uuid("created_by").references(() => users.id),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    unique("documents_workspace_id_slug_unique").on(table.workspaceId, table.slug),
-    index("documents_workspace_id_updated_at_idx").on(table.workspaceId, table.updatedAt.desc()),
-  ],
-);
+// Canonical document-plane tables — single source of truth: ./documents.ts.
+export { documents, documentVersions, snapshots } from "./documents.ts";
+export { documentTypeValues, documentStatusValues } from "./documents.ts";
+export type DocumentStatus = (typeof documentStatusValues)[number];
+/** Spec §7 document type union (T04 name kept for tenant-repo signatures). */
+export type DocumentType = (typeof documentTypeValues)[number];
 
-export const documentVersions = pgTable("document_versions", {
-  id: uuid("id").primaryKey(),
-  documentId: uuid("document_id")
-    .notNull()
-    .references(() => documents.id, { onDelete: "cascade" }),
-  // denormalized tenant key (spec §6: `workspace_id uuid not null`, no FK)
-  workspaceId: uuid("workspace_id").notNull(),
-  schemaVersion: integer("schema_version").notNull(),
-  // immutable body (spec §6: insert-only)
-  body: jsonb("body").notNull(),
-  createdBy: uuid("created_by"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const snapshots = pgTable("snapshots", {
-  // one snapshot per document (spec §6 PK)
-  documentId: uuid("document_id")
-    .primaryKey()
-    .references(() => documents.id, { onDelete: "cascade" }),
-  versionId: uuid("version_id")
-    .notNull()
-    .references(() => documentVersions.id),
-  // resolved theme, assets, compiled logic
-  rendered: jsonb("rendered").notNull(),
-  etag: text("etag").notNull(),
-  builtAt: timestamp("built_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export type DocumentRow = typeof documents.$inferSelect;
+export type NewDocumentRow = typeof documents.$inferInsert;
+export type SnapshotRow = typeof snapshots.$inferSelect;
+export type NewSnapshotRow = typeof snapshots.$inferInsert;
+// SPEC-NOTE: named *DbRow to avoid colliding with the raw row type exported
+// by repositories/document-versions.ts (T10) — drizzle-typed row for the same
+// table.
+export type DocumentVersionDbRow = typeof documentVersions.$inferSelect;
+export type NewDocumentVersionDbRow = typeof documentVersions.$inferInsert;
 
 export const submissions = pgTable(
   "submissions",
@@ -121,23 +90,9 @@ export const answers = pgTable(
   (table) => [primaryKey({ columns: [table.submissionId, table.blockId] })],
 );
 
-export const documentTypeValues = ["form", "page", "portfolio"] as const;
-export type DocumentType = (typeof documentTypeValues)[number];
-
-export const documentStatusValues = ["draft", "published", "archived"] as const;
-export type DocumentStatus = (typeof documentStatusValues)[number];
-
 export const submissionStatusValues = ["draft", "completed", "spam"] as const;
 export type SubmissionStatus = (typeof submissionStatusValues)[number];
 
-export type DocumentRow = typeof documents.$inferSelect;
-export type NewDocumentRow = typeof documents.$inferInsert;
-// SPEC-NOTE: document-versions.ts (T10) already owns the name `DocumentVersionRow`
-// for its raw repo row — this is the drizzle-typed row for the same table.
-export type DocumentVersionDbRow = typeof documentVersions.$inferSelect;
-export type NewDocumentVersionDbRow = typeof documentVersions.$inferInsert;
-export type SnapshotRow = typeof snapshots.$inferSelect;
-export type NewSnapshotRow = typeof snapshots.$inferInsert;
 export type SubmissionTableRow = typeof submissions.$inferSelect;
 export type NewSubmissionTableRow = typeof submissions.$inferInsert;
 export type AnswerTableRow = typeof answers.$inferSelect;
