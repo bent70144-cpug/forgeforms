@@ -45,6 +45,13 @@ export type DocumentSettings = {
   closeAt?: string;
   maxSubmissions?: number;
   notifyEmails: string[];
+  /**
+   * T20 (spec §14.1.4): optional hidden-field extras beyond the standard UTM
+   * set (standard set is always captured client-side). INTEGRATION-DEBT /
+   * TODO(merge): align with T07's DocumentSettings schema — if T07 strips
+   * unknown settings keys, this rides client-side only until the schema lands.
+   */
+  hiddenFields?: Array<{ name: string; label?: string }>;
 };
 
 export type Ending = {

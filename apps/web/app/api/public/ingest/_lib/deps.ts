@@ -4,14 +4,14 @@
 //
 // INTEGRATION-DEBT:
 // - block registry: bootstrap registry (spec §7.2 shapes) until T04/T05 land.
-// - snapshot reader: minimal drizzle reader in @formforge/db until T10's
-//   getPublishedSnapshot lands; compiles routing from rendered.logic rules as
-//   a fallback.
+// - snapshot reader: minimal drizzle reader in @formforge/db; compiles routing
+//   from rendered.logic rules THROUGH THE T13 ENGINE (T20) when T10 hasn't.
 // - rate limiter: in-memory token bucket — per-process only; swap to a Redis
 //   limiter for multi-instance deploys.
 // - usage counter: in-memory placeholder until billing lands.
 
-import { compileLite, evaluate, uuidv7, type Block, type Rule, type Snapshot } from "@formforge/core/bridge";
+import { uuidv7, type Block, type Rule, type Snapshot } from "@formforge/core/bridge";
+import { compiledRouting, engineEvaluate } from "@/lib/ingest/engine";
 import {
   CaptureEventQueue,
   InMemoryIdempotencyStore,
@@ -70,22 +70,19 @@ async function buildWiring(): Promise<Wiring> {
     usage: new InMemoryUsageCounter(),
     now: () => new Date(),
     generateId: uuidv7,
-    evaluate,
+    // T20 (issue #20): ingest computes `next` through the T13 logic engine —
+    // the same package surface the builder canvas + publish lint use.
+    evaluate: engineEvaluate,
   };
   return { deps, dispose: store.close };
 }
 
-/** Map the db-layer snapshot DTO to the core Snapshot (compile routing if T10 hasn't). */
-function toSnapshot(raw: SnapshotLike, blocks: BlockRegistry): Snapshot {
+/** Map the db-layer snapshot DTO to the core Snapshot (compile via the T13 engine if T10 hasn't). */
+function toSnapshot(raw: SnapshotLike, _blocks: BlockRegistry): Snapshot {
   let routing = raw.routing as Snapshot["routing"];
   if (Object.keys(routing).length === 0 && (raw.logicRules?.length ?? 0) > 0) {
     const blockList = raw.blocks as Block[];
-    routing = compileLite(
-      raw.logicRules as Rule[],
-      blockList,
-      raw.endings,
-      (block) => blocks.get(block.kind)?.family === "question",
-    );
+    routing = compiledRouting(raw.logicRules as Rule[], blockList, raw.endings);
   }
   return {
     documentId: raw.documentId,

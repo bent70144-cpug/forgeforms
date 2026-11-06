@@ -94,11 +94,15 @@ export interface DraftValidator {
   validate(body: unknown): Promise<readonly DraftValidationIssue[]>;
 }
 
-/** Spec §9 compile seam — the logic engine compiles rules into a routing map. */
+/** Spec §9 compile seam — the logic engine compiles rules into a routing map.
+ *  T20 (issue #20): optional `endings` so `end:<id>` goto targets are verified
+ *  against the document's endings during publish lint (backwards compatible —
+ *  existing 2-arg implementations remain assignable). */
 export interface LogicCompiler {
   compile(
     rules: readonly unknown[],
     blocks: readonly BlockJson[],
+    endings?: readonly string[],
   ): { routing: Snapshot['routing']; issues: readonly DraftValidationIssue[] };
 }
 

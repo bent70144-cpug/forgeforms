@@ -5,6 +5,7 @@
 //
 // The `@/*` tsconfig path alias is mirrored here (T05) so route-handler tests
 // and lib/ modules resolve (T07 route tests, session loader in _lib/auth).
+// T20: `e2e/**` holds Playwright specs (CI-gated) — never run under vitest.
 
 import { fileURLToPath } from "node:url";
 import { configDefaults, defineConfig } from "vitest/config";

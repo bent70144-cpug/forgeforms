@@ -1,16 +1,23 @@
 // Helpers shared by the machine and the React layer.
+import { compile, evaluate } from '@formforge/core/logic';
+import type { Routing } from '@formforge/core/logic';
 import {
   isInstantAnswer,
   isQuestionKind,
   type Block,
   type DocumentBody,
   type Ending,
-  type Routing,
 } from '../../bridge';
-import { compile } from '../../bridge';
 import type { MachineDoc, NormalizedSettings, ResolvedEnding } from './types';
 
 export { isInstantAnswer, isQuestionKind };
+
+// T20 (issue #20, spec §15 M5): the machine's logic runs on the SAME engine
+// package the server (ingest + publish lint) uses — `@formforge/core/logic`,
+// imported through its subpath so the renderer bundle pulls in only the pure
+// logic module. `engineEvaluate` is re-exported for the single-engine-package
+// integration test (src/__tests__/engine.test.ts).
+export { evaluate as engineEvaluate };
 
 /** Top-level question blocks in document order; hidden blocks are skipped. */
 export function questionBlocks(document: DocumentBody): Block[] {
@@ -19,8 +26,39 @@ export function questionBlocks(document: DocumentBody): Block[] {
   );
 }
 
+/**
+ * Compiles the document's logic with the T13 engine. The question-only block
+ * list keeps document order identical to the machine's `questions` (the
+ * conversational flow never stops on content blocks — engine SPEC-NOTE 2);
+ * ending ids resolve `end:<first>` defaults and rule `goto` targets.
+ */
 export function buildRouting(document: DocumentBody): Routing {
-  return compile(document.logic?.rules ?? [], document.blocks ?? []);
+  return compile(
+    document.logic?.rules ?? [],
+    questionBlocks(document),
+    (document.endings ?? []).map((e) => e.id),
+  );
+}
+
+/**
+ * Per-question prefill (spec §7.2: every question block supports the generic
+ * `prefillParam` prop): maps URL params → draft answers, keyed by blockId.
+ * Only questions with a configured `prefillParam` and a matching non-empty
+ * param are prefilled.
+ */
+export function prefillAnswers(
+  document: DocumentBody,
+  urlParams: Record<string, string> | undefined,
+): Record<string, unknown> {
+  if (!urlParams) return {};
+  const out: Record<string, unknown> = {};
+  for (const block of questionBlocks(document)) {
+    const param = block.props['prefillParam'];
+    if (typeof param !== 'string' || param === '') continue;
+    const value = urlParams[param];
+    if (value !== undefined && value !== '') out[block.id] = value;
+  }
+  return out;
 }
 
 export function normalizeSettings(document: DocumentBody): NormalizedSettings {

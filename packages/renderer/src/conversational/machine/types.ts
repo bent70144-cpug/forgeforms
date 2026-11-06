@@ -1,7 +1,10 @@
 // Conversational renderer state machine — public types (spec §10.2, issue #12).
 // The machine is a pure reducer: idle → question[n] → validating → submitting → done/error.
 // The React client component consumes it; unit tests drive it directly.
-import type { Block, DocumentBody, Ending, Routing } from '../../bridge';
+// T20 (issue #20): `Routing` is the T13 engine's compiled program
+// (`@formforge/core/logic`) — same engine package on client and server.
+import type { Routing } from '@formforge/core/logic';
+import type { Block, DocumentBody, Ending } from '../../bridge';
 
 export type Phase = 'idle' | 'question' | 'validating' | 'submitting' | 'done' | 'error';
 

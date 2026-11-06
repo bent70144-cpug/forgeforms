@@ -34,7 +34,6 @@ import {
   makePublishDocument,
   makeUnpublishDocument,
   noopCdnPurge,
-  passthroughLogicCompiler,
   type CrudDocumentsRepo,
   type Ctx as KernelCtx,
   type DraftValidator,
@@ -46,6 +45,7 @@ import {
   type UnpublishOutcome,
   type WireOp,
 } from '@formforge/core';
+import { t13LogicCompiler } from './logic-compiler';
 import type { Ctx as ApiCtx } from '@formforge/core/api';
 import { instantiateTemplate } from '@formforge/core/templates';
 import { DocumentBody, documentIssuesFromZodError } from '@formforge/schema';
@@ -210,7 +210,9 @@ function buildDefaultDeps(): PublishPipelineDeps {
       snapshots: createSqlSnapshotsRepo(exec),
       cdn: noopCdnPurge,
       validator: schemaDraftValidator,
-      compiler: passthroughLogicCompiler,
+      // T20 (issue #20): publish gating runs T13's logic lint (dangling goto
+      // targets, unknown scopes, fallbacks, cycles) via the engine package.
+      compiler: t13LogicCompiler,
       assets: devAssetUrlResolver(cdnBase),
       publicUrl: defaultPublicUrlBuilder(baseUrl),
     };
@@ -224,7 +226,9 @@ function buildDefaultDeps(): PublishPipelineDeps {
     snapshots: publishStore.snapshots,
     cdn: noopCdnPurge,
     validator: schemaDraftValidator,
-    compiler: passthroughLogicCompiler,
+    // T20 (issue #20): publish gating runs T13's logic lint (dangling goto
+    // targets, unknown scopes, fallbacks, cycles) via the engine package.
+    compiler: t13LogicCompiler,
     assets: devAssetUrlResolver(cdnBase),
     publicUrl: defaultPublicUrlBuilder(baseUrl),
   };

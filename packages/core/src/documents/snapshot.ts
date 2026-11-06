@@ -122,7 +122,13 @@ export async function resolveBlockAssetUrls(
 export async function buildSnapshot(args: BuildSnapshotArgs): Promise<BuildSnapshotResult> {
   const { document, versionId, body, assets, compiler } = args;
 
-  const compiled = compiler.compile(body.logic?.rules ?? [], body.blocks);
+  // T20 (issue #20): endings supplied so compiled routing verifies `end:<id>`
+  // targets identically to the publish-time lint.
+  const compiled = compiler.compile(
+    body.logic?.rules ?? [],
+    body.blocks,
+    (body.endings ?? []).map((ending) => ending.id),
+  );
   const { blocks, issues: assetIssues } = await resolveBlockAssetUrls(
     body.blocks ?? [],
     assets,

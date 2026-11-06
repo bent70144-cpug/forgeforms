@@ -36,6 +36,12 @@ export interface ConversationalRendererProps {
   document: DocumentBody;
   /** Hidden field values captured at start (UTM etc., spec §10.3). */
   hidden?: Record<string, unknown>;
+  /**
+   * URL params for per-question prefill (spec §7.2 `prefillParam`): seeds
+   * DRAFT answers for matching questions; the user confirms them via NEXT.
+   * T20 (issue #20) — pass e.g. `Object.fromEntries(searchParams)`.
+   */
+  urlParams?: Record<string, string>;
   /** Transport override; defaults to fetch against the public plane. */
   ingest?: IngestClient;
   /**
@@ -63,7 +69,7 @@ export function ConversationalRenderer(props: ConversationalRendererProps) {
   const machineDoc = useMemo(() => buildMachineDoc(document, documentId), [document, documentId]);
   const reducer = useMemo(() => createMachineReducer(machineDoc), [machineDoc]);
   const [state, dispatch] = useReducer(reducer, props.hidden ?? {}, (hidden) =>
-    createInitialState(machineDoc, hidden),
+    createInitialState(machineDoc, hidden, props.urlParams),
   );
 
   const ingest = useMemo(
