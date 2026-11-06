@@ -1,7 +1,6 @@
 // Seed templates — FORMS (spec §7.2 block catalog, §14.1.9).
 // 7 form templates with original marketing copy.
 import type { TemplateDefinition } from "../types";
-import { block, cond, doc, ending, FONTS, goto, options, question, rule, settings, theme } from "./helpers";
 
 export const contactForm: TemplateDefinition = {
   meta: {

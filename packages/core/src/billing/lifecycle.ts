@@ -3,7 +3,7 @@
 // events (spec §13, issue #23). Pure functions only — the webhook service
 // persists the resulting BillingState through the BillingStore.
 
-import { err, ok, type AppError, type Result } from '../bridge';
+import { ok, type AppError, type Result } from '../bridge';
 import type { PaidPlan, Plan } from './plans';
 import {
   parseCheckoutSessionObject,

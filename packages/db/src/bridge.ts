@@ -5,7 +5,6 @@
 // src/schema/ with T05/hardening and delete it here).
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createDb, type Database } from "./client.ts";
-import { apiTokens, memberships, users, workspaces } from "./schema/identity.ts";
 
 export { users, workspaces, memberships, apiTokens } from "./schema/identity.ts";
 export { createDb, type Database };

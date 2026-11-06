@@ -7,9 +7,7 @@ import { AppError, err, ok, type Result } from '../../bridge';
 import type { PaidPlan } from '../plans';
 import type {
   CheckoutSessionInput,
-  CheckoutSessionResult,
   PortalSessionInput,
-  PortalSessionResult,
   StripeGateway,
 } from './gateway';
 
