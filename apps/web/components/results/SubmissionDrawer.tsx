@@ -1,14 +1,17 @@
 // T15 — submission detail drawer (spec §14.1.5): timestamp, token, status,
 // variables, hidden fields, meta + every answer grouped by block with labels
 // from the document snapshot. Detail comes from GET /documents/:id/submissions/:sid.
+// B5: rendered through the shared Drawer primitive (Esc/backdrop close, scroll
+// lock, focus trap + restore all live there); sections keep their data flow.
 
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Block } from "../../lib/results-bridge";
 import {
   describeError,
+  displayCell,
   formatAnswer,
   formatDateTime,
   isQuestionBlock,
@@ -16,6 +19,9 @@ import {
   type ResultsClient,
   type SubmissionDTO,
 } from "../../lib/results";
+import { BADGE_MUTED, BANNER_ERROR, BTN_SECONDARY_SM } from "../../lib/ui";
+import { Drawer } from "../ui/drawer";
+import { Icon } from "../ui/icons";
 import { Skeleton, errorCodeOf, friendlyErrorMessage } from "./Feedback";
 import { StatusPill } from "./StatusPill";
 
@@ -42,9 +48,11 @@ function scalar(value: unknown): string {
 
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2">
-      <dt className="shrink-0 text-xs font-medium text-[var(--ff-muted)]">{label}</dt>
-      <dd className="min-w-0 break-words text-right text-sm tabular-nums text-[var(--ff-fg)]">{children}</dd>
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <dt className="shrink-0 text-xs text-[var(--ff-muted)]">{label}</dt>
+      <dd className="min-w-0 break-words text-right text-sm font-medium tabular-nums text-[var(--ff-fg)]">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -83,22 +91,6 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
   const [loadErrorCode, setLoadErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
-  const closeRef = useRef<HTMLButtonElement>(null);
-
-  // Escape closes, body scroll locks, close button takes focus (spec §14.4 a11y).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,108 +121,86 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
   const submittedAt = view.completedAt ?? view.startedAt;
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby="submission-drawer-title">
-      <button
-        type="button"
-        aria-label="Close submission drawer"
-        onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white dark:bg-black/60"
-      />
-      <div className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-[var(--ff-card)] shadow-2xl">
-        <header className="flex items-center justify-between gap-4 border-b border-[var(--ff-border)] px-6 py-4">
-          <div className="min-w-0">
-            <h2 id="submission-drawer-title" className="text-base font-semibold text-[var(--ff-fg)]">
-              Submission
-            </h2>
-            <p className="mt-0.5 truncate font-mono text-xs text-[var(--ff-muted)]">{view.publicToken || view.id}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <StatusPill status={view.status} />
+    <Drawer
+      open
+      onClose={onClose}
+      width="32rem"
+      title={`Submission ${displayCell(view.publicToken || view.id, 16)}`}
+      description={`Submitted ${formatDateTime(submittedAt)}`}
+    >
+      <div className="space-y-7">
+        {loadError ? (
+          <div role="alert" className={BANNER_ERROR}>
+            <p className="font-medium">{friendlyErrorMessage(loadErrorCode)}</p>
+            <details className="mt-1">
+              <summary className="cursor-pointer text-xs">Technical details</summary>
+              <p className="mt-1 break-words font-mono text-xs leading-relaxed">{loadError}</p>
+            </details>
             <button
-              ref={closeRef}
               type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="rounded-lg p-1.5 text-[var(--ff-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)] hover:text-[var(--ff-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ff-primary)]"
+              onClick={() => setNonce((n) => n + 1)}
+              className={`${BTN_SECONDARY_SM} mt-2`}
             >
-              <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l8 8M14 6l-8 8" />
-              </svg>
+              <Icon name="refresh" size={12} />
+              Retry
             </button>
           </div>
-        </header>
+        ) : null}
 
-        <div className="flex-1 space-y-7 overflow-y-auto px-6 py-5">
-          {loadError ? (
-            <div
-              role="alert"
-              className="rounded-[calc(var(--ff-radius)*0.66)] border border-[color-mix(in_srgb,var(--ff-fg)_12%,transparent)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] px-3 py-2 text-sm"
-            >
-              <p className="font-medium text-[var(--ff-fg)]">{friendlyErrorMessage(loadErrorCode)}</p>
-              <details className="mt-1">
-                <summary className="cursor-pointer text-xs text-[var(--ff-muted)]">Technical details</summary>
-                <p className="mt-1 break-words font-mono text-xs leading-relaxed text-[var(--ff-muted)]">{loadError}</p>
-              </details>
-              <button
-                type="button"
-                onClick={() => setNonce((n) => n + 1)}
-                className="mt-2 text-sm font-medium text-[var(--ff-primary)] hover:underline"
-              >
-                Retry
-              </button>
-            </div>
-          ) : null}
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Metadata</h3>
+          <dl className="mt-1 divide-y divide-[var(--ff-border)]">
+            <MetaRow label="Submitted">{formatDateTime(submittedAt)}</MetaRow>
+            <MetaRow label="Started">{formatDateTime(view.startedAt)}</MetaRow>
+            <MetaRow label="Status"><StatusPill status={view.status} /></MetaRow>
+            <MetaRow label="Version">
+              <span className="font-mono text-xs">{view.versionId || "—"}</span>
+            </MetaRow>
+            <MetaRow label="Token">
+              <span className="break-all font-mono text-xs">{view.publicToken || "—"}</span>
+            </MetaRow>
+            {loading ? <MetaRow label="Detail"><Skeleton className="h-4 w-24" /></MetaRow> : null}
+          </dl>
+        </section>
 
-          <section>
-            <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Metadata</h3>
-            <dl className="mt-1 divide-y divide-[var(--ff-border)]">
-              <MetaRow label="Submitted">{formatDateTime(submittedAt)}</MetaRow>
-              <MetaRow label="Started">{formatDateTime(view.startedAt)}</MetaRow>
-              <MetaRow label="Status"><StatusPill status={view.status} /></MetaRow>
-              <MetaRow label="Version">
-                <span className="font-mono text-xs">{view.versionId || "—"}</span>
-              </MetaRow>
-              <MetaRow label="Token">
-                <span className="break-all font-mono text-xs">{view.publicToken || "—"}</span>
-              </MetaRow>
-              {loading ? <MetaRow label="Detail"><Skeleton className="h-4 w-24" /></MetaRow> : null}
-            </dl>
-          </section>
-
-          <section>
-            <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Answers</h3>
-            <p className="mt-0.5 text-xs text-[var(--ff-muted)]">Grouped by block, labels from the document snapshot.</p>
-            <ul className="mt-3 space-y-3">
-              {questionBlocks.map((block) => {
-                const value = view.answers?.[block.id];
-                const text = formatAnswer(block, value);
-                return (
-                  <li
-                    key={block.id}
-                    className={`rounded-[calc(var(--ff-radius)*0.66)] border px-4 py-3 ${
-                      text === "—" ? "border-dashed border-[var(--ff-border)] bg-[var(--ff-bg)]" : "border-[var(--ff-border)]"
+        <section>
+          <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Answers</h3>
+          <p className="mt-0.5 text-xs text-[var(--ff-muted)]">Grouped by block, labels from the document snapshot.</p>
+          <ul className="mt-3 space-y-3">
+            {questionBlocks.map((block) => {
+              const value = view.answers?.[block.id];
+              const text = formatAnswer(block, value);
+              const empty = text === "—";
+              return (
+                <li
+                  key={block.id}
+                  className={`rounded-xl border p-3 ${
+                    empty
+                      ? "border-dashed border-[var(--ff-border)]"
+                      : "border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_2%,var(--ff-bg))]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-[13px] font-medium text-[var(--ff-fg)]">{questionLabel(block)}</p>
+                    <span className={`${BADGE_MUTED} shrink-0 font-mono`}>{block.kind}</span>
+                  </div>
+                  <p
+                    className={`mt-1 whitespace-pre-wrap break-words text-sm ${
+                      empty ? "text-[var(--ff-muted)]" : "text-[var(--ff-fg)]"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-[var(--ff-fg)]">{questionLabel(block)}</p>
-                      <span className="shrink-0 rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--ff-muted)]">
-                        {block.kind}
-                      </span>
-                    </div>
-                    <p className={`mt-1 whitespace-pre-wrap break-words text-sm ${text === "—" ? "text-[var(--ff-muted)]" : "text-[var(--ff-fg)]"}`}>
-                      {text}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+                    {empty ? "Empty" : text}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
 
-          <RecordSection title="Hidden fields" record={view.hidden ?? {}} emptyHint="No hidden fields (UTM, referrer) captured." />
-          <RecordSection title="Variables" record={view.variables ?? {}} emptyHint="No logic variables were set." />
-          <RecordSection title="Meta" record={view.meta ?? {}} emptyHint="No device metadata recorded." />
-        </div>
+        <RecordSection title="Hidden fields" record={view.hidden ?? {}} emptyHint="No hidden fields (UTM, referrer) captured." />
+        <RecordSection title="Variables" record={view.variables ?? {}} emptyHint="No logic variables were set." />
+        <RecordSection title="Meta" record={view.meta ?? {}} emptyHint="No device metadata recorded." />
       </div>
-    </div>
+    </Drawer>
   );
 }

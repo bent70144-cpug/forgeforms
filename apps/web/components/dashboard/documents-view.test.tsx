@@ -1,11 +1,20 @@
-// T07 — component smoke tests for the dashboard documents view (spec §14.1.2).
+// T07/B3 — component smoke tests for the dashboard documents view (spec §14.1.2).
 // Rendered with react-dom/server — no extra test dependencies, no DOM env.
 // Interactive behaviour (fetch, localStorage, clipboard) is covered by the
 // client unit tests; Playwright e2e covers the browser flows.
+//
+// B3 note: the create modal's chrome moved to the shared Modal primitive,
+// which portals to document.body and mounts client-side only — so the modal
+// itself renders nothing on the server and the field markup is asserted
+// through the exported <CreateDocumentFields> instead.
 import { createElement as h } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { CreateDocumentModal, type DashboardTemplate } from './create-document-modal';
+import {
+  CreateDocumentFields,
+  CreateDocumentModal,
+  type DashboardTemplate,
+} from './create-document-modal';
 import { DocumentsView } from './documents-view';
 
 const TEMPLATES: DashboardTemplate[] = [
@@ -27,7 +36,7 @@ describe('<DocumentsView>', () => {
 });
 
 describe('<CreateDocumentModal>', () => {
-  it('offers the three §6 types, name field, and blank/template start', () => {
+  it('mounts client-side only (shared Modal portal) — empty server HTML', () => {
     const html = renderToStaticMarkup(
       h(CreateDocumentModal, {
         templates: TEMPLATES,
@@ -35,16 +44,33 @@ describe('<CreateDocumentModal>', () => {
         onCreated: () => {},
       }),
     );
-    expect(html).toContain('New document');
+    expect(html).toBe('');
+  });
+
+  it('offers the three §6 types, name field, and blank/template start', () => {
+    const html = renderToStaticMarkup(
+      h(CreateDocumentFields, {
+        templates: TEMPLATES,
+        type: 'form',
+        onTypeChange: () => {},
+        title: '',
+        onTitleChange: () => {},
+        start: 'blank',
+        onStartChange: () => {},
+        templateId: null,
+        onTemplateIdChange: () => {},
+        error: null,
+      }),
+    );
     expect(html).toContain('Form');
     expect(html).toContain('Page');
     expect(html).toContain('Portfolio');
     expect(html).toContain('Blank');
     expect(html).toContain('Template');
     expect(html).toContain('doc-title');
-    // form submit is blocked until a name exists
-    expect(html).toContain('disabled');
-    expect(html).toContain('role="dialog"');
-    expect(html).toContain('aria-modal="true"');
+    // form submit is blocked until a name exists — `required` on the field,
+    // plus the client-side disabled guard on the footer Create button
+    expect(html).toContain('required');
+    // role="dialog"/aria-modal come from the shared Modal primitive at runtime
   });
 });

@@ -24,7 +24,7 @@ export default async function LoginPage({
 
   return (
     <>
-      <h1 className="text-balance">Log in</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-balance">Log in</h1>
       <p className="ff-subtle">Welcome back. Enter your details to continue.</p>
 
       {reset === "1" && (
@@ -47,10 +47,21 @@ export default async function LoginPage({
       <GoogleSignInButton />
       <AuthForm mode="login" />
       <p className="ff-auth-alt">
-        <Link href="/forgot">Forgot your password?</Link>
+        <Link
+          href="/forgot"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-accent)] hover:underline"
+        >
+          Forgot your password?
+        </Link>
       </p>
       <p className="ff-auth-alt">
-        New to FormForge? <Link href="/register">Create an account</Link>
+        New to FormForge?{" "}
+        <Link
+          href="/register"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-accent)] hover:underline"
+        >
+          Create an account
+        </Link>
       </p>
     </>
   );

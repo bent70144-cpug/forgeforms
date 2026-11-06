@@ -1,10 +1,17 @@
 // Template gallery: /templates (spec §14.1.9, issue #22).
 // Server component; category filtering via search params (no client JS).
+// Reveal + SpotlightCard are progressive enhancement only: without JS (or
+// with reduced motion) the grid renders fully visible as plain bordered cards.
 import type { Metadata } from "next";
 import Link from "next/link";
 
 import { listTemplates } from "@formforge/core/templates";
 import type { TemplateCategory } from "@formforge/core/templates";
+
+import Reveal from "@/components/landing/reveal";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Icon } from "@/components/ui/icons";
+import { BTN_SECONDARY_SM } from "@/lib/ui";
 
 import TemplateCard from "./template-card";
 
@@ -26,6 +33,15 @@ const CATEGORY_SINGULAR: Record<TemplateCategory, string> = {
   portfolio: "portfolio",
 };
 
+// Refined filter pills: quiet card-surface chip by default, ink pill when
+// active. Hover motion is a 1px lift; colors ride the tokens so dark mode
+// flips automatically.
+const PILL_BASE =
+  "inline-flex items-center rounded-full border px-3.5 py-1.5 text-sm font-medium transition-[color,border-color,translate,box-shadow] duration-200 ease-out";
+const PILL_IDLE =
+  "border-[var(--ff-border-strong)] bg-[var(--ff-card)] text-[var(--ff-muted)] hover:-translate-y-px hover:border-[color-mix(in_srgb,var(--ff-border-strong)_60%,var(--ff-fg))] hover:text-[var(--ff-fg)]";
+const PILL_ACTIVE = "border-transparent bg-[var(--ff-primary)] text-[var(--ff-primary-fg)] shadow-sm";
+
 export default async function TemplatesPage({
   searchParams,
 }: {
@@ -35,18 +51,20 @@ export default async function TemplatesPage({
   const active = FILTERS.some((f) => f.key === category) ? (category as TemplateCategory | "all") : "all";
   const templates = listTemplates(active === "all" ? {} : { category: active });
 
-  const countLabel =
+  const countNoun =
     active === "all"
-      ? "hand-built templates"
-      : `hand-built ${CATEGORY_SINGULAR[active]} template${templates.length === 1 ? "" : "s"}`;
+      ? templates.length === 1
+        ? "template"
+        : "templates"
+      : `${CATEGORY_SINGULAR[active]} template${templates.length === 1 ? "" : "s"}`;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-12">
-      <header className="max-w-2xl">
-        <h1 className="text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">Start from a template</h1>
-        <p className="mt-3 text-lg leading-relaxed text-[var(--ff-muted)]">
-          <span className="tabular-nums">{templates.length}</span> {countLabel} with original copy, working logic and
-          on-brand themes. Pick one, connect your form, publish.
+      <header>
+        <h1 className="text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">Templates</h1>
+        <p className="mt-3 max-w-[52ch] text-lg leading-relaxed text-[var(--ff-muted)]">
+          Ready-made documents for forms, pages and portfolios — original copy, on-brand themes, working logic where
+          it earns its place, and analytics built in. Pick one, make it yours, publish.
         </p>
       </header>
 
@@ -59,11 +77,7 @@ export default async function TemplatesPage({
               key={f.key}
               href={href}
               aria-current={isActive ? "page" : undefined}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-[var(--ff-fg)] text-[var(--ff-bg)]"
-                  : "border border-[var(--ff-border)] text-[var(--ff-muted)] hover:border-[var(--ff-muted)] hover:text-[var(--ff-fg)]"
-              }`}
+              className={`${PILL_BASE} ${isActive ? PILL_ACTIVE : PILL_IDLE}`}
             >
               {f.label}
             </Link>
@@ -71,14 +85,30 @@ export default async function TemplatesPage({
         })}
       </nav>
 
+      <p className="mt-4 text-sm text-[var(--ff-muted)]">
+        <span className="tabular-nums">{templates.length}</span> {countNoun}
+      </p>
+
       {templates.length === 0 ? (
-        <p className="mt-12 rounded-[var(--ff-radius)] border border-dashed border-[var(--ff-border)] bg-[var(--ff-card)] p-10 text-center text-sm text-[var(--ff-muted)]">
-          No templates in this category yet — try another filter.
-        </p>
+        <div className="mt-6">
+          <EmptyState
+            icon={<Icon name="search" size={20} />}
+            title="No templates in this category"
+            description="Try another filter, or view the whole library."
+            action={
+              <Link href="/templates" className={BTN_SECONDARY_SM}>
+                <Icon name="arrowLeft" size={14} />
+                Show all templates
+              </Link>
+            }
+          />
+        </div>
       ) : (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((t) => (
-            <TemplateCard key={t.id} template={t} />
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {templates.map((t, i) => (
+            <Reveal key={t.id} step={i % 4} className="h-full">
+              <TemplateCard template={t} />
+            </Reveal>
           ))}
         </div>
       )}

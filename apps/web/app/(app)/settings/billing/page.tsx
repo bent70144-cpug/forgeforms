@@ -2,12 +2,20 @@ import { PLAN_CATALOG, PLANS, type Plan } from '@formforge/core/billing';
 import PlanCard from './PlanCard';
 import { loadBillingSnapshot } from './_lib/billing-server';
 import { openPortalAction, startCheckoutAction } from './_lib/actions';
+import { SettingsTabs } from '@/components/settings/settings-tabs';
+import { Icon } from '@/components/ui/icons';
+import {
+  BADGE_MUTED,
+  BANNER_ERROR,
+  BANNER_SUCCESS,
+  BTN_SECONDARY,
+} from '@/lib/ui';
 
 // apps/web/app/(app)/settings/billing/page.tsx
-// Billing settings (spec §13): plan cards, seats, upgrade CTA — the ONLY UI
-// surface with upgrade prompts. Stripe env is read server-side; when the
-// gateway or price ids are missing the CTAs degrade to a disabled state
-// instead of failing at submit time.
+// Billing settings: plan cards, seats, upgrade CTA — the ONLY UI surface with
+// upgrade prompts. Stripe env is read server-side; when the gateway or price
+// ids are missing the CTAs degrade to a disabled state instead of failing at
+// submit time (honest fallback copy lives in ONE footnote below the grid).
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -35,9 +43,15 @@ function CheckoutFlash({ params }: { params: SearchParams }) {
   const info = FLASH_INFO[checkout ?? portal ?? ''];
   return (
     <>
-      {info ? <p className="ff-banner ff-banner-success">{info}</p> : null}
+      {info ? (
+        <p role="status" className={BANNER_SUCCESS}>
+          {info}
+        </p>
+      ) : null}
       {error ? (
-        <p className="ff-banner ff-banner-error">{ERROR_TEXT[error] ?? `Billing error (${error}).`}</p>
+        <p role="alert" className={BANNER_ERROR}>
+          {ERROR_TEXT[error] ?? `Billing error (${error}).`}
+        </p>
       ) : null}
     </>
   );
@@ -53,56 +67,69 @@ export default async function BillingSettingsPage({
   const currentEntry = PLAN_CATALOG[snapshot.plan];
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-6 py-10">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-balance">Billing</h1>
-          <p className="mt-1 text-base text-[var(--ff-muted)]">
-            Current plan:{' '}
-            <span className="font-semibold text-[var(--ff-fg)]">{currentEntry.name}</span>
+    <div className="w-full max-w-5xl">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-3xl">
+          <p className="text-[13px] font-medium text-[var(--ff-muted)]">Settings</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">Billing</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
+            You’re on the{' '}
+            <span className="font-medium text-[var(--ff-fg)]">{currentEntry.name}</span> plan.
             {snapshot.storageReady ? null : (
-              <span className="ff-chip ml-2 align-middle">
-                billing storage pending migration — showing defaults
-              </span>
+              <>
+                {' '}
+                <span className={BADGE_MUTED}>
+                  Showing defaults — billing storage is still being set up
+                </span>
+              </>
             )}
           </p>
         </div>
         {snapshot.plan !== 'free' ? (
           <form action={openPortalAction}>
-            <button
-              type="submit"
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-4 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))]"
-            >
+            <button type="submit" className={BTN_SECONDARY}>
               Manage billing
             </button>
           </form>
         ) : null}
       </header>
 
-      <div className="mt-6 space-y-3">
+      <div className="mt-6">
+        <SettingsTabs current="billing" />
+      </div>
+
+      <div className="space-y-3">
         <CheckoutFlash params={params} />
       </div>
 
       <section
         aria-label="Seats"
-        className="mt-6 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6"
+        className="ff-panel mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 p-5"
       >
-        <h2 className="text-sm font-medium text-[var(--ff-muted)]">Team seats</h2>
-        <p className="mt-2 text-2xl font-bold tabular-nums">
-          {snapshot.seats.used}
-          <span className="text-base font-normal text-[var(--ff-muted)]">
-            {' '}
-            / {snapshot.seats.limit} used
-          </span>
-        </p>
-        <p className="mt-2 text-base text-[var(--ff-muted)]">
+        <span
+          aria-hidden="true"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-accent)_12%,transparent)] text-[var(--ff-accent)]"
+        >
+          <Icon name="creditCard" size={18} />
+        </span>
+        <div>
+          <p className="text-xs text-[var(--ff-muted)]">Seats</p>
+          <p className="text-2xl font-semibold tabular-nums">
+            {snapshot.seats.used}
+            <span className="text-base font-normal text-[var(--ff-muted)]">
+              {' '}
+              / {snapshot.seats.limit} used
+            </span>
+          </p>
+        </div>
+        <p className="ml-auto max-w-[26rem] text-xs leading-relaxed text-[var(--ff-muted)]">
           Seat limits come from your plan (Free 1 · Pro 3 · Business 10).
         </p>
       </section>
 
       <section aria-label="Plans" className="mt-8">
-        <h2 className="text-lg font-semibold">Plans</h2>
-        <div className="mt-4 grid gap-6 md:grid-cols-3">
+        <h2 className="text-base font-semibold">Plans</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-3">
           {PLANS.map((plan: Plan) => {
             const entry = PLAN_CATALOG[plan];
             const checkoutAvailable =
@@ -121,9 +148,10 @@ export default async function BillingSettingsPage({
           })}
         </div>
         {!snapshot.stripe.configured ? (
-          <p className="mt-4 text-xs text-[var(--ff-muted)]">
-            Upgrade buttons are disabled because STRIPE_SECRET_KEY is not set. Webhooks
-            remain active at <code className="rounded bg-[var(--ff-bg)] px-1">/api/webhooks/stripe</code>.
+          <p className="mt-4 text-xs leading-relaxed text-[var(--ff-muted)]">
+            Online billing is not enabled on this deployment — Stripe isn’t configured, so upgrade
+            and portal buttons stay disabled. Webhooks remain active at{' '}
+            <code className="rounded bg-[var(--ff-bg)] px-1">/api/webhooks/stripe</code>.
           </p>
         ) : null}
       </section>

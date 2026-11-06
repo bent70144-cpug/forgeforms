@@ -1,18 +1,25 @@
 'use client';
 
-// T07 — dashboard documents view (spec §14.1.2): grid/list toggle, cards with
-// title + type badge + status + updated time, quick actions (open, copy link,
-// duplicate, archive), "New" → create modal (type + name + blank/template).
+// B3 — dashboard documents view (spec §14.1.2): grid/list toggle, doc cards
+// (36px type tile + title + status/type badges + updated time), stretched-link
+// cards, quick actions (open results, copy link, duplicate, archive), "New" →
+// create modal (type + name + blank/template).
 //
 // SPEC-NOTE (submissions count): §14.1.2 also lists a per-card submissions
 // count; that aggregate belongs to the results module (T05/T15) and is not
-// part of the §11 DocumentSummary yet — cards show "—" until it lands.
+// part of the §11 DocumentSummary yet — the old "Responses: —" placeholder is
+// gone rather than shipping a dead "—" on every card.
+//
+// SPEC-NOTE (open target): cards/actions link to /d/{id}/results — the
+// builder index route /d/{id} is not part of the app yet (was a 404).
 //
 // Errors surface through the §4 shape (DocumentsApiError) in a banner;
-// destructive archive uses a confirm dialog (spec §14.2).
+// destructive archive is confirmed through the shared Modal primitive
+// (spec §14.2).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import {
   archiveDocument,
   DocumentsApiError,
@@ -26,6 +33,20 @@ import {
   publicShareUrl,
   relativeUpdatedAt,
 } from '@/lib/documents/format';
+import {
+  BADGE_MUTED,
+  BADGE_POSITIVE,
+  BANNER_ERROR,
+  BTN_DESTRUCTIVE_SM,
+  BTN_GHOST_SM,
+  BTN_PRIMARY,
+  BTN_SECONDARY_SM,
+  ICON_BTN,
+  SEG,
+  SEG_BTN,
+} from '@/lib/ui';
+import { Icon, type IconName } from '@/components/ui/icons';
+import { Modal } from '@/components/ui/modal';
 import { CreateDocumentModal, type DashboardTemplate } from './create-document-modal';
 import { DashboardEmptyState } from './empty-state';
 
@@ -38,22 +59,27 @@ type LoadState =
 
 const VIEW_STORAGE_KEY = 'ff:dashboard:view';
 
-// Shared button recipes — token-driven so they flip with dark mode.
-const BTN_PRIMARY =
-  'inline-flex h-9 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-3.5 text-sm font-medium text-[var(--ff-primary-fg)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50';
-// Small row-action variants (height h-8; .ff-doc-actions tightens the padding).
-const BTN_SECONDARY_SM =
-  'inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-2.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))] disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_DESTRUCTIVE_SM =
-  'inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-red-300/50 bg-[var(--ff-card)] px-2.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/30 dark:text-red-400';
+// Type tile icons — safe lookup with fallback for unknown type strings.
+const TYPE_TILE_ICONS: Record<string, IconName> = {
+  form: 'fileText',
+  page: 'file',
+  portfolio: 'layers',
+};
 
-export function DocumentsView({ templates }: { templates: DashboardTemplate[] }) {
+export function DocumentsView({
+  templates,
+  prefillTemplate,
+}: {
+  templates: DashboardTemplate[];
+  prefillTemplate?: string;
+}) {
   const [view, setView] = useState<ViewMode>('grid');
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<DocumentSummaryDto | null>(null);
   const hydrated = useRef(false);
 
   const load = useCallback(async () => {
@@ -105,9 +131,7 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
   };
 
   const archive = async (doc: DocumentSummaryDto) => {
-    if (!window.confirm(`Archive "${doc.title}"? It will disappear from the builder and API lists.`)) {
-      return;
-    }
+    setArchiveTarget(null);
     setBusyId(doc.id);
     setBanner(null);
     try {
@@ -135,50 +159,64 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
 
   return (
     <section aria-label="Documents">
-      <div className="ff-toolbar flex-wrap gap-y-2">
-        <h1 className="m-0 text-lg font-semibold text-balance">Documents</h1>
-        <div className="ff-seg" role="group" aria-label="Layout">
-          <button type="button" aria-pressed={view === 'grid'} onClick={() => switchView('grid')}>
-            Grid
-          </button>
-          <button type="button" aria-pressed={view === 'list'} onClick={() => switchView('list')}>
-            List
-          </button>
+      <div className="ff-toolbar">
+        <div className="flex min-w-0 items-center gap-3">
+          <h1 className="m-0 text-2xl font-semibold tracking-tight">Documents</h1>
+          {docs && (
+            <span className={BADGE_MUTED} title={`${docs.length} documents in this workspace`}>
+              {docs.length}
+            </span>
+          )}
         </div>
-        <div className="ml-auto">
-          <button
-            type="button"
-            className={BTN_PRIMARY}
-            onClick={() => setCreating(true)}
-          >
+        <div className="ml-auto flex items-center gap-3">
+          <div className={SEG} role="group" aria-label="Layout">
+            <button
+              type="button"
+              className={SEG_BTN}
+              aria-pressed={view === 'grid'}
+              aria-label="Grid view"
+              onClick={() => switchView('grid')}
+            >
+              <Icon name="grid" size={14} />
+              <span className="hidden sm:inline">Grid</span>
+            </button>
+            <button
+              type="button"
+              className={SEG_BTN}
+              aria-pressed={view === 'list'}
+              aria-label="List view"
+              onClick={() => switchView('list')}
+            >
+              <Icon name="list" size={14} />
+              <span className="hidden sm:inline">List</span>
+            </button>
+          </div>
+          <button type="button" className={BTN_PRIMARY} onClick={() => setCreating(true)}>
+            <Icon name="plus" size={16} />
             New document
           </button>
         </div>
       </div>
 
       {banner && (
-        <p role="alert" className="ff-banner ff-banner-error mb-4 break-all">
+        <p role="alert" className={`${BANNER_ERROR} mb-4 break-all`}>
           {banner}
         </p>
       )}
 
       {state.kind === 'loading' && (
         <div aria-hidden className="ff-doc-grid">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="ff-skeleton" />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="ff-skeleton" style={{ height: '10rem' }} />
           ))}
         </div>
       )}
 
       {state.kind === 'error' && (
-        <div className="ff-banner ff-banner-error">
+        <div className={BANNER_ERROR}>
           <p className="font-medium">Documents could not be loaded.</p>
           <p className="mt-1">{state.message}</p>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="mt-3 inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-current/40 bg-transparent px-2.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)]"
-          >
+          <button type="button" onClick={() => void load()} className={`${BTN_SECONDARY_SM} mt-3`}>
             Retry
           </button>
         </div>
@@ -187,22 +225,38 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
       {docs && docs.length === 0 && <DashboardEmptyState onCreate={() => setCreating(true)} />}
 
       {docs && docs.length > 0 && view === 'grid' && (
-        <ul className="ff-doc-grid" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        <ul className="ff-doc-grid">
           {docs.map((doc) => (
-            <li
-              key={doc.id}
-              className="ff-doc-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md"
-            >
-              <a href={`/d/${doc.id}`} className="ff-doc-title">
-                {doc.title}
-              </a>
-              <DocumentMeta doc={doc} />
+            <li key={doc.id} className="ff-doc-card relative">
+              {/* Row 1 — type tile + stretched title link + badges.
+                  The title's ::after covers the card, so the whole card is
+                  clickable; interactive children sit above it (z-10). */}
+              <div className="flex items-center gap-3">
+                <TypeTile type={doc.type} />
+                <Link
+                  href={`/d/${doc.id}/results`}
+                  className="ff-doc-title min-w-0 flex-1 after:absolute after:inset-0"
+                >
+                  {doc.title}
+                </Link>
+                <div className="relative z-10 flex shrink-0 items-center gap-1.5">
+                  <span className={doc.status === 'published' ? BADGE_POSITIVE : BADGE_MUTED}>
+                    {documentStatusBadge(doc.status)}
+                  </span>
+                  <span className={BADGE_MUTED}>{documentTypeBadge(doc.type)}</span>
+                </div>
+              </div>
+              {/* Row 2 — meta */}
+              <p className="m-0 text-xs tabular-nums text-[var(--ff-muted)]">
+                Updated {relativeUpdatedAt(doc.updatedAt)}
+              </p>
+              {/* Row 3 — quick actions */}
               <DocumentActions
                 doc={doc}
                 busyId={busyId}
                 copiedId={copiedId}
                 onDuplicate={() => void duplicate(doc)}
-                onArchive={() => void archive(doc)}
+                onArchive={() => setArchiveTarget(doc)}
                 onCopyLink={() => void copyLink(doc)}
               />
             </li>
@@ -211,19 +265,37 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
       )}
 
       {docs && docs.length > 0 && view === 'list' && (
-        <ul className="ff-doc-list" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        <ul className="ff-doc-list divide-y divide-[var(--ff-border)]">
           {docs.map((doc) => (
-            <li key={doc.id} className="ff-doc-row">
-              <a href={`/d/${doc.id}`} className="ff-doc-title" style={{ minWidth: 0, flex: 1 }}>
-                {doc.title}
-              </a>
-              <DocumentMeta doc={doc} compact />
+            <li
+              key={doc.id}
+              className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[10px] px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
+            >
+              <TypeTile type={doc.type} />
+              <div className="min-w-0">
+                <Link
+                  href={`/d/${doc.id}/results`}
+                  className="ff-doc-title block truncate text-[15px] font-medium transition-colors after:absolute after:inset-0 hover:text-[var(--ff-accent)]"
+                >
+                  {doc.title}
+                </Link>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span className={doc.status === 'published' ? BADGE_POSITIVE : BADGE_MUTED}>
+                    {documentStatusBadge(doc.status)}
+                  </span>
+                  <span className={BADGE_MUTED}>{documentTypeBadge(doc.type)}</span>
+                  <span className="text-xs tabular-nums text-[var(--ff-muted)]">
+                    Updated {relativeUpdatedAt(doc.updatedAt)}
+                  </span>
+                </div>
+              </div>
               <DocumentActions
                 doc={doc}
                 busyId={busyId}
                 copiedId={copiedId}
+                iconOnly
                 onDuplicate={() => void duplicate(doc)}
-                onArchive={() => void archive(doc)}
+                onArchive={() => setArchiveTarget(doc)}
                 onCopyLink={() => void copyLink(doc)}
               />
             </li>
@@ -234,6 +306,7 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
       {creating && (
         <CreateDocumentModal
           templates={templates}
+          prefillTemplate={prefillTemplate}
           onClose={() => setCreating(false)}
           onCreated={async () => {
             setCreating(false);
@@ -241,35 +314,68 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
           }}
         />
       )}
+
+      <Modal
+        open={archiveTarget !== null}
+        onClose={() => setArchiveTarget(null)}
+        title="Archive document?"
+        description={
+          archiveTarget
+            ? `"${archiveTarget.title}" will disappear from the builder and API lists.`
+            : undefined
+        }
+        footer={
+          <>
+            <button
+              type="button"
+              className={BTN_GHOST_SM}
+              onClick={() => setArchiveTarget(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={BTN_DESTRUCTIVE_SM}
+              disabled={archiveTarget !== null && busyId === archiveTarget.id}
+              onClick={() => {
+                if (archiveTarget) void archive(archiveTarget);
+              }}
+            >
+              Archive
+            </button>
+          </>
+        }
+      />
     </section>
   );
 }
 
-/** Type + status badges, updated time (and the pending submissions count). */
-function DocumentMeta({ doc, compact = false }: { doc: DocumentSummaryDto; compact?: boolean }) {
+/** 36px rounded type tile — accent-tinted, icon per document type. */
+function TypeTile({ type }: { type: string }) {
   return (
-    <div className="ff-doc-meta tabular-nums">
-      <span className="ff-badge ff-badge--accent">{documentTypeBadge(doc.type)}</span>
-      <span
-        className={`ff-badge ${doc.status === 'published' ? 'ff-badge--positive' : 'ff-badge--muted'}`}
-      >
-        {documentStatusBadge(doc.status)}
-      </span>
-      {!compact && (
-        <span className="ff-doc-subtle" title="Submissions count arrives with the results module">
-          Responses: —
-        </span>
-      )}
-      <span className="ff-doc-subtle">Updated {relativeUpdatedAt(doc.updatedAt)}</span>
-    </div>
+    <span
+      aria-hidden="true"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
+      style={{
+        background: 'color-mix(in srgb, var(--ff-accent) 10%, var(--ff-card))',
+        color: 'color-mix(in srgb, var(--ff-accent) 55%, var(--ff-fg))',
+      }}
+    >
+      <Icon name={TYPE_TILE_ICONS[type] ?? 'file'} size={18} />
+    </span>
   );
 }
 
-/** §14.1.2 quick actions: open, copy link, duplicate, archive. */
+/**
+ * §14.1.2 quick actions: open results, copy link, duplicate, archive.
+ * Grid cards use a labeled "Open" + icon actions; list rows are icon-only.
+ * `relative z-10` keeps the buttons above the card's stretched title link.
+ */
 function DocumentActions({
   doc,
   busyId,
   copiedId,
+  iconOnly = false,
   onDuplicate,
   onArchive,
   onCopyLink,
@@ -277,39 +383,96 @@ function DocumentActions({
   doc: DocumentSummaryDto;
   busyId: string | null;
   copiedId: string | null;
+  iconOnly?: boolean;
   onDuplicate: () => void;
   onArchive: () => void;
   onCopyLink: () => void;
 }): ReactNode {
   const busy = busyId === doc.id;
+  const copied = copiedId === doc.id;
+  const openHref = `/d/${doc.id}/results`;
+
+  if (iconOnly) {
+    return (
+      <div className="relative z-10 flex shrink-0 items-center gap-1">
+        <Link
+          href={openHref}
+          className={ICON_BTN}
+          title={`Open "${doc.title}" results`}
+          aria-label={`Open "${doc.title}" results`}
+        >
+          <Icon name="external" size={16} />
+        </Link>
+        <button
+          type="button"
+          className={`${ICON_BTN}${copied ? ' text-[var(--ff-success)]!' : ''}`}
+          title={`Copy public link (${doc.slug}) — works once the document is published`}
+          aria-label="Copy public link"
+          onClick={onCopyLink}
+        >
+          <Icon name={copied ? 'check' : 'link'} size={16} />
+        </button>
+        <button
+          type="button"
+          className={ICON_BTN}
+          title="Duplicate"
+          aria-label="Duplicate"
+          aria-busy={busy}
+          disabled={busy}
+          onClick={onDuplicate}
+        >
+          <Icon name={busy ? 'spinner' : 'copy'} size={16} />
+        </button>
+        <button
+          type="button"
+          className={`${ICON_BTN} hover:text-[var(--ff-danger)]!`}
+          title="Archive"
+          aria-label="Archive"
+          disabled={busy}
+          onClick={onArchive}
+        >
+          <Icon name="archive" size={16} />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="ff-doc-actions">
-      <a href={`/d/${doc.id}`} className={BTN_SECONDARY_SM}>
+    <div className="ff-doc-actions relative z-10">
+      <Link href={openHref} className={BTN_SECONDARY_SM}>
         Open
-      </a>
+      </Link>
       <button
         type="button"
-        className={BTN_SECONDARY_SM}
+        className={`${ICON_BTN} p-0!${copied ? ' text-[var(--ff-success)]!' : ''}`}
         title={`Copy public link (${doc.slug}) — works once the document is published`}
+        aria-label="Copy public link"
         onClick={onCopyLink}
       >
-        {copiedId === doc.id ? 'Copied!' : 'Link'}
+        <Icon name={copied ? 'check' : 'link'} size={16} />
       </button>
       <button
         type="button"
-        className={BTN_SECONDARY_SM}
+        className={`${ICON_BTN} p-0!`}
+        title="Duplicate"
+        aria-label="Duplicate"
+        aria-busy={busy}
         disabled={busy}
         onClick={onDuplicate}
       >
-        {busy ? 'Working…' : 'Duplicate'}
+        <Icon name={busy ? 'spinner' : 'copy'} size={16} />
       </button>
+      {/* hairline separator before the destructive action */}
+      <span aria-hidden="true" className="h-4 w-px p-0!" style={{ background: 'var(--ff-border)' }} />
       <button
         type="button"
-        className={BTN_DESTRUCTIVE_SM}
+        className={`${ICON_BTN} p-0! hover:text-[var(--ff-danger)]!`}
+        title="Archive"
+        aria-label="Archive"
         disabled={busy}
         onClick={onArchive}
       >
-        Archive
+        <Icon name="archive" size={16} />
       </button>
     </div>
   );

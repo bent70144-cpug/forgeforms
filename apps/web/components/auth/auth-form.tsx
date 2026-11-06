@@ -5,6 +5,8 @@
 // server-side error). One component for both modes.
 import { useActionState, useId, useState } from "react";
 import { loginAction, registerAction, type AuthFormState } from "@/lib/auth/actions";
+import { BTN_PRIMARY, ICON_BTN } from "@/lib/ui";
+import { Icon } from "@/components/ui/icons";
 
 // Empty initial state — kept client-side because "use server" modules may only
 // export async functions.
@@ -86,7 +88,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
       <div className="ff-field">
         <label htmlFor={passwordId}>Password</label>
-        <div className="ff-password">
+        <div className="relative">
           <input
             id={passwordId}
             name="password"
@@ -97,15 +99,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             placeholder={mode === "register" ? "At least 8 characters" : "Your password"}
             aria-invalid={errors.password !== undefined}
             aria-describedby={errors.password !== undefined ? `${passwordId}-error` : undefined}
+            style={{ paddingRight: "2.75rem" }}
           />
           <button
             type="button"
-            className="ff-password-toggle"
+            className={`${ICON_BTN} absolute top-1/2 right-1.5 -translate-y-1/2`}
             onClick={() => setShowPassword((value) => !value)}
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
           >
-            {showPassword ? "Hide" : "Show"}
+            <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
           </button>
         </div>
         {errors.password !== undefined && (
@@ -117,10 +120,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
       <button
         type="submit"
-        className="ff-btn ff-btn-primary transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${BTN_PRIMARY} w-full justify-center`}
         disabled={pending}
       >
-        {pending ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
+        {pending ? (
+          <>
+            <Icon name="spinner" size={16} />
+            {mode === "login" ? "Signing in…" : "Creating account…"}
+          </>
+        ) : mode === "login" ? (
+          "Log in"
+        ) : (
+          "Create account"
+        )}
       </button>
     </form>
   );

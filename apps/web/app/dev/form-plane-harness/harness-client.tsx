@@ -4,8 +4,14 @@
 // Mounts the real @formforge/renderer conversational bundle against a static
 // published-style DocumentBody + the mock ingest client (no network), the way
 // the /p form plane will host it once that route lands.
+//
+// Chrome is deliberately minimal: a token-paper canvas with a single muted
+// "Harness" badge so screenshots stay unambiguous — the renderer mount itself
+// is untouched.
 import type { ComponentProps } from "react";
 import { ConversationalRenderer, createMockIngestClient } from "@formforge/renderer/conversational";
+
+import { BADGE_MUTED } from "@/lib/ui";
 
 type HarnessDocument = ComponentProps<typeof ConversationalRenderer>["document"];
 
@@ -57,6 +63,11 @@ const SAMPLE_FORM: HarnessDocument = {
 export function ConversationalFormHarness() {
   const ingest = createMockIngestClient({ token: "tok_harness", endingId: "end_1" });
   return (
-    <ConversationalRenderer documentId="doc_harness" document={SAMPLE_FORM} ingest={ingest} />
+    <main className="min-h-screen bg-[var(--ff-bg)] p-4 sm:p-6">
+      <div className="mb-4">
+        <span className={BADGE_MUTED}>Harness</span>
+      </div>
+      <ConversationalRenderer documentId="doc_harness" document={SAMPLE_FORM} ingest={ingest} />
+    </main>
   );
 }

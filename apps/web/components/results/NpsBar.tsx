@@ -1,33 +1,29 @@
 // T15 — NPS segments bar (detractors / passives / promoters) per spec §14.1.5.
-// Pure CSS stacking, no chart library.
+// Pure CSS stacking, no chart library. B5: segment hues come from the semantic
+// tokens (--ff-danger/--ff-warning/--ff-success) so dark mode needs no variants.
 
 "use client";
 
 import type { NpsAggregate } from "../../lib/results";
 
-// Semantic segment hues (detractor / passive / promoter) — mid-tones that hold
-// up on both light and dark token surfaces.
 const SEGMENTS = [
   {
     key: "detractors",
     label: "Detractors",
     hint: "0–6",
-    bar: "bg-rose-500 dark:bg-rose-400",
-    dot: "bg-rose-500 dark:bg-rose-400",
+    color: "var(--ff-danger)",
   },
   {
     key: "passives",
     label: "Passives",
     hint: "7–8",
-    bar: "bg-amber-400",
-    dot: "bg-amber-400",
+    color: "var(--ff-warning)",
   },
   {
     key: "promoters",
     label: "Promoters",
     hint: "9–10",
-    bar: "bg-emerald-500 dark:bg-emerald-400",
-    dot: "bg-emerald-500 dark:bg-emerald-400",
+    color: "var(--ff-success)",
   },
 ] as const;
 
@@ -48,13 +44,21 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
       </div>
 
       <div
-        className="mt-3 flex h-3.5 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)]"
+        className="mt-3 flex h-2.5 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)]"
         role="img"
         aria-label={`NPS ${score}: ${detractors} detractors, ${passives} passives, ${promoters} promoters`}
       >
-        <span className={`h-full ${SEGMENTS[0]!.bar}`} style={{ width: width(detractors) }} />
-        <span className={`h-full ${SEGMENTS[1]!.bar}`} style={{ width: width(passives) }} />
-        <span className={`h-full ${SEGMENTS[2]!.bar}`} style={{ width: width(promoters) }} />
+        {SEGMENTS.map((seg) => {
+          const n =
+            seg.key === "detractors" ? detractors : seg.key === "passives" ? passives : promoters;
+          return (
+            <span
+              key={seg.key}
+              className="h-full"
+              style={{ width: width(n), backgroundColor: seg.color }}
+            />
+          );
+        })}
       </div>
 
       <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5">
@@ -63,13 +67,17 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
             seg.key === "detractors" ? detractors : seg.key === "passives" ? passives : promoters;
           const pct = total > 0 ? Math.round((n / total) * 100) : 0;
           return (
-            <li key={seg.key} className="flex items-center gap-1.5 text-sm text-[var(--ff-muted)]">
-              <span className={`inline-block h-2.5 w-2.5 rounded-full ${seg.dot}`} aria-hidden="true" />
+            <li key={seg.key} className="flex items-center gap-1.5 text-xs text-[var(--ff-muted)]">
+              <span
+                aria-hidden="true"
+                className="inline-block h-2 w-2 rounded-full"
+                style={{ backgroundColor: seg.color }}
+              />
               <span className="font-medium text-[var(--ff-fg)]">{seg.label}</span>
               <span className="tabular-nums">
                 {n} · {pct}%
               </span>
-              <span className="text-xs text-[var(--ff-muted)]">({seg.hint})</span>
+              <span>({seg.hint})</span>
             </li>
           );
         })}

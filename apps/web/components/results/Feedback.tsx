@@ -1,10 +1,12 @@
-// T15 — shared loading / empty / error states (spec §14.2: skeletons, never
-// blank screens; empty states are actionable).
+// T15 — shared loading / error states (spec §14.2: skeletons, never blank
+// screens; errors are friendly first, technical on demand). Empty states moved
+// to the shared primitive (components/ui/empty-state.tsx).
 
 "use client";
 
-import type { ReactNode } from "react";
 import { ResultsApiError } from "../../lib/results";
+import { BANNER_ERROR, BTN_SECONDARY_SM } from "../../lib/ui";
+import { Icon } from "../ui/icons";
 
 /**
  * Friendly one-liners per API error code (spec §4). The raw code/message is
@@ -34,11 +36,17 @@ export function errorCodeOf(err: unknown): string | null {
   return err instanceof ResultsApiError ? err.code : null;
 }
 
+/**
+ * Shimmering placeholder block. NOTE (B5): this replicates the `.ff-skeleton`
+ * recipe with Tailwind token utilities instead of using the class itself —
+ * `.ff-skeleton` locks `height: 7rem` in an unlayered block, which would
+ * override the `h-*` sizing utilities every caller passes.
+ */
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`animate-pulse motion-reduce:animate-none rounded-md bg-[color-mix(in_srgb,var(--ff-fg)_10%,transparent)] ${className}`}
       aria-hidden="true"
+      className={`animate-pulse rounded-[10px] bg-[color-mix(in_srgb,var(--ff-fg)_6%,var(--ff-card))] motion-reduce:animate-none ${className}`}
     />
   );
 }
@@ -67,42 +75,8 @@ export function CardsSkeleton({ count = 4 }: { count?: number }) {
       aria-label="Loading summary"
     >
       {Array.from({ length: count }, (_, i) => (
-        <Skeleton key={i} className="h-24 rounded-xl" />
+        <Skeleton key={i} className="h-24" />
       ))}
-    </div>
-  );
-}
-
-export function EmptyState({
-  title,
-  description,
-  action,
-}: {
-  title: string;
-  description?: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="ff-empty">
-      <svg
-        className="h-10 w-10 text-[var(--ff-muted)]"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        aria-hidden="true"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
-        />
-      </svg>
-      <p className="text-base font-semibold text-balance text-[var(--ff-fg)]">{title}</p>
-      {description ? (
-        <p className="max-w-sm text-sm leading-relaxed text-[var(--ff-muted)]">{description}</p>
-      ) : null}
-      {action ? <div>{action}</div> : null}
     </div>
   );
 }
@@ -119,21 +93,17 @@ export function ErrorState({
   onRetry: () => void;
 }) {
   return (
-    <div
-      role="alert"
-      className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-6 py-10 text-center"
-    >
-      <p className="text-base font-semibold text-balance text-[var(--ff-fg)]">
-        {friendlyErrorMessage(code)}
-      </p>
-      <button type="button" onClick={onRetry} className="ff-button ff-button-primary mt-4 text-sm">
-        Try again
-      </button>
-      <details className="mt-4">
-        <summary className="cursor-pointer text-xs text-[var(--ff-muted)] transition-colors hover:text-[var(--ff-fg)]">
-          Technical details
-        </summary>
-        <p className="mx-auto mt-2 max-w-md break-words text-left font-mono text-xs leading-relaxed text-[var(--ff-muted)]">
+    <div role="alert" className={BANNER_ERROR}>
+      <p className="font-medium text-balance">{friendlyErrorMessage(code)}</p>
+      <div className="mt-2.5">
+        <button type="button" onClick={onRetry} className={BTN_SECONDARY_SM}>
+          <Icon name="refresh" size={12} />
+          Try again
+        </button>
+      </div>
+      <details className="mt-2.5">
+        <summary className="cursor-pointer text-xs">Technical details</summary>
+        <p className="mt-2 break-words rounded-lg bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] p-2 text-left font-mono text-xs leading-relaxed text-[var(--ff-muted)]">
           {message}
         </p>
       </details>

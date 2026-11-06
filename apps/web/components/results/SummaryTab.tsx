@@ -12,10 +12,13 @@ import {
   type ResultsClient,
   type SummaryResponse,
 } from "../../lib/results";
+import { BADGE_MUTED, BTN_PRIMARY, CARD } from "../../lib/ui";
 import { BarList } from "./BarList";
-import { CardsSkeleton, EmptyState, ErrorState, Skeleton, errorCodeOf } from "./Feedback";
+import { CardsSkeleton, ErrorState, Skeleton, errorCodeOf } from "./Feedback";
 import { NpsBar } from "./NpsBar";
 import { StatCards } from "./StatCards";
+import { EmptyState } from "../ui/empty-state";
+import { Icon } from "../ui/icons";
 
 const KIND_LABELS: Record<BlockAggregate["kind"], string> = {
   choice: "Choice",
@@ -33,15 +36,13 @@ function formatAverage(n: number): string {
 
 function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
   return (
-    <section className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-5">
+    <section className={`${CARD} p-5`}>
       <header className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-[var(--ff-fg)]" title={aggregate.label}>
             {truncateLabel(aggregate.label, 80)}
           </h3>
-          <span className="mt-1 inline-block rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--ff-muted)]">
-            {KIND_LABELS[aggregate.kind]}
-          </span>
+          <span className={`${BADGE_MUTED} mt-1.5 font-mono`}>{KIND_LABELS[aggregate.kind]}</span>
         </div>
         <p className="shrink-0 text-xs tabular-nums text-[var(--ff-muted)]">
           {aggregate.totalResponses} {aggregate.totalResponses === 1 ? "response" : "responses"}
@@ -99,7 +100,10 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         ) : (
           <ul className="space-y-2.5">
             {aggregate.recent.map((text, i) => (
-              <li key={i} className="rounded-lg bg-[var(--ff-bg)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)]">
+              <li
+                key={i}
+                className="rounded-lg bg-[color-mix(in_srgb,var(--ff-fg)_2%,var(--ff-bg))] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)]"
+              >
                 <span aria-hidden="true" className="mr-1 text-[var(--ff-muted)]">
                   “
                 </span>
@@ -184,7 +188,7 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
         <CardsSkeleton />
         <div className="space-y-4">
           {Array.from({ length: 3 }, (_, i) => (
-            <Skeleton key={i} className="h-44 rounded-xl" />
+            <Skeleton key={i} className="h-44" />
           ))}
         </div>
       </div>
@@ -205,15 +209,17 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
     // spec §14.2 — empty states are actionable
     return (
       <EmptyState
+        icon={<Icon name="inbox" size={20} />}
         title="No responses yet — share your link"
         description="Summary charts appear here as soon as the first responses come in."
         action={
           <button
             type="button"
             onClick={() => void copyShareLink()}
-            className="ff-button ff-button-primary text-sm"
+            className={BTN_PRIMARY}
           >
-            {copied ? "Link copied ✓" : "Copy share link"}
+            <Icon name={copied ? "check" : "link"} size={14} />
+            {copied ? "Link copied" : "Copy share link"}
           </button>
         }
       />
@@ -224,7 +230,10 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
     <div className="space-y-6">
       <StatCards counts={summary.counts} />
       {summary.blocks.length === 0 ? (
-        <p className="rounded-[var(--ff-radius)] border border-dashed border-[var(--ff-border)] bg-[var(--ff-card)] px-6 py-10 text-center text-sm text-[var(--ff-muted)]">
+        <p
+          className={`${CARD} px-6 py-10 text-center text-sm text-[var(--ff-muted)]`}
+          style={{ borderStyle: "dashed" }}
+        >
           This document has no question blocks to summarize.
         </p>
       ) : (

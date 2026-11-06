@@ -4,6 +4,8 @@
 // Success shows the same neutral confirmation for known and unknown emails.
 import { useActionState, useId } from "react";
 import { forgotPasswordAction, type AuthFormState } from "@/lib/auth/actions";
+import { BTN_PRIMARY } from "@/lib/ui";
+import { Icon } from "@/components/ui/icons";
 
 const initialState: AuthFormState = {};
 
@@ -39,10 +41,17 @@ export function ForgotPasswordForm() {
 
       <button
         type="submit"
-        className="ff-btn ff-btn-primary transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+        className={`${BTN_PRIMARY} w-full justify-center`}
         disabled={pending}
       >
-        {pending ? "Sending…" : "Send reset link"}
+        {pending ? (
+          <>
+            <Icon name="spinner" size={16} />
+            Sending…
+          </>
+        ) : (
+          "Send reset link"
+        )}
       </button>
     </form>
   );

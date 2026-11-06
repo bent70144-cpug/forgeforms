@@ -8,9 +8,12 @@
 // The actual document renderer (conversational/scroll, M3+) will mount inside this
 // shell and can reuse `postToParent` + `notifyComplete` from ./protocol.
 import { useCallback, useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 
 import { isRequestHeightMessage, postToParent } from "./protocol";
 import type { Block } from "@formforge/core/templates";
+import { Icon } from "@/components/ui/icons";
+import { INPUT } from "@/lib/ui";
 import { ReportAbuseLink } from "@/components/public/report-abuse-link";
 
 export type EmbedSnapshot = {
@@ -19,6 +22,27 @@ export type EmbedSnapshot = {
   type: "form" | "page" | "portfolio";
   blocks: Block[];
 };
+
+// Embeds render inside host pages we don't control, so the widget must stay
+// NEUTRAL and LIGHT: these are the light-theme values from app/globals.css
+// re-pinned on the embed subtree, so a dark host OS theme never dark-flips
+// the widget itself. Styling only — no behavioural effect.
+const LIGHT_TOKEN_PIN = {
+  "--ff-bg": "#faf8f3",
+  "--ff-card": "#ffffff",
+  "--ff-fg": "#211d18",
+  "--ff-muted": "#6f6862",
+  "--ff-border": "#e9e2d7",
+  "--ff-border-strong": "#d8cfc0",
+  "--ff-primary": "#211d18",
+  "--ff-primary-fg": "#fdfcfa",
+  "--ff-accent": "oklch(54% 0.165 29)",
+  "--ff-accent-soft": "oklch(74% 0.125 30)",
+  "--ff-accent-fg": "#ffffff",
+  "--ff-radius": "0.75rem",
+  "--ff-shadow-sm": "0 1px 2px rgb(42 32 22 / 0.05)",
+  "--ff-shadow-md": "0 1px 2px rgb(42 32 22 / 0.05), 0 8px 24px -12px rgb(42 32 22 / 0.16)",
+} as const;
 
 const QUESTION_KINDS = new Set([
   "short-text",
@@ -88,7 +112,8 @@ export default function EmbedClient({
   return (
     <div
       ref={rootRef}
-      className={`w-full ${transparent ? "bg-transparent p-0" : "bg-white p-4 sm:p-6"}`}
+      style={LIGHT_TOKEN_PIN as CSSProperties}
+      className={`w-full ${transparent ? "bg-transparent p-0" : "bg-[var(--ff-card)] p-4 sm:p-6"}`}
     >
       {snapshot ? (
         <EmbedSnapshotView snapshot={snapshot} />
@@ -97,7 +122,7 @@ export default function EmbedClient({
       )}
       {/* T29 (spec §17): the Report-abuse link rides on EVERY public page —
           embedded documents included (opens in a new tab outside the iframe). */}
-      <p className="mt-3 text-right text-xs text-slate-400">
+      <p className="mt-3 text-right text-[12px] text-[var(--ff-muted)] [&_a]:text-[var(--ff-muted)] [&_a]:underline-offset-2 [&_a:hover]:text-[var(--ff-fg)]">
         <ReportAbuseLink documentRef={docId} />
       </p>
     </div>
@@ -112,38 +137,82 @@ function EmbedSnapshotView({ snapshot }: { snapshot: EmbedSnapshot }) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4">
       <header>
-        <h1 className="text-xl font-semibold text-slate-900">{snapshot.title}</h1>
-        <p className="mt-1 text-xs text-slate-500">Powered by FormForge</p>
+        <h1 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">{snapshot.title}</h1>
       </header>
       {questionBlocks.map((b) => (
         <div key={b.id}>
-          <label className="mb-1 block text-sm font-medium text-slate-700" htmlFor={`ff-${b.id}`}>
+          <label className="mb-1 block text-sm font-medium text-[var(--ff-fg)]" htmlFor={`ff-${b.id}`}>
             {labelOf(b) || "(question)"}
           </label>
           <input
             id={`ff-${b.id}`}
             disabled
-            className="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-400"
+            className={`${INPUT} w-full`}
             placeholder={b.kind}
           />
         </div>
       ))}
       {questionBlocks.length === 0 && (
-        <p className="text-sm text-slate-500">This document has no interactive questions.</p>
+        <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
+          This document has no interactive questions.
+        </p>
       )}
+      <p className="mt-4 text-center text-[12px] text-[var(--ff-muted)]">Powered by FormForge</p>
     </div>
   );
 }
 
 function UnavailableView({ docId }: { docId: string }) {
   return (
-    <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center">
-      <p className="text-4xl" aria-hidden>📄</p>
-      <h1 className="mt-3 text-lg font-semibold text-slate-900">Nothing to embed — yet</h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate-500">
-        The document <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs">{docId}</code> has no
-        published snapshot. Publish it in FormForge and this frame will render it automatically.
-      </p>
+    <div className="mx-auto max-w-md">
+      <div className="mb-4 flex items-center justify-center gap-1.5">
+        <span
+          aria-hidden="true"
+          className="flex h-5 w-5 items-center justify-center rounded-md"
+          style={{ background: "var(--ff-primary)", color: "var(--ff-primary-fg)" }}
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width={10}
+            height={10}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.25}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
+          </svg>
+        </span>
+        <span className="text-sm font-semibold tracking-tight text-[var(--ff-fg)]">FormForge</span>
+      </div>
+
+      <div className="ff-panel p-6">
+        <span
+          aria-hidden="true"
+          className="flex h-10 w-10 items-center justify-center rounded-[10px]"
+          style={{ background: "var(--ff-accent-soft)", color: "var(--ff-accent)" }}
+        >
+          <Icon name="fileText" size={20} />
+        </span>
+        <h1 className="mt-4 text-base font-semibold text-[var(--ff-fg)]">Preview unavailable</h1>
+        <p className="mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
+          The document{" "}
+          <code className="rounded-[4px] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-1.5 py-0.5 font-mono text-xs text-[var(--ff-fg)]">
+            {docId}
+          </code>{" "}
+          has no published snapshot. Publish it in FormForge and this frame will render it automatically.
+        </p>
+        {/* Clearly decorative placeholders — the real renderer mounts here once
+            the document is published. Not focusable, hidden from a11y trees. */}
+        <div className="mt-5 space-y-2" aria-hidden="true">
+          <div className={`${INPUT} opacity-60`} style={{ borderStyle: "dashed" }} />
+          <div className={`${INPUT} opacity-60`} style={{ borderStyle: "dashed" }} />
+          <div className={`${INPUT} w-2/3 opacity-60`} style={{ borderStyle: "dashed" }} />
+        </div>
+      </div>
     </div>
   );
 }

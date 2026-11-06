@@ -1,34 +1,38 @@
-// Dashboard empty state (issue #3 / spec §14.1.2): exact copy
-// "No documents yet — create your first"; actionable per spec §14.2.
-// T07: with `onCreate` the button opens the create modal (documents CRUD is
-// live); without it (pre-M2 callers) it stays disabled with a hint.
+// Dashboard empty state (issue #3 / spec §14.1.2) — a thin wrapper around the
+// shared <EmptyState> primitive (F3) so the dashboard inherits the redesigned
+// .ff-empty recipe (dashed hairline, warm tint, accent icon tile) instead of
+// hand-rolled markup. Copy per the redesign spec.
+//
+// With `onCreate` the button opens the create modal (documents CRUD is live);
+// without it (pre-M2 callers) it stays disabled with a hint.
+import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icons';
+import { BTN_PRIMARY } from '@/lib/ui';
+
 export function DashboardEmptyState({ onCreate }: { onCreate?: () => void }) {
+  const action = onCreate ? (
+    <button type="button" className={BTN_PRIMARY} onClick={onCreate}>
+      <Icon name="plus" size={16} />
+      New document
+    </button>
+  ) : (
+    <button
+      type="button"
+      className={BTN_PRIMARY}
+      disabled
+      title="Document creation arrives in the next milestone"
+    >
+      <Icon name="plus" size={16} />
+      New document
+    </button>
+  );
+
   return (
-    <section aria-labelledby="dashboard-empty-title" className="ff-empty">
-      <h1 id="dashboard-empty-title" className="text-balance">
-        No documents yet — create your first
-      </h1>
-      <p className="ff-subtle max-w-sm leading-relaxed">
-        Forms, landing pages and portfolios all live here.
-      </p>
-      {onCreate ? (
-        <button
-          type="button"
-          className="inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-4 text-sm font-medium text-[var(--ff-primary-fg)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={onCreate}
-        >
-          New document
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="inline-flex h-10 cursor-not-allowed items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-4 text-sm font-medium text-[var(--ff-primary-fg)] opacity-50"
-          disabled
-          title="Document creation arrives in the next milestone"
-        >
-          New document
-        </button>
-      )}
-    </section>
+    <EmptyState
+      icon={<Icon name="inbox" size={20} />}
+      title="No documents yet"
+      description="Create your first document — start from blank or pick a template."
+      action={action}
+    />
   );
 }

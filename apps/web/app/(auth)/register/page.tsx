@@ -7,11 +7,17 @@ export const metadata: Metadata = { title: "Create your account" };
 export default function RegisterPage() {
   return (
     <>
-      <h1 className="text-balance">Create your account</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-balance">Create your account</h1>
       <p className="ff-subtle">A personal workspace is set up for you automatically.</p>
       <AuthForm mode="register" />
       <p className="ff-auth-alt">
-        Already have an account? <Link href="/login">Log in</Link>
+        Already have an account?{" "}
+        <Link
+          href="/login"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-accent)] hover:underline"
+        >
+          Sign in
+        </Link>
       </p>
     </>
   );

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BTN_SECONDARY } from "@/lib/ui";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 export const metadata: Metadata = { title: "Set a new password" };
@@ -14,11 +15,11 @@ export default async function ResetPasswordPage({
   if (typeof token !== "string" || token.length === 0) {
     return (
       <>
-        <h1 className="text-balance">Set a new password</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-balance">Set a new password</h1>
         <p className="ff-banner ff-banner-error" role="alert">
           This reset link is missing its token. Request a new link to continue.
         </p>
-        <Link href="/forgot" className="ff-btn ff-btn-secondary transition-colors">
+        <Link href="/forgot" className={`${BTN_SECONDARY} self-start`}>
           Request a new reset link
         </Link>
       </>
@@ -27,7 +28,7 @@ export default async function ResetPasswordPage({
 
   return (
     <>
-      <h1 className="text-balance">Set a new password</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-balance">Set a new password</h1>
       <p className="ff-subtle">
         Choose a new password for your account. You&apos;ll be signed out everywhere else.
       </p>

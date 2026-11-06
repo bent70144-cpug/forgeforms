@@ -7,16 +7,49 @@
 // API; Mock fallback for offline dev via NEXT_PUBLIC_FF_MOCK_BUILDER=1),
 // editor store + AutosaveController via lib/logic/editor.ts, and ops vocabulary
 // rule.upsert / rule.remove / block.update / settings.update (spec §8).
+//
+// Redesign (B7): header chrome (Dashboard/Results links) is passed in from the
+// server page as RSC slots; the save chip reuses the shared .ff-save-chip
+// recipe from components/builder/save-indicator (the store seam itself lives
+// behind the runtime, which this page doesn't own); toolbar shows question +
+// lint summary; the state machine (rules, undo/redo, autosave) is untouched.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createTransport } from "@/lib/builder/transport";
-import { buildLogicGraph, endingNodeId, START_NODE_ID } from "@/lib/logic/graph";
-import { createLogicEditorRuntime, type LogicEditorRuntime, type LogicEditorSnapshot } from "@/lib/logic/editor";
+import type { AutosaveStatus } from "@/lib/builder/autosave";
+import {
+  BADGE_MUTED,
+  BADGE_POSITIVE,
+  BADGE_WARNING,
+  BTN_PRIMARY_SM,
+  BTN_SECONDARY_SM,
+  CARD,
+} from "@/lib/ui";
+import { Icon } from "@/components/ui/icons";
+import {
+  buildLogicGraph,
+  endingNodeId,
+  logicLintErrors,
+  START_NODE_ID,
+} from "@/lib/logic/graph";
+import {
+  createLogicEditorRuntime,
+  type LogicEditorRuntime,
+  type LogicEditorSnapshot,
+} from "@/lib/logic/editor";
 import { LogicCanvas } from "./LogicCanvas";
 import { RuleDrawer, type ScopeInfo } from "./RuleDrawer";
 import { FlowPreview } from "./FlowPreview";
 
-export function LogicBuilder({ docId }: { docId: string }) {
+export type LogicBuilderProps = {
+  docId: string;
+  /** Server-rendered back link (header slot, left). */
+  backLink?: ReactNode;
+  /** Server-rendered Results link (header slot, right). */
+  resultsLink?: ReactNode;
+};
+
+export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps) {
   const [snapshot, setSnapshot] = useState<LogicEditorSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [runtime, setRuntime] = useState<LogicEditorRuntime | null>(null);
@@ -90,128 +123,197 @@ export function LogicBuilder({ docId }: { docId: string }) {
       .map((n) => ({ id: n.id, label: n.label }));
     for (const n of graph.nodes) {
       if (n.kind === "ending" && n.endingId !== undefined) {
-        targets.push({ id: endingNodeId(n.endingId), label: `🏁 ${n.label}` });
+        targets.push({ id: endingNodeId(n.endingId), label: n.label });
       }
     }
     return targets;
   }, [graph.nodes]);
 
+  // Toolbar summaries — derived display state only (same pure helpers the
+  // FlowPreview uses); no state-machine changes.
+  const questionCount = useMemo(
+    () => graph.nodes.filter((n) => n.kind === "question").length,
+    [graph.nodes],
+  );
+  const lintErrors = useMemo(() => logicLintErrors(snapshot?.body ?? emptyFallback()), [snapshot?.body]);
+
+  const canEdit = runtime !== null && snapshot !== null;
+
   if (error) {
     return (
-      <div className="mx-auto max-w-md rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6 text-sm">
-        <p className="font-semibold text-[var(--ff-fg)]">Logic builder could not load</p>
-        <p className="mt-1 leading-relaxed text-[var(--ff-muted)]">{error}</p>
-        <p className="mt-2 text-xs leading-relaxed text-[var(--ff-muted)]">
-          The documents API (T07) is not wired in this branch yet — set
-          NEXT_PUBLIC_FF_MOCK_BUILDER=1 for the in-memory dev document.
-        </p>
-      </div>
-    );
-  }
-
-  if (!runtime || !snapshot) {
-    return (
-      <div className="p-6 text-sm text-[var(--ff-muted)]" aria-live="polite">
-        Loading logic builder…
+      <div className="mx-auto w-full max-w-[72rem] px-1 py-6 md:px-0">
+        <div className={`${CARD} mx-auto max-w-md p-6`}>
+          <p className="flex items-center gap-2 text-sm font-semibold text-[var(--ff-fg)]">
+            <Icon name="alert" size={16} className="text-[var(--ff-danger)]" />
+            Logic builder could not load
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">{error}</p>
+          <p className="mt-2 text-xs leading-relaxed text-[var(--ff-muted)]">
+            The documents API (T07) is not wired in this branch yet — set
+            NEXT_PUBLIC_FF_MOCK_BUILDER=1 for the in-memory dev document.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="relative flex h-[calc(100vh-8rem)] flex-col gap-3 p-4">
-      <header className="flex items-center justify-between">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-lg font-semibold text-[var(--ff-fg)]">Logic</h1>
-          <a
-            href={`/d/${docId}/results`}
-            className="text-xs font-medium text-[var(--ff-primary)] hover:underline"
-          >
-            Results →
-          </a>
+    <div className="mx-auto flex h-[calc(100dvh-9.5rem)] min-h-[32rem] w-full max-w-[72rem] flex-col gap-3">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 items-center gap-3">
+          {backLink}
+          <div className="flex min-w-0 items-baseline gap-2.5">
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-fg)]">Logic</h1>
+            {snapshot && snapshot.meta.title !== "" && (
+              <span className="truncate text-sm text-[var(--ff-muted)]" title={snapshot.meta.title}>
+                {snapshot.meta.title}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href={`/d/${docId}`}
-            className="text-xs font-medium text-[var(--ff-muted)] transition-colors hover:text-[var(--ff-fg)] hover:underline"
-          >
-            ← Builder
-          </a>
-          <SaveChip save={snapshot.save} />
+          {snapshot && <SaveChip save={snapshot.save} />}
+          {resultsLink}
         </div>
       </header>
 
-      <div className="relative min-h-0 flex-1 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)]">
-        <LogicCanvas graph={graph} selectedId={openScope} onSelect={setOpenScope} />
-        {scopeInfo && (
-          <RuleDrawer
-            scope={scopeInfo}
-            body={snapshot.body}
-            targets={gotoTargets}
-            onApply={apply}
-            onClose={() => setOpenScope(null)}
-          />
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <FlowPreview body={snapshot.body} />
-        <div className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4">
-          <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
-            <strong className="font-semibold text-[var(--ff-fg)]">How it works:</strong> nodes follow
-            document order (default flow); dashed edges are rule <code>goto</code>s. Click Start or a
-            question to add rules — IF conditions are AND-ed, THEN runs goto/set, and “in all other
-            cases” is the fallback. Rule edits autosave via <code>PATCH /api/v1/documents/:id</code> ops.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              className="rounded-md border border-[var(--ff-border)] px-2.5 py-1 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
-              onClick={() => runtime.undo()}
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-[var(--ff-border)] px-2.5 py-1 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
-              onClick={() => runtime.redo()}
-            >
-              Redo
-            </button>
-          </div>
+      {!canEdit ? (
+        <div aria-busy="true" aria-live="polite" className="flex flex-col gap-3">
+          <p className="sr-only">Loading logic builder…</p>
+          <div className="ff-skeleton h-24! w-full" />
+          <div className="ff-skeleton h-64! w-full" />
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={BADGE_MUTED}>
+                {questionCount} {questionCount === 1 ? "question" : "questions"}
+              </span>
+              {lintErrors.length > 0 ? (
+                <span className={BADGE_WARNING} data-testid="lint-summary">
+                  <Icon name="alert" size={12} />
+                  {lintErrors.length} {lintErrors.length === 1 ? "issue" : "issues"}
+                </span>
+              ) : (
+                <span className={BADGE_POSITIVE} data-testid="lint-summary">
+                  <Icon name="check" size={12} />
+                  No issues
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={`${BTN_SECONDARY_SM} disabled:cursor-not-allowed! disabled:opacity-40!`}
+                onClick={() => runtime?.undo()}
+                disabled={!runtime}
+              >
+                <Icon name="arrowLeft" size={14} />
+                Undo
+              </button>
+              <button
+                type="button"
+                className={`${BTN_SECONDARY_SM} disabled:cursor-not-allowed! disabled:opacity-40!`}
+                onClick={() => runtime?.redo()}
+                disabled={!runtime}
+              >
+                Redo
+                <Icon name="arrowRight" size={14} />
+              </button>
+              <button
+                type="button"
+                className={BTN_PRIMARY_SM}
+                onClick={() => setOpenScope(START_NODE_ID)}
+              >
+                <Icon name="flow" size={14} />
+                Edit rules
+              </button>
+            </div>
+          </div>
+
+          <div className={`${CARD} relative min-h-0 flex-1 overflow-hidden`}>
+            <LogicCanvas graph={graph} selectedId={openScope} onSelect={setOpenScope} />
+          </div>
+
+          {scopeInfo && (
+            <RuleDrawer
+              scope={scopeInfo}
+              body={snapshot.body}
+              targets={gotoTargets}
+              onApply={apply}
+              onClose={() => setOpenScope(null)}
+            />
+          )}
+
+          <div className="grid shrink-0 grid-cols-1 gap-3 lg:grid-cols-2">
+            <FlowPreview body={snapshot.body} />
+            <section className={`${CARD} p-5`} aria-label="How the logic builder works">
+              <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
+                <strong className="font-medium text-[var(--ff-fg)]">How it works:</strong> nodes follow
+                document order (default flow); dashed edges are rule{" "}
+                <code className="rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1 font-mono text-xs">
+                  goto
+                </code>
+                s. Click Start or a question to add rules — IF conditions are AND-ed, THEN runs
+                goto/set, and “in all other cases” is the fallback. Rule edits autosave via{" "}
+                <code className="rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1 font-mono text-xs">
+                  PATCH /api/v1/documents/:id
+                </code>{" "}
+                ops.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  className={`${BTN_SECONDARY_SM} disabled:cursor-not-allowed! disabled:opacity-40!`}
+                  onClick={() => runtime?.undo()}
+                  disabled={!runtime}
+                >
+                  <Icon name="arrowLeft" size={14} />
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  className={`${BTN_SECONDARY_SM} disabled:cursor-not-allowed! disabled:opacity-40!`}
+                  onClick={() => runtime?.redo()}
+                  disabled={!runtime}
+                >
+                  Redo
+                  <Icon name="arrowRight" size={14} />
+                </button>
+              </div>
+            </section>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function SaveChip({ save }: { save: LogicEditorSnapshot["save"] }) {
-  const chip =
-    save === "saved"
-      ? "border-transparent bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-      : save === "saving" || save === "dirty"
-        ? "border-transparent bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
-        : save === "error" || save === "conflict"
-          ? "border-transparent bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300"
-          : "border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)] text-[var(--ff-muted)]";
-  const label =
-    save === "saved"
-      ? "Saved"
-      : save === "saving"
-        ? "Saving…"
-        : save === "dirty"
-          ? "Unsaved changes"
-          : save === "conflict"
-            ? "Conflict — merging"
-            : save === "error"
-              ? "Save failed"
-              : "—";
+// Same visual recipe as components/builder/save-indicator's <SaveIndicator>
+// (.ff-save-chip). The store seam behind that component is fed by the
+// AutosaveController inside the logic runtime (not owned here), so this chip
+// renders the runtime's `save` status directly with the shared classes.
+const SAVE_CHIP_LABELS: Record<AutosaveStatus, string> = {
+  idle: "Saved",
+  dirty: "Unsaved changes",
+  saving: "Saving…",
+  saved: "Saved",
+  conflict: "Conflict — recovering…",
+  error: "Save failed",
+};
+
+function SaveChip({ save }: { save: AutosaveStatus }) {
+  const tone =
+    save === "error" || save === "conflict" ? "error" : save === "saved" || save === "idle" ? "ok" : "";
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${chip}`}
+      className={`ff-save-chip${tone === "" ? "" : ` ff-save-chip--${tone}`}`}
       data-testid="save-chip"
+      role="status"
       aria-live="polite"
     >
-      {label}
+      {SAVE_CHIP_LABELS[save]}
     </span>
   );
 }

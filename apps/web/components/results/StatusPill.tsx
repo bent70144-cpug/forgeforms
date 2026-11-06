@@ -1,12 +1,27 @@
+// T15 — semantic status pill, rebuilt on the design-system tokens (B5): the
+// completed/draft/spam hues come from --ff-success/--ff-warning/--ff-danger and
+// flip with the dark palette automatically — no raw Tailwind colors, no
+// dark: variants. Leading 6px dot carries the same hue.
+
+import type { CSSProperties } from "react";
 import type { SubmissionStatus } from "../../lib/results";
 
-// Semantic status hues with explicit dark variants so the pills stay readable
-// when the app flips to its dark token palette.
-const STYLES: Record<SubmissionStatus, string> = {
-  completed:
-    "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-400/30",
-  draft: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300 dark:ring-amber-400/30",
-  spam: "bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-500/10 dark:text-rose-300 dark:ring-rose-400/30",
+const STYLES: Record<SubmissionStatus, CSSProperties> = {
+  completed: {
+    color: "var(--ff-success)",
+    backgroundColor: "color-mix(in srgb, var(--ff-success) 10%, var(--ff-card))",
+    borderColor: "color-mix(in srgb, var(--ff-success) 25%, transparent)",
+  },
+  draft: {
+    color: "var(--ff-warning)",
+    backgroundColor: "color-mix(in srgb, var(--ff-warning) 10%, var(--ff-card))",
+    borderColor: "color-mix(in srgb, var(--ff-warning) 25%, transparent)",
+  },
+  spam: {
+    color: "var(--ff-danger)",
+    backgroundColor: "color-mix(in srgb, var(--ff-danger) 10%, var(--ff-card))",
+    borderColor: "color-mix(in srgb, var(--ff-danger) 25%, transparent)",
+  },
 };
 
 const LABELS: Record<SubmissionStatus, string> = {
@@ -18,8 +33,10 @@ const LABELS: Record<SubmissionStatus, string> = {
 export function StatusPill({ status }: { status: SubmissionStatus }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${STYLES[status]}`}
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+      style={STYLES[status]}
     >
+      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
       {LABELS[status]}
     </span>
   );

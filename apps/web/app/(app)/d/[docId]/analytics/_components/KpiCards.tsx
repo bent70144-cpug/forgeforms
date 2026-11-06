@@ -1,5 +1,7 @@
 // T19 — KPI cards for the Analytics tab (spec §14.1.5: views, starts,
 // completes, completion rate, uniques). Server component, Tailwind only.
+// B6 redesign: canonical .ff-panel cards, 12px muted labels, tabular-nums
+// values. Numbers and labels unchanged.
 import { formatInt, formatPct } from "../_lib/chart-geometry";
 
 export interface KpiCardsProps {
@@ -19,14 +21,13 @@ export function KpiCards({ views, uniques, starts, submissions, completionRate }
     { label: "Completion rate", value: formatPct(completionRate), hint: "submissions / starts" },
   ];
   return (
-    <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <dl className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
       {cards.map((card) => (
-        <div
-          key={card.label}
-          className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4"
-        >
-          <dt className="text-sm font-medium text-[var(--ff-muted)]">{card.label}</dt>
-          <dd className="mt-1 text-2xl font-semibold tabular-nums text-[var(--ff-fg)]">
+        <div key={card.label} className="ff-panel p-4 sm:p-5">
+          <dt title={card.label} className="text-xs font-medium text-[var(--ff-muted)]">
+            {card.label}
+          </dt>
+          <dd className="mt-1.5 text-2xl font-semibold tabular-nums text-[var(--ff-fg)]">
             {card.value}
           </dd>
           <p className="mt-0.5 text-xs text-[var(--ff-muted)]">{card.hint}</p>

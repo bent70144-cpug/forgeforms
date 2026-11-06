@@ -6,9 +6,26 @@
 //    panel; it is never persisted (localStorage), never copied to any store,
 //    and never sent anywhere except the single POST that created it;
 //  - the list endpoint never returns plaintexts or hashes.
+//
+// Presentation notes: the create dialog and the remove confirmation use the
+// shared Modal primitive (focus trap, Esc, backdrop, scroll lock come from the
+// primitive — none are re-implemented here); the reveal panel renders ABOVE the
+// persistent list header so the toolbar never jumps when it appears.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_SCOPES } from '@formforge/schema/api';
+import { Modal } from '@/components/ui/modal';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Icon } from '@/components/ui/icons';
+import {
+  BADGE_MUTED,
+  BANNER_ERROR,
+  BTN_DESTRUCTIVE_SM,
+  BTN_GHOST_SM,
+  BTN_PRIMARY,
+  BTN_PRIMARY_SM,
+  BTN_SECONDARY_SM,
+} from '@/lib/ui';
 
 interface TokenDto {
   id: string;
@@ -29,18 +46,6 @@ const SCOPE_HINTS: Record<string, string> = {
   'docs:publish': 'Publish and unpublish documents',
   'submissions:read': 'Read submissions and summaries',
 };
-
-// Shared control recipes — token-driven so they flip with dark mode.
-const BTN_PRIMARY =
-  'inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-4 text-sm font-medium text-[var(--ff-primary-fg)] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ff-primary)] disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_SECONDARY =
-  'inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-4 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))] disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_SECONDARY_SM =
-  'inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-2.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))] disabled:cursor-not-allowed disabled:opacity-50';
-const BTN_DESTRUCTIVE_SM =
-  'inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-red-300/50 bg-[var(--ff-card)] px-2.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/30 dark:text-red-400';
-const BTN_RETRY =
-  'mt-3 inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-current/40 bg-transparent px-2.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)]';
 
 function relativeTime(iso: string | null): string {
   if (!iso) return 'never';
@@ -109,67 +114,81 @@ export function TokensClient() {
   return (
     <div className="space-y-6">
       {error && (
-        <p role="alert" className="ff-banner ff-banner-error">
+        <p role="alert" className={BANNER_ERROR}>
           {error}
         </p>
       )}
 
-      {revealed ? (
+      {revealed && (
         <RevealOncePanel name={revealed.name} token={revealed.token} onDone={() => setRevealed(null)} />
-      ) : (
-        <div className="flex justify-end">
-          <button type="button" onClick={() => setCreating(true)} className={BTN_PRIMARY}>
-            Create token
-          </button>
-        </div>
       )}
 
+      {/* Persistent list header — stays put when the reveal panel appears. */}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-semibold">
+          Tokens
+          {state.kind === 'ready' && state.tokens.length > 0 ? (
+            <span className="ml-2 text-xs font-normal tabular-nums text-[var(--ff-muted)]">
+              {state.tokens.length}
+            </span>
+          ) : null}
+        </h2>
+        <button type="button" onClick={() => setCreating(true)} className={BTN_PRIMARY_SM}>
+          <Icon name="plus" size={14} />
+          Create token
+        </button>
+      </div>
+
       {state.kind === 'loading' && (
-        <div aria-hidden className="space-y-2">
+        <div aria-hidden className="space-y-3">
           {[0, 1].map((i) => (
-            <div
-              key={i}
-              className="h-16 animate-pulse rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)]"
-            />
+            <div key={i} className="ff-skeleton" style={{ height: '4.5rem' }} />
           ))}
         </div>
       )}
 
       {state.kind === 'error' && (
-        <div className="ff-banner ff-banner-error">
+        <div className={BANNER_ERROR}>
           <p className="font-medium">Tokens could not be loaded.</p>
           <p className="mt-1">{state.message}</p>
           <p className="mt-2">
-            Sign-in (Auth.js) is being wired up by T03/T04 — until then this screen cannot manage
-            tokens, though the token API itself is live.
+            Sign-in with API tokens is available for workspace automation — if you were signed out,
+            sign in again and retry.
           </p>
-          <button type="button" onClick={() => void load()} className={BTN_RETRY}>
+          <button type="button" onClick={() => void load()} className={`${BTN_SECONDARY_SM} mt-3`}>
             Retry
           </button>
         </div>
       )}
 
       {state.kind === 'ready' && state.tokens.length === 0 && (
-        <div className="ff-empty">
-          <p className="m-0 text-sm font-medium text-[var(--ff-fg)]">No API tokens yet</p>
-          <p className="m-0 max-w-sm text-sm leading-relaxed text-[var(--ff-muted)]">
-            Create your first token, then call the API with{' '}
-            <code className="rounded bg-[var(--ff-bg)] px-1 font-mono">Authorization: Bearer ff_…</code>. See{' '}
-            <a
-              href="/api/openapi.json"
-              className="font-medium text-[var(--ff-primary)] underline underline-offset-2"
-            >
-              /api/openapi.json
-            </a>
-            .
-          </p>
-        </div>
+        <EmptyState
+          icon={<Icon name="key" size={20} />}
+          title="No API tokens yet"
+          description="Create your first token, then call the API with “Authorization: Bearer ff_…”. Tokens are scoped to this workspace."
+          action={
+            <>
+              <button type="button" onClick={() => setCreating(true)} className={BTN_PRIMARY}>
+                Create your first token
+              </button>
+              <a
+                href="/api/openapi.json"
+                className={BTN_GHOST_SM}
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                <Icon name="external" size={14} />
+                API reference
+              </a>
+            </>
+          }
+        />
       )}
 
       {state.kind === 'ready' && state.tokens.length > 0 && (
-        <ul className="divide-y divide-[var(--ff-border)] overflow-hidden rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)]">
+        <ul className="ff-panel divide-y divide-[var(--ff-border)] overflow-hidden">
           {state.tokens.map((token) => (
-            <li key={token.id} className="flex items-center justify-between gap-4 px-4 py-3">
+            <li key={token.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-[var(--ff-fg)]">{token.name}</p>
                 <p className="mt-0.5 text-xs tabular-nums text-[var(--ff-muted)]">
@@ -179,7 +198,7 @@ export function TokensClient() {
                   {token.scopes.map((scope) => (
                     <li
                       key={scope}
-                      className="rounded-full border border-[var(--ff-border)] bg-[var(--ff-bg)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--ff-muted)]"
+                      className={`${BADGE_MUTED} font-mono text-xs`}
                       title={SCOPE_HINTS[scope] ?? scope}
                     >
                       {scope}
@@ -200,17 +219,16 @@ export function TokensClient() {
         </ul>
       )}
 
-      {creating && (
-        <CreateTokenModal
-          onClose={() => setCreating(false)}
-          onCreated={async (name, token) => {
-            setCreating(false);
-            setRevealed({ name, token });
-            await load();
-          }}
-          onError={(message) => setError(message)}
-        />
-      )}
+      <CreateTokenModal
+        open={creating}
+        onClose={() => setCreating(false)}
+        onCreated={async (name, token) => {
+          setCreating(false);
+          setRevealed({ name, token });
+          await load();
+        }}
+        onError={(message) => setError(message)}
+      />
     </div>
   );
 }
@@ -240,39 +258,51 @@ function RevealOncePanel({
     <section
       aria-live="polite"
       aria-label="New token created — copy it now, it will not be shown again"
-      className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-5"
+      className="ff-panel overflow-hidden"
     >
-      <h2 className="text-base font-semibold text-[var(--ff-fg)] text-balance">
-        “{name}” created — copy it now
-      </h2>
-      <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">
-        This is the only time the full token is shown. FormForge stores only its SHA-256 hash and
-        cannot recover it.
-      </p>
-      <div className="mt-3 flex items-stretch gap-2">
-        <code className="min-w-0 flex-1 break-all rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-3 py-2 font-mono text-sm text-[var(--ff-fg)]">
+      <div aria-hidden="true" className="h-[3px] bg-[var(--ff-accent-soft)]" />
+      <div className="p-5">
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <Icon name="alert" size={16} className="shrink-0 text-[var(--ff-warning)]" />
+          <span className="font-medium">“{name}” created</span>
+          <span className="text-[var(--ff-muted)]">— copy it now, you won’t see it again.</span>
+        </p>
+        <code
+          className="mt-3 block select-all break-all rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-bg))] p-3 font-mono text-[13px] text-[var(--ff-fg)]"
+          data-testid="revealed-token"
+        >
           {token}
         </code>
-        <button
-          type="button"
-          onClick={() => void copy()}
-          className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center self-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-3 text-sm font-medium text-[var(--ff-primary-fg)] hover:brightness-110"
-        >
-          {copied ? 'Copied!' : 'Copy'}
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => void copy()} className={BTN_PRIMARY_SM}>
+            {copied ? (
+              <>
+                <Icon name="check" size={14} />
+                Copied
+              </>
+            ) : (
+              'Copy'
+            )}
+          </button>
+          <button ref={doneRef} type="button" onClick={onDone} className={BTN_GHOST_SM}>
+            Done — I saved it
+          </button>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-[var(--ff-muted)]">
+          FormForge stores only a SHA-256 hash of this token and cannot recover it.
+        </p>
       </div>
-      <button ref={doneRef} type="button" onClick={onDone} className={`${BTN_SECONDARY_SM} mt-3`}>
-        Done — I saved it
-      </button>
     </section>
   );
 }
 
 function CreateTokenModal({
+  open,
   onClose,
   onCreated,
   onError,
 }: {
+  open: boolean;
   onClose: () => void;
   onCreated: (name: string, token: string) => void | Promise<void>;
   onError: (message: string | null) => void;
@@ -280,19 +310,6 @@ function CreateTokenModal({
   const [name, setName] = useState('');
   const [scopes, setScopes] = useState<string[]>(['docs:read']);
   const [submitting, setSubmitting] = useState(false);
-  const nameRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    nameRef.current?.focus();
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const toggleScope = (scope: string) => {
     setScopes((prev) => (prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]));
@@ -325,28 +342,32 @@ function CreateTokenModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Create API token"
+      description="Tokens act on your behalf via the API."
+      footer={
+        <>
+          <button type="button" onClick={onClose} className={BTN_GHOST_SM} disabled={submitting}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="create-token-form"
+            disabled={submitting || name.trim().length === 0 || scopes.length === 0}
+            className={BTN_PRIMARY_SM}
+          >
+            {submitting ? 'Creating…' : 'Create token'}
+          </button>
+        </>
+      }
     >
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-token-title"
-        onSubmit={(e) => void submit(e)}
-        className="w-full max-w-lg rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6 shadow-xl"
-      >
-        <h2 id="create-token-title" className="text-base font-semibold text-[var(--ff-fg)] text-balance">
-          Create API token
-        </h2>
-
-        <div className="ff-field mt-4">
+      <form id="create-token-form" onSubmit={(e) => void submit(e)}>
+        <div className="ff-field">
           <label htmlFor="token-name">Name</label>
           <input
             id="token-name"
-            ref={nameRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={100}
@@ -357,41 +378,30 @@ function CreateTokenModal({
 
         <fieldset className="mt-4">
           <legend className="text-sm font-medium text-[var(--ff-fg)]">Scopes</legend>
-          <div className="mt-2 space-y-2">
+          <div className="mt-2 divide-y divide-[var(--ff-border)] overflow-hidden rounded-xl border border-[var(--ff-border)]">
             {API_SCOPES.map((scope) => (
-              <label key={scope} className="flex items-start gap-2 text-sm text-[var(--ff-fg)]">
+              <label key={scope} className="flex cursor-pointer items-center gap-2.5 px-3 py-2.5">
                 <input
                   type="checkbox"
                   checked={scopes.includes(scope)}
                   onChange={() => toggleScope(scope)}
-                  className="mt-0.5 h-4 w-4 accent-[var(--ff-primary)]"
+                  className="h-4 w-4 shrink-0 rounded accent-[var(--ff-accent)]"
                 />
-                <span>
-                  <code className="font-mono text-xs">{scope}</code>
-                  <span className="ml-2 text-xs text-[var(--ff-muted)]">{SCOPE_HINTS[scope] ?? ''}</span>
+                <span className="min-w-0">
+                  <code className="font-mono text-sm text-[var(--ff-fg)]">{scope}</code>
+                  <span className="block text-xs leading-relaxed text-[var(--ff-muted)]">
+                    {SCOPE_HINTS[scope] ?? ''}
+                  </span>
                 </span>
               </label>
             ))}
           </div>
         </fieldset>
 
-        <p className="mt-4 text-xs text-[var(--ff-muted)]">
+        <p className="mt-4 text-xs leading-relaxed text-[var(--ff-muted)]">
           Grant the minimum set you need. The plaintext token is shown once right after creation.
         </p>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className={BTN_SECONDARY}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting || name.trim().length === 0 || scopes.length === 0}
-            className={BTN_PRIMARY}
-          >
-            {submitting ? 'Creating…' : 'Create token'}
-          </button>
-        </div>
       </form>
-    </div>
+    </Modal>
   );
 }

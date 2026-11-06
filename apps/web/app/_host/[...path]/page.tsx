@@ -78,7 +78,7 @@ export default async function CustomHostPage({ params }: HostPageProps) {
     <>
       <ScrollRenderer snapshot={snapshot} />
       {/* T29 (spec §17): "Report abuse" link on every public page. */}
-      <footer style={{ textAlign: "center", padding: "0 1.25rem 2rem", fontSize: "0.8rem" }}>
+      <footer className="px-5 pb-8 pt-4 text-center">
         <ReportAbuseLink documentRef={snapshot.documentId} />
       </footer>
     </>

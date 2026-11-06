@@ -4,12 +4,21 @@
 // the SAME T13 engine package the runtime uses and shows the step-by-step
 // path + final ending. Also lists blocking lint errors (dangling goto …)
 // exactly as publish will gate on them.
+//
+// Redesign (B7): banner-styled lint list, compact .ff-input overrides with the
+// global focus ring (bg-transparent removed), numbered path rail (token
+// circles + hairline connector), badge ending state. Simulation/lint logic is
+// unchanged.
 
 import { useMemo, useState } from "react";
 import type { DocumentBody } from "@/lib/bridge";
-import { logicLintErrors } from "@/lib/logic/graph";
+import { BADGE_POSITIVE, BADGE_WARNING, BANNER_ERROR, CARD } from "@/lib/ui";
+import { Icon } from "@/components/ui/icons";
+import { logicLintErrors, questionBlocks } from "@/lib/logic/graph";
 import { sampleAnswers, simulateFlow } from "@/lib/logic/preview";
-import { questionBlocks } from "@/lib/logic/graph";
+
+// .ff-input defaults are unlayered CSS → width/size overrides need `!`.
+const PREVIEW_INPUT = "ff-input min-h-[2.25rem]! rounded-lg! px-2! text-[13px]!";
 
 export function FlowPreview({ body }: { body: DocumentBody }) {
   const questions = useMemo(() => questionBlocks(body.blocks ?? []), [body.blocks]);
@@ -39,41 +48,45 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
         map.set(block.id, typeof label === "string" && label !== "" ? label : block.id);
       }
     }
-    for (const ending of body.endings ?? []) map.set(`end:${ending.id}`, `🏁 ${ending.title}`);
+    for (const ending of body.endings ?? []) map.set(`end:${ending.id}`, ending.title);
     return map;
   }, [body.blocks, body.endings]);
 
   return (
-    <section
-      className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4"
-      data-testid="flow-preview"
-    >
-      <div className="text-xs font-semibold text-[var(--ff-muted)]">Preview flow (engine: @formforge/core/logic)</div>
+    <section className={`${CARD} p-5`} data-testid="flow-preview" aria-label="Preview flow">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold text-[var(--ff-fg)]">Preview</h2>
+        <span className="font-mono text-xs text-[var(--ff-muted)]">@formforge/core/logic</span>
+      </div>
 
       {lintErrors.length > 0 && (
-        <ul
-          className="mt-2 rounded-md bg-red-50 p-2 text-[11px] leading-relaxed text-red-700 dark:bg-red-500/10 dark:text-red-300"
-          data-testid="lint-errors"
-        >
-          {lintErrors.map((error, i) => (
-            <li key={i}>
-              {error.ruleId ? `Rule "${error.ruleId}"` : error.blockId ? `Block "${error.blockId}"` : "Logic"}
-              {": "}
-              {error.message}
-            </li>
-          ))}
-        </ul>
+        <div className={`${BANNER_ERROR} mt-3`} data-testid="lint-errors" role="alert">
+          <ul className="space-y-1">
+            {lintErrors.map((error, i) => (
+              <li key={i} className="flex items-start gap-1.5">
+                <Icon name="alert" size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  {error.ruleId ? `Rule "${error.ruleId}"` : error.blockId ? `Block "${error.blockId}"` : "Logic"}
+                  {": "}
+                  {error.message}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {questions.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
           {questions.slice(0, 6).map((q) => (
-            <label key={q.id} className="flex items-center gap-1.5 text-[11px] text-[var(--ff-muted)]">
-              {(typeof q.props["label"] === "string" && q.props["label"]) || q.id}
+            <label key={q.id} className="flex items-center gap-1.5 text-xs text-[var(--ff-muted)]">
+              <span className="max-w-[10rem] truncate">
+                {(typeof q.props["label"] === "string" && q.props["label"]) || q.id}
+              </span>
               {q.kind === "nps" || q.kind === "rating" || q.kind === "number" ? (
                 <input
                   type="number"
-                  className="w-16 rounded-md border border-[var(--ff-border)] bg-transparent px-1.5 py-0.5 text-xs tabular-nums text-[var(--ff-fg)]"
+                  className={`${PREVIEW_INPUT} w-16! tabular-nums`}
                   aria-label={`Preview answer for ${q.id}`}
                   value={typeof overrides[q.id] === "number" ? String(overrides[q.id]) : ""}
                   onChange={(e) =>
@@ -85,17 +98,17 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
                 />
               ) : (
                 <input
-                  className="w-24 rounded-md border border-[var(--ff-border)] bg-transparent px-1.5 py-0.5 text-xs text-[var(--ff-fg)]"
+                  className={`${PREVIEW_INPUT} w-24!`}
                   aria-label={`Preview answer for ${q.id}`}
                   onChange={(e) => setOverrides((prev) => ({ ...prev, [q.id]: e.target.value || undefined }))}
                 />
               )}
             </label>
           ))}
-          <label className="flex items-center gap-1.5 text-[11px] text-[var(--ff-muted)]">
+          <label className="flex items-center gap-1.5 text-xs text-[var(--ff-muted)]">
             hidden
             <input
-              className="w-28 rounded-md border border-[var(--ff-border)] bg-transparent px-1.5 py-0.5 font-mono text-xs text-[var(--ff-fg)]"
+              className={`${PREVIEW_INPUT} w-28! font-mono`}
               aria-label="Hidden fields JSON"
               value={hiddenJson}
               onChange={(e) => setHiddenJson(e.target.value)}
@@ -104,29 +117,47 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
         </div>
       )}
 
-      <ol className="mt-3 space-y-1" data-testid="preview-path">
-        {simulation.steps.map((step, i) => (
-          <li key={`${step.blockId}-${i}`} className="text-xs text-[var(--ff-muted)]">
-            <span className="font-medium text-[var(--ff-fg)]">{nodeById.get(step.blockId) ?? step.blockId}</span>
-            {" → "}
-            <span className="text-[var(--ff-primary)]">{nodeById.get(step.next) ?? step.next}</span>
-          </li>
-        ))}
-      </ol>
+      {simulation.steps.length > 0 && (
+        <ol className="mt-3 max-h-44 space-y-2.5 overflow-y-auto pr-1" data-testid="preview-path">
+          {simulation.steps.map((step, i) => (
+            <li key={`${step.blockId}-${i}`} className="relative flex items-center gap-2.5">
+              {i < simulation.steps.length - 1 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-2.5 left-[9.5px] top-[22px] w-px bg-[var(--ff-border)]"
+                />
+              )}
+              <span className="relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ff-accent)_12%,var(--ff-card))] font-mono text-xs text-[var(--ff-fg)]">
+                {i + 1}
+              </span>
+              <span className="min-w-0 truncate text-xs text-[var(--ff-muted)]">
+                <span className="font-medium text-[var(--ff-fg)]">
+                  {nodeById.get(step.blockId) ?? step.blockId}
+                </span>
+                {" → "}
+                <span className="text-[var(--ff-primary)]">{nodeById.get(step.next) ?? step.next}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
       <div className="mt-3 text-xs">
         {simulation.ending !== null ? (
           <span
-            className="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+            className={`${BADGE_POSITIVE} inline-flex items-center gap-1`}
             data-testid="preview-ending"
           >
-            ends at {nodeById.get(simulation.ending) ?? simulation.ending}
+            <Icon name="checkCircle" size={14} />
+            Ends: {nodeById.get(simulation.ending) ?? simulation.ending}
           </span>
         ) : simulation.truncated ? (
-          <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
-            flow truncated (possible loop)
+          <span className={`${BADGE_WARNING} inline-flex items-center gap-1`}>
+            <Icon name="alert" size={14} />
+            Flow truncated (possible loop)
           </span>
         ) : (
-          <span className="text-[var(--ff-muted)]">add a question to preview the flow</span>
+          <span className="text-[var(--ff-muted)]">Add a question to preview the flow</span>
         )}
       </div>
     </section>

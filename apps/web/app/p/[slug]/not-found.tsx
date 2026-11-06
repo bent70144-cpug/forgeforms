@@ -1,18 +1,33 @@
-/** Scoped 404 for the public scroll plane (unknown/unpublished-at-404 slugs). */
+import { BTN_GHOST, BTN_PRIMARY } from "@/lib/ui";
+
+/**
+ * Scoped 404 for the public scroll plane (unknown/unpublished-at-404 slugs).
+ * Fully self-contained: token-driven Tailwind only (no page-local globals
+ * classes), so it renders correctly on the default paper theme regardless of
+ * any document theme the renderer would have applied.
+ */
 export default function PublicPageNotFound() {
   return (
-    <main className="ff-not-found flex min-h-screen flex-col items-center justify-center gap-3 bg-[var(--ff-bg)] px-6 text-center text-[var(--ff-fg)]">
-      <p className="text-sm font-semibold text-[var(--ff-muted)]">404</p>
-      <h1 className="text-2xl font-bold text-balance">Page not found</h1>
-      <p className="max-w-md leading-relaxed text-[var(--ff-muted)]">
-        This page does not exist or is not published yet.
-      </p>
-      <a
-        href="/"
-        className="mt-3 inline-block rounded-[var(--ff-radius)] bg-[var(--ff-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--ff-primary-fg)] no-underline transition-[filter] hover:brightness-110"
+    <main className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
+      <div
+        aria-hidden="true"
+        className="select-none text-6xl font-semibold leading-none text-[color-mix(in_srgb,var(--ff-fg)_14%,transparent)]"
+        style={{ fontFamily: "var(--ff-font-heading)" }}
       >
-        Go home
-      </a>
+        404
+      </div>
+      <h1 className="text-2xl font-semibold tracking-tight text-balance">Page not found</h1>
+      <p className="max-w-[40ch] text-sm leading-relaxed text-[var(--ff-muted)]">
+        This page was moved, deleted, or never existed.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+        <a href="/" className={BTN_PRIMARY}>
+          Go home
+        </a>
+        <a href="/templates" className={BTN_GHOST}>
+          Browse templates
+        </a>
+      </div>
     </main>
   );
 }

@@ -4,8 +4,13 @@
 // explicit "Apply" (issue #27: AI ops are never applied without user
 // confirmation). onApply is the handoff point to the builder autosave (T05),
 // which replays the ops through the normal documents PATCH flow.
+// B6 redesign: design-system card (code tile header), banner errors, diff
+// lines tinted with success/danger tokens. Fetch/error logic unchanged;
+// onQuota is an optional additive callback for the workbench header badge.
 import { useId, useState } from "react";
 import type { DocumentBody } from "@formforge/core/ai";
+import { BTN_PRIMARY, BTN_SECONDARY_SM } from "@/lib/ui";
+import { Icon } from "@/components/ui/icons";
 
 type EditResponse = {
   summary: string;
@@ -23,9 +28,11 @@ export type AiEditPanelProps = {
   workspaceId?: string;
   /** Handoff point: builder applies the confirmed ops via documents PATCH. */
   onApply?: (ops: EditResponse["ops"]) => void;
+  /** Additive: surfaces the response quota for the workbench header badge. */
+  onQuota?: (quota: EditResponse["quota"]) => void;
 };
 
-export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps) {
+export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditPanelProps) {
   const instructionId = useId();
   const [instruction, setInstruction] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -57,8 +64,10 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
         setStatus("error");
         return;
       }
-      setProposal(payload as EditResponse);
+      const body = payload as EditResponse;
+      setProposal(body);
       setStatus("ready");
+      onQuota?.(body.quota);
     } catch {
       setErrorCode("NETWORK");
       setError("Could not reach the AI edit endpoint.");
@@ -67,15 +76,21 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
   }
 
   return (
-    <section
-      aria-label="Edit with AI"
-      className="space-y-4 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6"
-    >
-      <header>
-        <h2 className="text-base font-semibold text-[var(--ff-fg)]">Edit with AI</h2>
-        <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">
-          Proposals are shown as a diff first. Nothing changes until you apply them.
-        </p>
+    <section aria-label="Edit with AI" className="ff-panel space-y-4 p-6">
+      <header className="flex items-center gap-3">
+        <span
+          aria-hidden="true"
+          className="grid h-8 w-8 place-items-center rounded-[10px] text-[var(--ff-muted)]"
+          style={{ background: "color-mix(in srgb, var(--ff-fg) 5%, transparent)" }}
+        >
+          <Icon name="code" size={16} />
+        </span>
+        <div>
+          <h2 className="text-base font-semibold text-[var(--ff-fg)]">Edit with AI</h2>
+          <p className="mt-0.5 text-sm leading-relaxed text-[var(--ff-muted)]">
+            Proposals are shown as a diff first. Nothing changes until you apply them.
+          </p>
+        </div>
       </header>
 
       <div className="ff-field">
@@ -87,24 +102,34 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
           rows={2}
           maxLength={1000}
           placeholder="e.g. Make the email question required and move it first"
-          className="w-full rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)] focus-visible:border-[var(--ff-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ff-primary)]"
         />
         <button
           type="button"
           onClick={() => void propose()}
           disabled={status === "loading" || instruction.trim().length === 0}
-          className="ff-button ff-button-primary self-start text-sm disabled:cursor-not-allowed disabled:opacity-50"
+          aria-busy={status === "loading"}
+          className={`${BTN_PRIMARY} mt-1 self-start disabled:cursor-not-allowed`}
         >
-          {status === "loading" ? "Proposing…" : "Propose changes"}
+          {status === "loading" ? (
+            <>
+              <Icon name="spinner" size={16} />
+              Proposing…
+            </>
+          ) : (
+            "Propose changes"
+          )}
         </button>
       </div>
 
       <p aria-live="polite" className="text-sm">
         {status === "error" ? (
-          <span role="alert" className="text-red-600 dark:text-red-400">
-            {errorCode === "PLAN_LIMIT"
-              ? `Monthly AI quota reached. ${error ?? ""}`
-              : (error ?? "Edit failed.")}
+          <span role="alert" className="ff-banner ff-banner-error flex items-center gap-2">
+            <Icon name="alert" size={14} className="shrink-0" />
+            <span>
+              {errorCode === "PLAN_LIMIT"
+                ? `Monthly AI quota reached. ${error ?? ""}`
+                : (error ?? "Edit failed.")}
+            </span>
           </span>
         ) : null}
       </p>
@@ -119,16 +144,26 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
           </p>
           <ul
             aria-label="Proposed changes"
-            className="space-y-1 rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] p-3 font-mono text-xs leading-relaxed text-[var(--ff-fg)]"
+            className="space-y-1 rounded-[10px] p-3 font-mono text-xs leading-relaxed"
+            style={{ background: "color-mix(in srgb, var(--ff-fg) 3%, var(--ff-bg))" }}
           >
             {proposal.diff.map((line, index) => (
-              <li key={index}>{line}</li>
+              <li
+                key={index}
+                className={
+                  line.startsWith("+")
+                    ? "text-[var(--ff-success)]"
+                    : line.startsWith("−") || line.startsWith("-")
+                      ? "text-[var(--ff-danger)]"
+                      : "text-[var(--ff-fg)]"
+                }
+              >
+                {line}
+              </li>
             ))}
           </ul>
           {applied ? (
-            <p className="text-sm text-emerald-700 dark:text-emerald-400">
-              Ops handed to the editor.
-            </p>
+            <p className="text-sm text-[var(--ff-success)]">Ops handed to the editor.</p>
           ) : (
             <button
               type="button"
@@ -136,7 +171,7 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
                 onApply?.(proposal.ops);
                 setApplied(true);
               }}
-              className="ff-button ff-button-primary text-sm"
+              className={BTN_SECONDARY_SM}
             >
               Apply ops
             </button>

@@ -3,9 +3,19 @@
 // gradient classes — the core data package isn't scanned, which is what made
 // the old gradient render as an empty box). Motif varies by category:
 // form → question-card stack, page → mini scroll-page, portfolio → tile grid.
+//
+// The card root is a SpotlightCard (pointer-tracked highlight — mouse-only,
+// reduced-motion safe, nothing depends on it running). The <Link> fills the
+// whole card so the entire surface is clickable. Hover motion is
+// transform/opacity/box-shadow only. NOTE: the .ff-spot recipe in globals.css
+// is unlayered CSS, so utility overrides on it need Tailwind's `!` suffix.
 import Link from "next/link";
 
 import type { TemplateCategory, TemplateSummary } from "@formforge/core/templates";
+
+import SpotlightCard from "@/components/landing/spotlight-card";
+import { Icon } from "@/components/ui/icons";
+import { BADGE_ACCENT, BADGE_MUTED } from "@/lib/ui";
 
 const CATEGORY_LABEL: Record<string, string> = {
   form: "Form",
@@ -80,41 +90,48 @@ function ThumbnailMotif({ category, accent }: { category: TemplateCategory; acce
 
 export default function TemplateCard({ template }: { template: TemplateSummary }) {
   return (
-    <Link
-      href={`/templates/${template.id}`}
-      className="group flex flex-col overflow-hidden rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] shadow-sm transition-[transform,box-shadow] duration-200 hover:-translate-y-1 hover:shadow-lg"
-    >
-      <div
-        aria-hidden
-        className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-[var(--ff-border)]"
-        style={{ background: tintBackground(template.accent) }}
+    <SpotlightCard className="group h-full rounded-[16px]! p-0! shadow-sm transition-[translate,box-shadow,border-color] duration-[220ms] ease-out hover:-translate-y-[3px] hover:border-[color:color-mix(in_srgb,var(--ff-accent)_35%,var(--ff-border))]! hover:shadow-md">
+      <Link
+        href={`/templates/${template.id}`}
+        className="flex h-full flex-col overflow-hidden rounded-[inherit]"
       >
-        <ThumbnailMotif category={template.category} accent={template.accent} />
-        <span className="absolute bottom-3 left-3 rounded-full border border-[var(--ff-border)] bg-[var(--ff-card)] px-3 py-1 text-xs font-medium text-[var(--ff-fg)]">
-          {CATEGORY_LABEL[template.category] ?? template.category}
-        </span>
-        {template.hasLogic && (
-          <span className="absolute right-3 top-3 rounded-full bg-[var(--ff-primary)] px-2.5 py-1 text-[11px] font-medium text-[var(--ff-primary-fg)]">
-            + Logic
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-1 flex-col gap-2 p-5">
-        <h2 className="text-base font-semibold leading-snug text-[var(--ff-fg)] transition-colors group-hover:text-[var(--ff-primary)]">
-          {template.name}
-        </h2>
-        <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-[var(--ff-muted)]">{template.description}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tabular-nums text-[var(--ff-muted)]">
-          <span>{template.blockCount} blocks</span>
-          {template.questionCount > 0 && <span>· {template.questionCount} questions</span>}
-          {template.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="rounded-full border border-[var(--ff-border)] px-2 py-0.5 font-medium">
-              {tag}
-            </span>
-          ))}
+        <div
+          aria-hidden
+          className="relative flex aspect-[16/10] items-center justify-center overflow-hidden border-b border-[var(--ff-border)]"
+          style={{ background: tintBackground(template.accent) }}
+        >
+          <ThumbnailMotif category={template.category} accent={template.accent} />
         </div>
-      </div>
-    </Link>
+
+        <div className="flex flex-1 flex-col p-5">
+          <h2 className="flex items-start gap-1.5 text-[15px] font-semibold leading-snug text-[var(--ff-fg)] transition-colors duration-200 group-hover:text-[var(--ff-accent)]">
+            <span className="min-w-0">{template.name}</span>
+            <Icon
+              name="arrowRight"
+              size={16}
+              className="mt-0.5 shrink-0 translate-x-0 opacity-0 transition-[opacity,translate] duration-200 ease-out group-hover:translate-x-0.5 group-hover:opacity-100"
+            />
+          </h2>
+          <p className="mt-1.5 line-clamp-2 flex-1 text-sm leading-relaxed text-[var(--ff-muted)]">
+            {template.description}
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className={BADGE_MUTED}>{CATEGORY_LABEL[template.category] ?? template.category}</span>
+            {template.hasLogic && <span className={BADGE_ACCENT}>+ Logic</span>}
+          </div>
+
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs tabular-nums text-[var(--ff-muted)]">
+            <span>{template.blockCount} blocks</span>
+            {template.questionCount > 0 && <span>· {template.questionCount} questions</span>}
+            {template.tags.slice(0, 2).map((tag) => (
+              <span key={tag} className="rounded-full border border-[var(--ff-border)] px-2 py-0.5 font-medium">
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      </Link>
+    </SpotlightCard>
   );
 }
