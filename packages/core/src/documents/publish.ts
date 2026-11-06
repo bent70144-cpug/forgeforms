@@ -18,6 +18,7 @@ import { uuidv7 } from './ids';
 import type { DocumentBodyJson, PublishOutcome } from './model';
 import { docTag, snapshotCacheKeys, type PublishPipelineDeps } from './ports';
 import { buildSnapshot, snapshotEtag } from './snapshot';
+import { scanSensitiveFields } from './sensitive-fields';
 
 export type PublishDocument = (
   ctx: Ctx,
@@ -60,12 +61,14 @@ export function makePublishDocument(deps: PublishPipelineDeps): PublishDocument 
       const existing = await deps.versions.getById(ctx.workspaceId, documentId, doc.publishedVersionId);
       if (existing && canonicalHash(existing.body) === draftHash) {
         const history = await deps.versions.listByDocument(ctx.workspaceId, documentId);
+        const warnings = scanSensitiveFields(body);
         const outcome: PublishOutcome = {
           url: await deps.publicUrl.documentUrl(doc),
           documentId: doc.id,
           versionId: existing.id,
           version: ordinalOf(history, existing.id),
           reused: true,
+          ...(warnings.length > 0 ? { warnings } : {}),
         };
         return ok(outcome);
       }
@@ -80,6 +83,9 @@ export function makePublishDocument(deps: PublishPipelineDeps): PublishDocument 
       body,
       assets: deps.assets,
       compiler: deps.compiler,
+      // T29 (spec §17): sanitize rich text during snapshot build (defense in
+      // depth with the save-path sanitizer in crud.ts).
+      ...(deps.sanitizeRichText !== undefined ? { sanitizeRichText: deps.sanitizeRichText } : {}),
     });
     if (built.issues.length > 0) {
       return err(new AppError('VALIDATION', 'Draft failed validation', built.issues));
@@ -120,12 +126,15 @@ export function makePublishDocument(deps: PublishPipelineDeps): PublishDocument 
 
     // 6. Public URL (p95 target < 10 s; measured in __tests__/publish.test.ts).
     const history = await deps.versions.listByDocument(ctx.workspaceId, documentId);
+    // T29 (spec §17): publish-time sensitive-field warning (non-blocking).
+    const warnings = scanSensitiveFields(body);
     return ok({
       url: await deps.publicUrl.documentUrl(updated),
       documentId: updated.id,
       versionId: version.id,
       version: ordinalOf(history, version.id),
       reused: false,
+      ...(warnings.length > 0 ? { warnings } : {}),
     });
   };
 }

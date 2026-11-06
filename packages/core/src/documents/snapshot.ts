@@ -41,7 +41,14 @@ export type BuildSnapshotResult = { snapshot: Snapshot; issues: readonly DraftVa
 
 const ASSET_ID_PROP = /[Aa]ssetId$/;
 const ASSET_IDS_PROP = /[Aa]ssetIds$/;
-const RICH_TEXT_PROP = 'richText';
+/**
+ * T29 (spec §17): rich-text props are sanitized during snapshot build — the
+ * renderer passes strings through `dangerouslySetInnerHTML`, so the snapshot
+ * is the public plane's security boundary. `richText` is sanitized on every
+ * block; the legacy `html`/`text` aliases only on `text`-kind blocks (where
+ * the renderer treats them as HTML).
+ */
+const RICH_TEXT_PROPS: ReadonlySet<string> = new Set(['richText', 'html', 'text']);
 
 /** "color.bg" → "--color-bg" (spec §8: resolve theme → CSS variable map). */
 export function themeToCssVars(tokens: Readonly<Record<string, string>>): Record<string, string> {
@@ -74,7 +81,7 @@ export async function resolveBlockAssetUrls(
       if (block.props) {
         for (const key of Object.keys(block.props)) {
           const value = block.props[key];
-          if (key === RICH_TEXT_PROP && value !== undefined && value !== null) {
+          if (isRichTextProp(key, block.kind) && value !== undefined && value !== null) {
             block.props[key] = sanitizeRich(value);
             continue;
           }
@@ -116,6 +123,11 @@ export async function resolveBlockAssetUrls(
   function sanitizeRich(node: unknown): unknown {
     return sanitizeRichText ? sanitizeRichText(node) : node;
   }
+}
+
+function isRichTextProp(key: string, kind: string | undefined): boolean {
+  if (key === 'richText') return true;
+  return kind === 'text' && RICH_TEXT_PROPS.has(key);
 }
 
 /** Builds the §8 Snapshot. `issues` is non-empty when required assets are missing. */
@@ -167,6 +179,10 @@ export async function buildSnapshot(args: BuildSnapshotArgs): Promise<BuildSnaps
       showBranding: body.settings?.showBranding ?? true,
       captcha: body.settings?.captcha ?? false,
       ...(body.settings?.closeAt !== undefined ? { closeAt: body.settings.closeAt } : {}),
+      // T29 (GDPR): per-form retention rides on the snapshot for the purge job.
+      ...(body.settings?.retentionDays !== undefined
+        ? { retentionDays: body.settings.retentionDays }
+        : {}),
     },
   };
 

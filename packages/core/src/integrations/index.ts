@@ -61,3 +61,13 @@ export {
   serializeWebhookBody,
   type SubmissionCompletedEvent,
 } from "./webhook-payload";
+
+// T29 (spec §17): SSRF guard for webhook egress.
+export {
+  checkWebhookUrl,
+  createSsrfSafePost,
+  isPrivateOrReservedIp,
+  resolveSafeAddresses,
+  type DnsLookupAll,
+  type WebhookUrlCheck,
+} from "./ssrf-guard";
