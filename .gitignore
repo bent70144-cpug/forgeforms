@@ -31,5 +31,6 @@ DESIGN.md
 .neon-token
 scripts/.neon-token
 scripts/.neon-db-url
+scripts/.neon-db-url-direct
 .hallmark/
 scripts/.vercel-env*
