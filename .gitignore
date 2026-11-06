@@ -4,6 +4,8 @@ node_modules/
 .env.*
 !.env.example
 .gh-token
+.vercel-token
+.vercel/
 upload/
 worktrees/
 tool-results/
@@ -16,3 +18,5 @@ coverage/
 *.log
 .DS_Store
 next-env.d.ts
+.vercel
+.env*
