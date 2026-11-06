@@ -1,5 +1,10 @@
 # FormForge
 
+[![CI](https://github.com/bent70144-cpug/forgeforms/actions/workflows/ci.yml/badge.svg)](https://github.com/bent70144-cpug/forgeforms/actions/workflows/ci.yml)
+[![Security audit](https://github.com/bent70144-cpug/forgeforms/actions/workflows/security-audit.yml/badge.svg)](https://github.com/bent70144-cpug/forgeforms/actions/workflows/security-audit.yml)
+![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)
+![License](https://img.shields.io/badge/license-proprietary-blue)
+
 Multi-tenant SaaS for **forms, landing pages and portfolios** built on one block-document model — author it once, publish it as a scroll page, a conversational form, or an embeddable widget.
 
 The build spec is the source of truth: [`spec.md`](./spec.md).
@@ -130,6 +135,18 @@ pnpm secrets:audit # scan for leaked secrets
 ```
 
 End-to-end suites live in `apps/web/e2e` (Playwright) with their own config; Lighthouse budgets are defined in `lighthouserc.desktop.json` and `lighthouserc.mobile.json`.
+
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [`docs/tickets.md`](./docs/tickets.md) | ticket index (#1–#29) with blocking edges |
+| [`docs/custom-domains.md`](./docs/custom-domains.md) | custom-domain provisioning & DNS fallback |
+| [`docs/security-checklist.md`](./docs/security-checklist.md) | §17 security checklist with evidence links |
+| [`docs/backups-restore-runbook.md`](./docs/backups-restore-runbook.md) | backup & restore procedures |
+| [`docs/a11y-keyboard-sweep.md`](./docs/a11y-keyboard-sweep.md) | keyboard accessibility sweep notes |
+| [`packages/db/TENANCY.md`](./packages/db/TENANCY.md) | tenancy / RLS model |
+| [`apps/web/e2e/README.md`](./apps/web/e2e/README.md) | running the Playwright suites |
 
 ## Agent workflow
 
