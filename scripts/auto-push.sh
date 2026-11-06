@@ -5,12 +5,6 @@
 set -uo pipefail
 cd /home/z/my-project || { echo "FAIL: project dir missing"; exit 1; }
 
-TOKEN=$(grep '^GITHUB_TOKEN=' .env | cut -d= -f2- | tr -d '[:space:]')
-if [ -z "$TOKEN" ]; then
-  echo "FAIL: GITHUB_TOKEN not found in .env"
-  exit 1
-fi
-
 # 1. Commit any pending work (gitignore already excludes .env, upload/, skills/)
 if [ -n "$(git status --porcelain)" ]; then
   git add -A
@@ -19,7 +13,14 @@ if [ -n "$(git status --porcelain)" ]; then
     || echo "nothing to commit (only ignored/unstaged changes)"
 fi
 
-# 2. Push if local main is ahead of remote (fetch via one-off URL, no rebase)
+# 2. Token is required for the push step only (the commit above is purely local)
+TOKEN=$(grep '^GITHUB_TOKEN=' .env | cut -d= -f2- | tr -d '[:space:]')
+if [ -z "$TOKEN" ]; then
+  echo "PENDING: GITHUB_TOKEN not found in .env — nothing pushed; checkpoint stays local and will push on a future run once the token line is restored"
+  exit 1
+fi
+
+# 3. Push if local main is ahead of remote (fetch via one-off URL, no rebase)
 git fetch -q "https://bent70144-cpug:${TOKEN}@github.com/bent70144-cpug/forgeforms.git" main 2>/dev/null
 AHEAD=$(git rev-list --count FETCH_HEAD..main 2>/dev/null || echo "1")
 if [ "$AHEAD" = "0" ]; then
@@ -27,7 +28,7 @@ if [ "$AHEAD" = "0" ]; then
   exit 0
 fi
 
-# 3. Push via one-off authenticated URL; token never lands in output or .git/config
+# 4. Push via one-off authenticated URL; token never lands in output or .git/config
 if git push -q "https://bent70144-cpug:${TOKEN}@github.com/bent70144-cpug/forgeforms.git" main 2>&1 | sed "s/${TOKEN}/***TOKEN***/g"; then
   echo "OK: pushed ${AHEAD} commit(s) to bent70144-cpug/forgeforms main"
 else
