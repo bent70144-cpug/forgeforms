@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { z } from "zod";
 import { AppError } from "./errors.ts";
 import { appEnvSchema, parseEnv } from "./env.ts";
 

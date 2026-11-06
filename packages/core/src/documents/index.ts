@@ -72,3 +72,42 @@ export {
 export { defaultDraftValidator } from './validation';
 export { createInMemoryDocumentStore, type InMemoryDocumentStore } from './inmemory';
 // uuidv7 re-export removed at integration — root already exports it from shared/ids.
+
+// ---------------------------------------------------------------------------
+// T07 (issue #7) — documents CRUD + ops-based PATCH (spec §6, §8, §11)
+// ---------------------------------------------------------------------------
+
+export type {
+  CrudDocumentsRepo,
+  DraftPatch,
+  ListDocumentsPage,
+  ListDocumentsQuery,
+} from './crud-ports';
+export {
+  applyBodyOps,
+  applyDocOps,
+  DocOpError,
+  type OpDoc,
+  type WireOp,
+} from './apply';
+export {
+  createInMemoryCrudDocumentStore,
+  type InMemoryCrudDocumentStore,
+} from './crud-inmemory';
+export {
+  decodeDocumentCursor,
+  emptyDocumentBody,
+  encodeDocumentCursor,
+  isRevConflict,
+  makeArchiveDocument,
+  makeCreateDocument,
+  makeDuplicateDocument,
+  makeGetDocument,
+  makeListDocuments,
+  makePatchDocument,
+  RevConflictError,
+  slugifyTitle,
+  type CreateDocumentInput,
+  type CrudDeps,
+  type PatchDocumentInput,
+} from './crud';

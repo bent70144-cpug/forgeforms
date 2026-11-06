@@ -16,11 +16,15 @@ import {
 } from './openapi';
 import {
   CreateDocumentRequestSchema,
+  DocumentEnvelopeSchema,
   DocumentDetailSchema,
   DocumentSummarySchema,
   ListDocumentsResponseSchema,
   PatchDocumentRequestSchema,
   PublishDocumentResponseSchema,
+} from './documents';
+import {
+  PatchDocumentResponseSchema,
 } from './documents';
 import {
   CreateTokenRequestSchema,
@@ -38,6 +42,8 @@ export const FORMFORGE_API_SCHEMAS = {
   CreateDocumentRequest: CreateDocumentRequestSchema,
   ListDocumentsResponse: ListDocumentsResponseSchema,
   PatchDocumentRequest: PatchDocumentRequestSchema,
+  PatchDocumentResponse: PatchDocumentResponseSchema,
+  DocumentEnvelope: DocumentEnvelopeSchema,
   PublishDocumentResponse: PublishDocumentResponseSchema,
   Token: TokenSchema,
   CreateTokenRequest: CreateTokenRequestSchema,
@@ -142,7 +148,7 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
       'x-required-scope': 'docs:read',
       security: BEARER_OR_SESSION,
       responses: {
-        '200': jsonResponse('The document', 'DocumentDetail'),
+        '200': jsonResponse('The document (builder envelope)', 'DocumentEnvelope'),
         '403': err('Credential missing the docs:read scope'),
         '404': err('Document not found in this workspace'),
       },
@@ -156,7 +162,7 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
       security: BEARER_OR_SESSION,
       requestBody: jsonBody('PatchDocumentRequest'),
       responses: {
-        '200': jsonResponse('Updated document', 'DocumentDetail'),
+        '200': jsonResponse('Updated rev + draft body', 'PatchDocumentResponse'),
         '403': err('Credential missing the docs:write scope'),
         '404': err('Document not found in this workspace'),
         '409': err('Revision conflict — refetch and retry'),

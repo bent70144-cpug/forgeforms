@@ -25,7 +25,6 @@ import type {
   CompiledRule,
   Diagnostic,
   DiagnosticCode,
-  Operand,
   RouteMap,
   RouteNode,
   Routing,

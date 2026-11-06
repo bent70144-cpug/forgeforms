@@ -23,6 +23,10 @@ export {
 export type { DocumentType } from "./document";
 
 export { documentIssuesFromZodError, formatZodPath } from "./errors";
+
+// T07 (issue #7): documents ops vocabulary — PATCH /api/v1/documents/{id} body.
+export * from "./ops";
+
 export type { DocumentIssue } from "./errors";
 
 export { validateDocumentBody } from "./validate";

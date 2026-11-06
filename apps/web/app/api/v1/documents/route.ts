@@ -1,19 +1,24 @@
-// SPEC-NOTE: DEMO route scaffolded by T25 (issue #25) to prove the
-// bearer → Ctx → scope guard → §4 response path end-to-end for /api/v1.
-// T07 (documents API, issue #7) owns the real documents implementation and
-// should replace this file wholesale. Only GET is provided — document
-// persistence (documents table, RLS, ops) lands with T02/T07.
+/**
+ * T07 — GET/POST /api/v1/documents (spec §11; scopes docs:read / docs:write).
+ *
+ * GET   list with filters (type, status, q) + §4 cursor pagination.
+ * POST  create `{ type, title, templateId? }` — an empty DocumentBody per type,
+ *       or the template body (spec §14.1.2 "blank/template").
+ *
+ * Replaces the T25 demo scaffold (which returned an empty page).
+ */
 import { requireScope } from '@formforge/core/api';
-import { ListDocumentsQuerySchema } from '@formforge/schema/api';
+import {
+  CreateDocumentRequestSchema,
+  ListDocumentsQuerySchema,
+} from '@formforge/schema/api';
 import { authenticate } from '../_lib/auth';
-import { handleApiError, listResponse } from '../_lib/respond';
+import { handleApiError, created, listResponse } from '../_lib/respond';
+import { documentsCrud, toDocumentDetail, toDocumentSummary } from '@/lib/api/documents';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/v1/documents — docs:read.
- * Returns a §4-shaped empty page until T07 wires the documents repository.
- */
 export async function GET(req: Request): Promise<Response> {
   try {
     const ctx = await authenticate(req);
@@ -23,9 +28,39 @@ export async function GET(req: Request): Promise<Response> {
     const query = ListDocumentsQuerySchema.safeParse(Object.fromEntries(url.searchParams));
     if (!query.success) throw query.error;
 
-    // INTEGRATION-DEBT: awaiting T07 — documents repository (documents table,
-    // RLS via T02 helper, type/status/q filters, cursor pagination).
-    return listResponse([], null);
+    const page = await documentsCrud.list(ctx, {
+      type: query.data.type,
+      status: query.data.status,
+      q: query.data.q,
+      limit: query.data.limit,
+      cursor: query.data.cursor,
+    });
+    if (!page.ok) return handleApiError(page.error);
+
+    return listResponse(page.value.items.map(toDocumentSummary), page.value.nextCursor);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function POST(req: Request): Promise<Response> {
+  try {
+    const ctx = await authenticate(req);
+    requireScope(ctx.scopes, 'docs:write');
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      body = undefined;
+    }
+    const parsed = CreateDocumentRequestSchema.safeParse(body);
+    if (!parsed.success) throw parsed.error;
+
+    const result = await documentsCrud.create(ctx, parsed.data);
+    if (!result.ok) return handleApiError(result.error);
+
+    return created(toDocumentDetail(result.value));
   } catch (error) {
     return handleApiError(error);
   }

@@ -80,14 +80,38 @@ function logInternal(requestId: string, error: unknown): void {
 }
 
 /**
+ * Spec §8 conflict payload: a CONFLICT AppError that additionally carries the
+ * CURRENT rev + body (RevConflictError from the documents PATCH service).
+ * Duck-typed (`currentRev`/`currentBody` fields) so a cross-module instance is
+ * still recognized — never rely on `instanceof` across package duplicates.
+ */
+function revConflictState(error: AppError): { rev: number; body: unknown } | null {
+  if (error.code !== 'CONFLICT') return null;
+  const candidate = error as unknown as { currentRev?: unknown; currentBody?: unknown };
+  if (typeof candidate.currentRev !== 'number' || !('currentBody' in candidate)) return null;
+  return { rev: candidate.currentRev, body: candidate.currentBody };
+}
+
+/**
  * Map any thrown value to a §4 error response:
  *  - AppError → its code/status;
+ *  - AppError CONFLICT + current state (spec §8) → 409 with `{rev, body}` on
+ *    the top level (the autosave client reads them to recover without a
+ *    refetch round-trip);
  *  - ZodError (from schema `.parse()`) → 422 VALIDATION with field details;
  *  - anything else → 500 INTERNAL (message logged, not leaked to the client).
  */
 export function handleApiError(error: unknown, context?: { requestId?: string }): Response {
   const requestId = context?.requestId ?? crypto.randomUUID();
-  if (error instanceof AppError) {
+  if (error instanceof AppError || AppError.is(error)) {
+    const conflict = revConflictState(error);
+    const body = error.toResponseBody();
+    if (conflict) {
+      return new Response(JSON.stringify({ ...body, rev: conflict.rev, body: conflict.body }), {
+        status: 409,
+        headers: { 'content-type': JSON_MEDIA, 'cache-control': 'no-store' },
+      });
+    }
     return jsonError(error.code, error.message, error.details ? [...error.details] : undefined);
   }
   if (isZodErrorLike(error)) {
