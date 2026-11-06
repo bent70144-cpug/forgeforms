@@ -63,7 +63,7 @@ function RecordSection({
     <section>
       <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
       {entries.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-400">{emptyHint}</p>
+        <p className="mt-2 text-sm text-slate-500">{emptyHint}</p>
       ) : (
         <dl className="mt-1 divide-y divide-slate-100">
           {entries.map(([key, value]) => (
@@ -146,7 +146,7 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l8 8M14 6l-8 8" />
@@ -205,7 +205,7 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
                         {block.kind}
                       </span>
                     </div>
-                    <p className={`mt-1 whitespace-pre-wrap break-words text-sm ${text === "—" ? "text-slate-400" : "text-slate-700"}`}>
+                    <p className={`mt-1 whitespace-pre-wrap break-words text-sm ${text === "—" ? "text-slate-500" : "text-slate-700"}`}>
                       {text}
                     </p>
                   </li>

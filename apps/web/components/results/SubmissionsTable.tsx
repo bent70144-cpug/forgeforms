@@ -280,7 +280,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                     <td className="px-4 py-3">
                       <StatusPill status={row.status} />
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-400">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-500">
                       {displayCell(row.publicToken, 16)}
                     </td>
                     {questionBlocks.map((block) => {
@@ -290,7 +290,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                           key={block.id}
                           title={text === "—" ? undefined : text}
                           className={`max-w-[14rem] truncate px-4 py-3 ${
-                            text === "—" ? "text-slate-300" : "text-slate-700"
+                            text === "—" ? "text-slate-500" : "text-slate-700"
                           }`}
                         >
                           {text}

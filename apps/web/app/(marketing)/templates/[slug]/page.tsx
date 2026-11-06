@@ -97,17 +97,17 @@ export default async function TemplatePreviewPage({ params }: { params: Promise<
           >
             Use this template
           </Link>
-          <p className="max-w-56 text-center text-xs text-slate-400">Copies into your workspace as an editable draft.</p>
+          <p className="max-w-56 text-center text-xs text-slate-500">Copies into your workspace as an editable draft.</p>
         </div>
       </header>
 
       <section aria-label="Template preview" className="mt-10">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">Preview</h2>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-500">Preview</h2>
         <TemplatePreview body={body} />
       </section>
 
       <section aria-label="Blocks included" className="mt-12">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">What&apos;s inside</h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">What&apos;s inside</h2>
         <ul className="flex flex-wrap gap-2">
           {Array.from(kinds).map((kind) => (
             <li key={kind} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-mono text-xs text-slate-600">

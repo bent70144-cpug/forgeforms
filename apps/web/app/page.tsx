@@ -5,7 +5,7 @@ export default function Home() {
       <p className="max-w-xl text-lg text-slate-600">
         Forms, landing pages and portfolios — one block-document model.
       </p>
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-slate-500">
         Scaffold (T01). Auth lands with T03, builder with T08.
       </p>
     </main>

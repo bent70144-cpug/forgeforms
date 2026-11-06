@@ -12,6 +12,9 @@ export interface ThemeVars extends CSSProperties {
   '--ff-primary-fg': string;
   '--ff-muted': string;
   '--ff-border': string;
+  /** WCAG 2.1 AA (spec §14.4): themes on dark surfaces override the error
+   *  color to keep ≥4.5:1; default passes on the default light surface. */
+  '--ff-error': string;
   '--ff-radius': string;
   '--ff-font-heading': string;
   '--ff-font-body': string;
@@ -24,6 +27,7 @@ const FALLBACKS = {
   primaryFg: '#ffffff',
   muted: '#6b7280',
   border: '#e5e7eb',
+  error: '#b91c1c',
   radius: '10px',
   fontHeading: "'Inter', system-ui, -apple-system, sans-serif",
   fontBody: "'Inter', system-ui, -apple-system, sans-serif",
@@ -57,6 +61,7 @@ export function themeToCssVars(theme: Theme | undefined): ThemeVars {
     '--ff-primary-fg': token(tokens, 'color.primaryFg') ?? FALLBACKS.primaryFg,
     '--ff-muted': token(tokens, 'color.muted') ?? FALLBACKS.muted,
     '--ff-border': token(tokens, 'color.border') ?? FALLBACKS.border,
+    '--ff-error': token(tokens, 'color.error') ?? FALLBACKS.error,
     '--ff-radius': radius,
     '--ff-font-heading': fontStack(theme?.fontHeading, systemStack),
     '--ff-font-body': fontStack(theme?.fontBody, systemStack),

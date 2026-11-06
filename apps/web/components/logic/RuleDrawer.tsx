@@ -59,7 +59,7 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
     >
       <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {scope.kind === "start" ? "Start" : scope.kind === "ending" ? "Ending" : scope.questionKind ?? "Question"}
           </div>
           <h2 className="text-sm font-semibold text-slate-800">{scope.label}</h2>
@@ -202,7 +202,7 @@ function RuleCard({
         </span>
         <button
           type="button"
-          className="text-xs text-red-500 hover:underline"
+          className="text-xs text-red-600 hover:underline"
           onClick={() => onApply([removeRuleOp(rule.id)])}
           aria-label={`Delete rule ${rule.id}`}
         >
@@ -256,7 +256,7 @@ function RuleCard({
             )}
             <button
               type="button"
-              className="text-xs text-slate-400 hover:text-red-500"
+              className="text-xs text-slate-500 hover:text-red-600"
               aria-label="Remove condition"
               onClick={() =>
                 persist({
@@ -335,7 +335,7 @@ function RuleCard({
             )}
             <button
               type="button"
-              className="text-xs text-slate-400 hover:text-red-500"
+              className="text-xs text-slate-500 hover:text-red-600"
               aria-label="Remove action"
               onClick={() => persist({ ...draft, actions: draft.actions.filter((a) => a.key !== action.key) })}
             >
@@ -384,7 +384,7 @@ function PrefillSection({
   return (
     <section className="mt-4 rounded-xl border border-slate-200 p-3">
       <div className="text-xs font-semibold text-slate-500">Prefill via URL param</div>
-      <p className="mt-1 text-[11px] text-slate-400">
+      <p className="mt-1 text-[11px] text-slate-500">
         Answers this question from a URL parameter (e.g. <code>?email=…</code>).
       </p>
       <div className="mt-2 flex items-center gap-2">
@@ -401,7 +401,7 @@ function PrefillSection({
           }}
         />
         {value !== current && (
-          <span className="text-[11px] text-amber-600">unsaved — blur or tab away to apply</span>
+          <span className="text-[11px] text-amber-700">unsaved — blur or tab away to apply</span>
         )}
       </div>
     </section>
@@ -429,7 +429,7 @@ function HiddenFieldsSection({
   return (
     <section className="mt-4 rounded-xl border border-slate-200 p-3" data-testid="hidden-fields">
       <div className="text-xs font-semibold text-slate-500">Hidden fields (UTM capture)</div>
-      <p className="mt-1 text-[11px] text-slate-400">
+      <p className="mt-1 text-[11px] text-slate-500">
         Captured from the public URL on start (spec §10.3) and stored with every submission — visible
         in the results drawer. Use <code className="rounded bg-slate-100 px-1">@hidden:&lt;name&gt;</code> in conditions.
       </p>
@@ -445,7 +445,7 @@ function HiddenFieldsSection({
             <button
               type="button"
               aria-label={`Remove hidden field ${extra.name}`}
-              className="text-indigo-400 hover:text-red-500"
+              className="text-indigo-600 hover:text-red-600"
               onClick={() => saveExtras(extras.filter((e) => e.name !== extra.name))}
             >
               ✕

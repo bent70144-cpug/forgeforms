@@ -98,12 +98,12 @@ export default function PlanCard({
           </form>
         )}
         {disabled ? (
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-slate-500">
             Stripe is not configured for this plan (missing {entry.stripePriceEnvKey}).
           </p>
         ) : null}
         {needsPortal ? (
-          <p className="mt-2 text-xs text-slate-400">Managed in the Stripe billing portal.</p>
+          <p className="mt-2 text-xs text-slate-500">Managed in the Stripe billing portal.</p>
         ) : null}
       </div>
     </div>
