@@ -6,7 +6,8 @@
 // when T02 lands, the integrator should swap these imports 1:1 (see the W1-22
 // integration report).
 
-import type { DocumentBody, DocumentBodyInput } from "./schema";
+import type { DocumentBody } from "@formforge/schema";
+import type { DocumentBodyInput } from "./input-types";
 
 /** Error codes subset of the shared AppError (spec §4). */
 export type AppError = {

@@ -7,10 +7,11 @@
 //   - gallery composition per spec §14.1.9 (≥6 forms, ≥4 pages, ≥4 portfolios).
 import { describe, expect, it } from "vitest";
 
-import { DocumentBody, TEMPLATE_BLOCK_KINDS } from "../schema";
+import { DocumentBody } from "@formforge/schema";
+import { TEMPLATE_BLOCK_KINDS } from "../kinds";
 import { getTemplate, instantiateTemplate, listTemplates } from "../service";
 import { templateRegistry } from "../data";
-import type { Block } from "../schema";
+import type { Block } from "@formforge/schema";
 import type { InstantiateCtx } from "../types";
 
 const ctx: InstantiateCtx = {

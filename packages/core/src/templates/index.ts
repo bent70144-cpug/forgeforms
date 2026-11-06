@@ -20,19 +20,22 @@ export type {
 } from "./types";
 
 // Re-exports for consumers that render template bodies (gallery, preview, embeds).
-// INTEGRATION-DEBT: awaiting T06 — these come from the local bridge until
-// @formforge/schema is mergeable (issue #30 retired src/bridge.ts).
+// ISSUE #30: the spec §7 schemas come from @formforge/schema (T06) — the local
+// zod copy (templates/schema.ts) is retired. Input mirrors stay local
+// (see ./input-types.ts).
 export type {
   DocumentBody,
   Block,
   Theme,
   Rule,
   Ending,
+} from "@formforge/schema";
+export type {
   DocumentBodyInput,
   BlockInput,
   ThemeInput,
   RuleInput,
   EndingInput,
-} from "./schema";
-export { TEMPLATE_BLOCK_KINDS } from "./schema";
-export type { TemplateBlockKind } from "./schema";
+} from "./input-types";
+export { TEMPLATE_BLOCK_KINDS } from "./kinds";
+export type { TemplateBlockKind } from "./kinds";

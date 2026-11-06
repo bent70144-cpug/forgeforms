@@ -321,6 +321,9 @@ importers:
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1162.0
         version: 3.1162.0
+      '@formforge/schema':
+        specifier: workspace:*
+        version: link:../schema
       pino:
         specifier: ^10.4.0
         version: 10.4.0

@@ -7,7 +7,7 @@ import type {
   EndingInput,
   RuleInput,
   ThemeInput,
-} from "../schema";
+} from "../input-types";
 
 type ThemeOverrides = {
   bg?: string;

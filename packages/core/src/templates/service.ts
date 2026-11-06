@@ -11,7 +11,7 @@
 // W1-22's file-ownership map assigns `packages/core/src/templates/**` instead (the
 // documents/ module is owned by another ticket in the same wave). The integrator can
 // move the folder or keep this path — `instantiateTemplate` is the only contract.
-import { DocumentBody, type Block } from "./schema";
+import { DocumentBody, type Block } from "@formforge/schema";
 import { createBlockId } from "./ids";
 import { templateRegistry } from "./data";
 import type {

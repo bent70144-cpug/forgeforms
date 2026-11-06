@@ -115,7 +115,7 @@ describe("validateDraftBody", () => {
     });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.issues.join("\n")).toContain('duplicate block id "b1"');
+    expect(result.issues.join("\n")).toContain('Duplicate block id "b1"');
   });
 });
 
@@ -158,7 +158,7 @@ describe("generateDraftBody", () => {
     expect(provider.calls).toHaveLength(2);
     const repairPrompt = provider.calls[1]?.user ?? "";
     expect(repairPrompt).toContain("previous reply was invalid");
-    expect(repairPrompt).toContain('duplicate block id "b1"');
+    expect(repairPrompt).toContain('Duplicate block id "b1"');
   });
 
   it("still invalid after the repair → clear AI_OUTPUT_INVALID failure, never a third call", async () => {
