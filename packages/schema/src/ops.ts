@@ -53,11 +53,19 @@ export const SettingsPatchSchema = z
   })
   .partial();
 
-/** meta.update — document-level metadata (title/slug), not the body. */
-export const MetaPatchSchema = z.object({
-  title: z.string().trim().min(1).max(300),
-  slug: z.string().min(1).max(300),
-});
+/**
+ * meta.update — document-level metadata (title/slug), not the body.
+ * PARTIAL on purpose: the autosave queue may send just the field that changed
+ * (e.g. an inline title edit without a slug change); the server merges the
+ * patch shallowly and enforces workspace-unique slugs itself. Constraints
+ * still apply whenever a field IS present (trim + non-empty + ≤300).
+ */
+export const MetaPatchSchema = z
+  .object({
+    title: z.string().trim().min(1).max(300),
+    slug: z.string().min(1).max(300),
+  })
+  .partial();
 
 // ---------------------------------------------------------------------------
 // Op union (spec §8)
