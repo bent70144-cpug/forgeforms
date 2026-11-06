@@ -11,6 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@formforge/blocks": "workspace:*",
     "@formforge/core": "workspace:*",
     "@formforge/db": "workspace:*",
     "@formforge/renderer": "workspace:*",

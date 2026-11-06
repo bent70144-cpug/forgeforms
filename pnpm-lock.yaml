@@ -181,6 +181,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@formforge/blocks':
+        specifier: workspace:*
+        version: link:../../packages/blocks
       '@formforge/core':
         specifier: workspace:*
         version: link:../../packages/core

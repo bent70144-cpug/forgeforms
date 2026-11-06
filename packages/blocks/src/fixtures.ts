@@ -1,16 +1,27 @@
 // Shared fixtures for blocks tests. NOT a test file (no *.test.* name).
 import { DocumentBody, type Block } from "@formforge/schema";
 import { buttonDefaultProps } from "./button/schema";
+import { columnsDefaultProps } from "./columns/schema";
+import { contactLinksDefaultProps } from "./contact-links/schema";
 import { dropdownDefaultProps } from "./dropdown/schema";
 import { emailDefaultProps } from "./email/schema";
+import { faqDefaultProps } from "./faq/schema";
+import { formEmbedDefaultProps } from "./form-embed/schema";
+import { galleryDefaultProps } from "./gallery/schema";
 import { heroDefaultProps } from "./hero/schema";
 import { longTextDefaultProps } from "./long-text/schema";
+import { multiQuestionPageDefaultProps } from "./multi-question-page/schema";
 import { multiSelectDefaultProps } from "./multi-select/schema";
 import { npsDefaultProps } from "./nps/schema";
 import { numberDefaultProps } from "./number/schema";
+import { pricingDefaultProps } from "./pricing/schema";
+import { projectsDefaultProps } from "./projects/schema";
 import { ratingDefaultProps } from "./rating/schema";
+import { sectionDefaultProps } from "./section/schema";
 import { shortTextDefaultProps } from "./short-text/schema";
 import { singleSelectDefaultProps } from "./single-select/schema";
+import { testimonialsDefaultProps } from "./testimonials/schema";
+import { videoDefaultProps } from "./video/schema";
 
 export const heroId = "blk_hero001";
 export const shortTextId = "blk_text0001";
@@ -63,4 +74,16 @@ export const defaultPropSets = {
   dropdown: dropdownDefaultProps,
   rating: ratingDefaultProps,
   nps: npsDefaultProps,
+  // T21 blocks:
+  gallery: galleryDefaultProps,
+  video: videoDefaultProps,
+  testimonials: testimonialsDefaultProps,
+  faq: faqDefaultProps,
+  pricing: pricingDefaultProps,
+  projects: projectsDefaultProps,
+  "contact-links": contactLinksDefaultProps,
+  section: sectionDefaultProps,
+  columns: columnsDefaultProps,
+  "multi-question-page": multiQuestionPageDefaultProps,
+  "form-embed": formEmbedDefaultProps,
 } as const;
