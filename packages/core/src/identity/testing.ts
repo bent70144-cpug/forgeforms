@@ -13,7 +13,7 @@ import type {
   WorkspaceRepository,
 } from "./ports";
 import type { MailMessage, Mailer, MailSendResult } from "../integrations/mailer";
-import type { AuthTokenKind, AuthTokenRecord } from "./tokens";
+import type { AuthTokenRecord } from "./tokens";
 import type {
   MembershipRecord,
   SessionRecord,

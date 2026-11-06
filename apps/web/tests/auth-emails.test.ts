@@ -28,14 +28,15 @@ describe("reactAuthEmailRenderer (React Email templates)", () => {
     expect(email.text).toContain(VERIFY_URL);
   });
 
-  it("renders valid HTML entities for ampersands in the URL", () => {
+  it("escapes ampersands in the URL for HTML but keeps the text link raw", () => {
     const email = reactAuthEmailRenderer.passwordReset({
       url: "https://app.test/reset-password?a=1&b=2",
       expiresInMinutes: 60,
     });
-    // react-dom escapes attribute hrefs — the raw & must not appear unescaped
-    // in a way that breaks the link.
-    expect(email.html).toContain("a=1");
-    expect(email.html).toContain("b=2");
+    // The href attribute carries an escaped ampersand (valid HTML); the
+    // plain-text part keeps the raw URL so mail clients linkify it correctly.
+    expect(email.html).toContain('href="https://app.test/reset-password?a=1&amp;b=2"');
+    expect(email.html).not.toContain("?a=1&b=2");
+    expect(email.text).toContain("https://app.test/reset-password?a=1&b=2");
   });
 });

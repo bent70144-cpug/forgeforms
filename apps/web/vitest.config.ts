@@ -5,7 +5,7 @@
 // T05 adds the tsconfig `@/*` path alias so lib/ modules resolve in tests.
 
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -15,5 +15,10 @@ export default defineConfig({
   },
   oxc: {
     jsx: { runtime: "automatic" },
+  },
+  test: {
+    // `*.spec.ts` under e2e/ belongs to Playwright (@playwright/test's
+    // test.describe throws when run under Vitest) — keep them out of `pnpm test`.
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });

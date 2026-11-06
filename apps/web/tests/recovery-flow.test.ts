@@ -49,6 +49,20 @@ function outboxLines(outboxDir: string): string[] {
     .filter((line) => line.length > 0);
 }
 
+/** Pull the reset token out of one outbox line; throws (fails the test) if absent. */
+function resetTokenFromLine(line: string): string {
+  const message = JSON.parse(line) as { text: string };
+  const token = RESET_LINK_RE.exec(message.text)?.[1];
+  if (token === undefined) throw new Error(`no reset link in outbox line: ${line}`);
+  return token;
+}
+
+function verifyTokenFromText(text: string): string {
+  const token = VERIFY_LINK_RE.exec(text)?.[1];
+  if (token === undefined) throw new Error(`no verify link in: ${text}`);
+  return token;
+}
+
 describe("runForgotPassword → runResetPassword → login (acceptance chain)", () => {
   it("delivers a working single-use reset link through the dev transport", async () => {
     const outbox = freshOutbox();
@@ -122,8 +136,8 @@ describe("runForgotPassword → runResetPassword → login (acceptance chain)", 
 
     const lines = outboxLines(outbox);
     expect(lines).toHaveLength(2);
-    const firstToken = RESET_LINK_RE.exec(JSON.parse(lines[0]!).text)?.[1]!;
-    const secondToken = RESET_LINK_RE.exec(JSON.parse(lines[1]!).text)?.[1]!;
+    const firstToken = resetTokenFromLine(lines[0]!);
+    const secondToken = resetTokenFromLine(lines[1]!);
     expect(firstToken).not.toBe(secondToken);
 
     const stale = await runResetPassword({
@@ -170,8 +184,8 @@ describe("runForgotPassword → runResetPassword → login (acceptance chain)", 
     expect(lines).toHaveLength(1);
     const message = JSON.parse(lines[0]!) as { to: string; text: string };
     expect(message.to).toBe("bob@example.com");
-    const token = VERIFY_LINK_RE.exec(message.text)?.[1]!;
-    expect(token).toBeDefined();
+    const token = verifyTokenFromText(message.text);
+    expect(token).not.toBe("");
 
     const first = await runVerifyEmailToken({ deps, token, ip: "2.2.2.2", limiter: limiters.login });
     expect(first.ok).toBe(true);

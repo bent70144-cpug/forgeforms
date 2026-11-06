@@ -6,8 +6,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDevMailer, devOutboxEnabled, extractUrlFromDevMessage } from "@/lib/auth/dev-mail";
 
-const RESET_LINK_RE = /\/reset-password\?token=[A-Za-z0-9_-]+/;
-
 function sampleMessage() {
   return {
     to: "ana@example.com",

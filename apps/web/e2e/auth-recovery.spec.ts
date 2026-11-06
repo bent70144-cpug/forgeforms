@@ -70,14 +70,15 @@ test.describe.serial("T05 auth recovery", () => {
     await page.getByLabel("Email").fill(email);
     await page.getByRole("button", { name: "Send reset link" }).click();
     const message = await lastOutboxMessage();
-    const link = /\/reset-password\?token=[A-Za-z0-9_-]+/.exec(message.text)?.[0]!;
+    const link = /\/reset-password\?token=[A-Za-z0-9_-]+/.exec(message.text)?.[0];
+    expect(link).toBeDefined();
 
-    await page.goto(link);
+    await page.goto(link!);
     await page.getByLabel("New password").fill("single-use-pass-1");
     await page.getByRole("button", { name: "Set new password" }).click();
     await expect(page).toHaveURL(/\/login\?reset=1/);
 
-    await page.goto(link);
+    await page.goto(link!);
     await page.getByLabel("New password").fill("second-use-pass-2");
     await page.getByRole("button", { name: "Set new password" }).click();
     await expect(page.getByText(/invalid or has expired/i)).toBeVisible();
