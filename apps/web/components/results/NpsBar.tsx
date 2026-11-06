@@ -49,7 +49,7 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
               <span className="tabular-nums">
                 {n} · {pct}%
               </span>
-              <span className="text-xs text-slate-400">({seg.hint})</span>
+              <span className="text-xs text-slate-500">({seg.hint})</span>
             </li>
           );
         })}

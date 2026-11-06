@@ -60,7 +60,7 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
             <span className="text-lg font-semibold tabular-nums text-slate-900">
               {formatAverage(aggregate.average)}
             </span>{" "}
-            <span className="text-slate-400">/ {aggregate.scale}</span>
+            <span className="text-slate-500">/ {aggregate.scale}</span>
           </p>
           <BarList
             ariaLabel={`Rating distribution for ${aggregate.label}`}
@@ -95,7 +95,7 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         </dl>
       ) : aggregate.kind === "text" ? (
         aggregate.recent.length === 0 ? (
-          <p className="text-sm text-slate-400">No written answers yet.</p>
+          <p className="text-sm text-slate-500">No written answers yet.</p>
         ) : (
           <ul className="space-y-2.5">
             {aggregate.recent.map((text, i) => (

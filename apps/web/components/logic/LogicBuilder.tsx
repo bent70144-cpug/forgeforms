@@ -101,7 +101,7 @@ export function LogicBuilder({ docId }: { docId: string }) {
       <div className="mx-auto max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
         <p className="font-semibold">Logic builder could not load</p>
         <p className="mt-1">{error}</p>
-        <p className="mt-2 text-xs text-red-500">
+        <p className="mt-2 text-xs text-red-600">
           The documents API (T07) is not wired in this branch yet — set
           NEXT_PUBLIC_FF_MOCK_BUILDER=1 for the in-memory dev document.
         </p>

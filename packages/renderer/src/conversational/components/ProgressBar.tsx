@@ -15,11 +15,12 @@ export function ProgressBar({ percent, visible }: ProgressBarProps) {
     width: '100%',
     background: 'color-mix(in srgb, var(--ff-fg) 12%, transparent)',
   };
+  // Transition (and its reduced-motion override) lives in CONVERSATIONAL_STYLES
+  // under .ff-progress-fill so prefers-reduced-motion can disable it.
   const fill: CSSProperties = {
     height: '100%',
     width: `${clamped}%`,
     background: 'var(--ff-primary)',
-    transition: 'width 240ms ease-out',
   };
   return (
     <div
@@ -30,7 +31,7 @@ export function ProgressBar({ percent, visible }: ProgressBarProps) {
       aria-valuenow={Math.round(clamped)}
       style={track}
     >
-      <div style={fill} />
+      <div className="ff-progress-fill" style={fill} />
     </div>
   );
 }

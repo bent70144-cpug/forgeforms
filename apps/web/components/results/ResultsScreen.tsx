@@ -116,7 +116,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
                     {doc.status}
                   </span>
                 </div>
-                <p className="mt-1 font-mono text-xs text-slate-400">/d/{docId}/results</p>
+                <p className="mt-1 font-mono text-xs text-slate-500">/d/{docId}/results</p>
               </div>
               <button
                 type="button"

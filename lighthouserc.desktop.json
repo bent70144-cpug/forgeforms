@@ -1,0 +1,24 @@
+{
+  "$schema": "https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/schema.md",
+  "comment": "T28 (issue #28) — Lighthouse CI budgets for the published surfaces (spec §15 M3: Performance ≥90 desktop / ≥85 mobile, Accessibility ≥90; §16: public form + portfolio). Desktop run; see lighthouserc.mobile.json for the mobile run. The published portfolio URL is appended at runtime by scripts/lhci-seed.mjs (registers a user, publishes the designer-portfolio template, writes lighthouserc.desktop.runtime.json). The public FORM plane is the /dev/form-plane-harness page — KNOWN GAP: the /p form route is not landed yet (see apps/web/app/p/[slug]/page.tsx).",
+  "ci": {
+    "collect": {
+      "comment": "The workflow starts `pnpm --filter @formforge/web start` itself and seeds a published document before collecting, so no startServerCommand here (port already bound).",
+      "url": ["http://localhost:3000/dev/form-plane-harness"],
+      "numberOfRuns": 1,
+      "settings": {
+        "formFactor": "desktop",
+        "screenEmulation": { "mobile": false, "width": 1350, "height": 940, "deviceScaleFactor": 1, "disabled": false },
+        "skipAudits": ["canonical", "is-crawlable", "maskable-icon", "installable-manifest", "service-worker", "offline-start-url", "splash-screen", "themed-omnibox", "content-width"]
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "categories:seo": "off"
+      }
+    }
+  }
+}

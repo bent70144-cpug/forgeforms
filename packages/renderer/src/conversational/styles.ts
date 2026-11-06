@@ -59,7 +59,10 @@ export const CONVERSATIONAL_STYLES = `
   font-size: 11px;
   font-family: inherit;
 }
-.ff-error { color: #b91c1c; font-size: 14px; margin: 10px 0 0; }
+// WCAG 2.1 AA (spec §14.4): error text/border follow --ff-error so dark
+// document themes can keep ≥4.5:1 contrast; the fallback passes on the
+// default light surface (6.5:1 on #ffffff).
+.ff-error { color: var(--ff-error, #b91c1c); font-size: 14px; margin: 10px 0 0; }
 .ff-input {
   width: 100%;
   border: 1px solid var(--ff-border);
@@ -69,7 +72,7 @@ export const CONVERSATIONAL_STYLES = `
   padding: 12px 14px;
   font-size: 16px; /* ≥16px prevents iOS focus zoom */
 }
-.ff-input[aria-invalid='true'] { border-color: #b91c1c; }
+.ff-input[aria-invalid='true'] { border-color: var(--ff-error, #b91c1c); }
 .ff-input::placeholder { color: var(--ff-muted); opacity: 0.7; }
 .ff-continue {
   margin-top: 18px;
@@ -136,12 +139,26 @@ export const CONVERSATIONAL_STYLES = `
   white-space: nowrap;
   border: 0;
 }
+/* Progress fill transition lives here (not inline) so reduced-motion can
+   disable it (spec §14.4). */
+.ff-progress-fill {
+  height: 100%;
+  transition: width 240ms ease-out;
+}
 @keyframes ff-enter {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ff-screen { animation: none; }
+  .ff-progress-fill { transition: none; }
+  /* T28: every other animation/transition is inline (hover opacity, footer)
+     — kill them all under reduced motion. */
+  .ff-root *, .ff-root *::before, .ff-root *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 @media (max-width: 480px) {
   .ff-screen { padding: 20px 16px 88px; }

@@ -499,3 +499,25 @@ button:focus-visible {
   outline: 2px solid var(--ff-primary);
   outline-offset: 2px;
 }
+
+/* Builder: React Flow canvas nodes + controls are keyboard-focusable
+   (tabindex comes from @xyflow/react) — give them the same visible focus. */
+.react-flow__node:focus-visible,
+.react-flow__controls-button:focus-visible {
+  outline: 2px solid var(--ff-primary);
+  outline-offset: 2px;
+}
+
+/* WCAG 2.1 AA: reduced motion respected on every app surface (spec §14.4).
+   Collapses all animations/transitions (skeleton pulse, hover transitions,
+   dialog slides) to a single frame for users with prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

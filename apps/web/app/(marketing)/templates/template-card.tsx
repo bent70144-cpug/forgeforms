@@ -33,7 +33,7 @@ export default function TemplateCard({ template }: { template: TemplateSummary }
       <div className="flex flex-1 flex-col gap-2 p-5">
         <h2 className="text-base font-semibold text-slate-900 group-hover:text-indigo-700">{template.name}</h2>
         <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-slate-500">{template.description}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
           <span>{template.blockCount} blocks</span>
           {template.questionCount > 0 && <span>· {template.questionCount} questions</span>}
           {template.tags.slice(0, 2).map((tag) => (

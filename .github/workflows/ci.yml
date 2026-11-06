@@ -60,3 +60,66 @@ jobs:
         run: pnpm build
 
       # T02 (issue #2) appends: drizzle-kit generate/migrate against the CI postgres here.
+
+  # T28 (issue #28) — axe-core accessibility + keyboard sweep gate (spec §14.4,
+  # §16 accessibility row): zero critical violations on builder, dashboard,
+  # public form (harness), public page + full keyboard reachability sweep.
+  # WRITTEN, NOT RUN locally (sandbox has no browsers) — this job runs it in CI.
+  a11y:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: formforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/formforge
+      REDIS_URL: redis://localhost:6379
+      E2E_DATABASE_URL: postgres://postgres:postgres@localhost:5432/formforge
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database migrations
+        run: pnpm --filter @formforge/db db:migrate
+
+      - name: Install Playwright chromium
+        run: pnpm --filter @formforge/web exec playwright install --with-deps chromium
+
+      - name: Run a11y + keyboard sweep suite (axe, zero critical violations)
+        run: pnpm --filter @formforge/web exec playwright test -c e2e/playwright.config.ts a11y
+
+      - name: Upload Playwright failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-a11y-failures
+          path: apps/web/test-results/
+          retention-days: 7

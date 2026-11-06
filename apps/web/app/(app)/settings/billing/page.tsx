@@ -124,7 +124,7 @@ export default async function BillingSettingsPage({
           })}
         </div>
         {!snapshot.stripe.configured ? (
-          <p className="mt-4 text-xs text-slate-400">
+          <p className="mt-4 text-xs text-slate-500">
             Upgrade buttons are disabled because STRIPE_SECRET_KEY is not set. Webhooks
             remain active at <code>/api/webhooks/stripe</code>.
           </p>

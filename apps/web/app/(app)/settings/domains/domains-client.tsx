@@ -407,13 +407,13 @@ export function DomainsClient() {
               {domain.status !== 'verified' && (
                 <dl className="mt-3 grid gap-1 rounded bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-600">
                   <div className="flex gap-2">
-                    <dt className="w-14 shrink-0 text-slate-400">TXT</dt>
+                    <dt className="w-14 shrink-0 text-slate-500">TXT</dt>
                     <dd className="break-all">
                       {domain.txtName} = {domain.txtValue}
                     </dd>
                   </div>
                   <div className="flex gap-2">
-                    <dt className="w-14 shrink-0 text-slate-400">CNAME</dt>
+                    <dt className="w-14 shrink-0 text-slate-500">CNAME</dt>
                     <dd className="break-all">
                       {domain.hostname} → {domain.cnameTarget}
                     </dd>

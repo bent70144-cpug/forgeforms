@@ -50,7 +50,7 @@ export default async function EmbedDocsPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12 text-slate-600">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Public docs</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Public docs</p>
         <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Embed a FormForge document</h1>
         <p className="mt-3 leading-relaxed">
           Publish a document, then paste one script tag into any page. The loader (v{EMBED_LOADER_VERSION}) injects the

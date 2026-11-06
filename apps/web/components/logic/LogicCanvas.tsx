@@ -44,7 +44,7 @@ function StartNode({ data }: NodeProps<FlowNode>) {
     >
       <span aria-hidden>▶</span>
       {data.label}
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-400" />
+      <Handle type="source" position={Position.Bottom} className="!bg-slate-500" />
     </div>
   );
 }
@@ -58,12 +58,12 @@ function QuestionNode({ data }: NodeProps<FlowNode>) {
           : "border-slate-300 bg-white"
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-400" />
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+      <Handle type="target" position={Position.Top} className="!bg-slate-500" />
+      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         {data.questionKind ?? "question"}
       </div>
       <div className="mt-1 font-medium text-slate-800">{data.label}</div>
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-400" />
+      <Handle type="source" position={Position.Bottom} className="!bg-slate-500" />
     </div>
   );
 }
@@ -77,7 +77,7 @@ function EndingNode({ data }: NodeProps<FlowNode>) {
           : "border-slate-300 bg-slate-50"
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-400" />
+      <Handle type="target" position={Position.Top} className="!bg-slate-500" />
       <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
         ending
       </div>
@@ -129,6 +129,9 @@ export function LogicCanvas({ graph, selectedId, onSelect }: LogicCanvasProps) {
       target: edge.target,
       animated: edge.isRuleEdge,
       label: edge.isRuleEdge ? edge.ruleId : undefined,
+      // WCAG 2.1 AA (spec §14.4): xyflow renders edges as focusable elements —
+      // give them screen-reader + tab-stop labels.
+      ariaLabel: edge.isRuleEdge ? `goto rule ${edge.ruleId}` : `flow from ${edge.source} to ${edge.target}`,
       style: edge.isRuleEdge
         ? { stroke: "#6366f1", strokeDasharray: "6 4", strokeWidth: 2 }
         : { stroke: "#94a3b8", strokeWidth: 2 },

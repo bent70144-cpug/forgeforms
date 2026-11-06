@@ -115,7 +115,7 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
         ) : simulation.truncated ? (
           <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">flow truncated (possible loop)</span>
         ) : (
-          <span className="text-slate-400">add a question to preview the flow</span>
+          <span className="text-slate-500">add a question to preview the flow</span>
         )}
       </div>
     </section>
