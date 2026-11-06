@@ -18,7 +18,6 @@
 // scan step; dev marks `skipped`). Rate limiting on the public upload routes
 // follows the ingest per-process limiter posture — see the route files.
 
-import { drizzle } from "drizzle-orm/node-postgres";
 import {
   createAssetsService,
   objectStoreFromEnv,
@@ -27,7 +26,7 @@ import {
   type UploadEntitlements,
 } from "@formforge/core/assets";
 import { parseDocumentId, uuidv7 } from "@formforge/core/bridge";
-import { createAssetsRepository } from "@formforge/db";
+import { createAssetsRepository, createDb } from "@formforge/db";
 import { createDrizzleIngestSnapshotReader } from "@formforge/db/repositories/submissions";
 import { createBillingFromEnv } from "../../app/api/webhooks/stripe/_lib/billing-server";
 import { assetsQueueFromEnv } from "./queue";
@@ -70,13 +69,15 @@ function buildWiring(): Wiring {
     throw new Error("DATABASE_URL is required for the assets upload API");
   }
 
-  // One pool, two views: the loose generic for the snapshot reader (mirrors
-  // connectSubmissionsStore) and the schema-typed handle the repo expects.
-  const loose = drizzle(databaseUrl);
-  const db = loose as unknown as Parameters<typeof createAssetsRepository>[0];
+  // One drizzle handle, two views: the schema-typed Database the assets repo
+  // expects and the loose reader type the snapshot reader takes (same cast
+  // posture as connectSubmissionsStore — pg/drizzle stay in packages/db).
+  const db = createDb(databaseUrl);
 
   const repo = createAssetsRepository(db);
-  const snapshots = createDrizzleIngestSnapshotReader(loose);
+  const snapshots = createDrizzleIngestSnapshotReader(
+    db as unknown as Parameters<typeof createDrizzleIngestSnapshotReader>[0],
+  );
 
   const billing = createBillingFromEnv();
   const entitlements: UploadEntitlements = {

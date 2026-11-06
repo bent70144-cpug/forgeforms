@@ -14,6 +14,7 @@
 // DB-GATED: integration coverage lives in assets.dbtest.ts (RUN_DB_TESTS=1).
 
 import { and, desc, eq } from "drizzle-orm";
+import { AppError } from "@formforge/core";
 import type { Database } from "../client.ts";
 import { assets } from "../schema/assets.ts";
 import { withTenantScope } from "./tenant.ts";
@@ -111,7 +112,13 @@ export function createAssetsRepository(db: Database): AssetsRepoLike {
       });
       // Unique-key conflict → the row exists from an earlier attempt
       // (at-most-once presign retry); return it — same tenant, same object.
-      return inserted ? mapAsset(inserted) : await getByIdUnscoped(db, row.id);
+      // It is unreachable for the id not to exist at this point, so a miss
+      // fails loudly (INTERNAL) instead of leaking a null into the service.
+      const existing = inserted ? mapAsset(inserted) : await getByIdUnscoped(db, row.id);
+      if (!existing) {
+        throw AppError.internal(`asset row vanished after unique-key conflict: ${row.id}`);
+      }
+      return existing;
     },
 
     async getById(workspaceId, assetId): Promise<AssetRecordLike | null> {
