@@ -61,6 +61,27 @@ export {
   type GetPublishedSnapshot,
 } from './snapshot';
 
+// T29 (spec §17): rich-text allowlist sanitizer (save + snapshot build).
+export {
+  decodeEntities,
+  escapeHtmlText,
+  RICH_TEXT_ALLOWED_TAGS,
+  sanitizeDocumentBodyRichText,
+  sanitizeRichTextHtml,
+  sanitizeRichTextProp,
+} from './sanitize';
+
+// T29 (spec §17): publish-time sensitive-field warning.
+export { scanSensitiveFields } from './sensitive-fields';
+
+// T29 (spec §17): admin takedown (archive + cache purge).
+export {
+  makeTakedownDocument,
+  type TakedownDocument,
+  type TakedownOutcome,
+} from './takedown';
+export type { PublishWarning } from './model';
+
 export { appErrorToHttpStatus, toApiErrorBody } from './errors';
 export { InMemoryCdnPurge, noopCdnPurge } from './cdn-purge';
 export {

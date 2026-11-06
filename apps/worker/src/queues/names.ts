@@ -38,6 +38,8 @@ export const JOBS = {
   reapOrphans: "reap-orphans",
   purgeOldDeliveries: "purge-old-deliveries",
   createPartitions: "create-partitions",
+  // T29 (spec §17 GDPR): retention + workspace-grace purges (daily cadence).
+  purgeRetention: "purge-retention",
 } as const;
 
 export type JobName = (typeof JOBS)[keyof typeof JOBS];

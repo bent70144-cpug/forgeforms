@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./repositories": "./src/repositories/index.ts",
     "./repositories/submissions": "./src/repositories/submissions.ts",
+    "./repositories/gdpr": "./src/repositories/gdpr.ts",
     "./repositories/billing": "./src/repositories/billing.ts",
     "./repositories/domains": "./src/repositories/domains.ts"
   },

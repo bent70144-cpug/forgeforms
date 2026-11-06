@@ -9,6 +9,7 @@ import {
   classifySnapshotError,
   getPublishedSnapshot,
 } from "@formforge/renderer";
+import { ReportAbuseLink } from "@/components/public/report-abuse-link";
 
 /**
  * Public scroll plane (spec §10.1 `GET /p/:slug`): server components that read
@@ -60,5 +61,13 @@ export default async function PublicPage({ params }: PublicPageProps) {
     notFound();
   }
 
-  return <ScrollRenderer snapshot={snapshot} />;
+  return (
+    <>
+      <ScrollRenderer snapshot={snapshot} />
+      {/* T29 (spec §17): "Report abuse" link on every public page. */}
+      <footer style={{ textAlign: "center", padding: "0 1.25rem 2rem", fontSize: "0.8rem" }}>
+        <ReportAbuseLink documentRef={snapshot.documentId ?? slug} />
+      </footer>
+    </>
+  );
 }

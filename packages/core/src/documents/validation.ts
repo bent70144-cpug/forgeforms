@@ -11,6 +11,14 @@
 import { z } from 'zod';
 import type { DraftValidationIssue, DraftValidator } from './ports';
 
+/** Optional retention setting (T29 spec §17 GDPR: per-form retention). */
+const RETENTION_DAYS = z
+  .number()
+  .int()
+  .min(0)
+  .max(3650)
+  .optional();
+
 const BlockShape = z.looseObject({
   id: z.string().min(1),
   kind: z.string().min(1),
@@ -42,6 +50,9 @@ const DraftShape = z.object({
       closeAt: z.string().optional(),
       maxSubmissions: z.number().int().positive().optional(),
       notifyEmails: z.array(z.string()).optional(),
+      // T29 (spec §17 GDPR): delete completed submission data older than this
+      // many days. 0 / undefined = keep forever.
+      retentionDays: RETENTION_DAYS,
     })
     .optional(),
   blocks: z.array(BlockShape),

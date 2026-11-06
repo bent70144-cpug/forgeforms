@@ -61,6 +61,8 @@ export type DocumentBodyJson = {
     closeAt?: string;
     maxSubmissions?: number;
     notifyEmails?: string[];
+    /** T29 GDPR: delete this form's submission data older than N days (0/undefined = keep). */
+    retentionDays?: number;
   };
   blocks: BlockJson[];
   endings?: EndingJson[];
@@ -95,6 +97,8 @@ export type SnapshotSettings = {
   showBranding: boolean;
   captcha: boolean;
   closeAt?: string;
+  /** T29 GDPR: per-form retention days carried to the retention purge job. */
+  retentionDays?: number;
 };
 
 export type Snapshot = {
@@ -129,6 +133,15 @@ export type PublishOutcome = {
   version: number;
   /** True when the draft body was unchanged and the previous version was reused. */
   reused: boolean;
+  /** T29 (spec §17): non-blocking publish-time warnings — e.g. sensitive fields detected. */
+  warnings?: readonly PublishWarning[];
+};
+
+/** A publish-time warning (does not block the publish). */
+export type PublishWarning = {
+  code: 'SENSITIVE_FIELD';
+  message: string;
+  blockId?: string;
 };
 
 /** What the public snapshot reader hands to renderers/ingest. */

@@ -10,13 +10,16 @@
   },
   "dependencies": {
     "@formforge/core": "workspace:*",
+    "@formforge/db": "workspace:*",
     "bullmq": "^6.7.0",
-    "ioredis": "^5.11.1"
+    "ioredis": "^5.11.1",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
     "tsx": "^4.23.15",
     "vitest": "^5.1.0",
-    "@types/node": "^24.0.0"
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.0"
   }
 }

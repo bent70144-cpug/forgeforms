@@ -11,6 +11,7 @@ import { processProcessImageJob } from "./assets-process-image";
 import { processScanJob as processAssetsScan } from "./assets-scan";
 import { processEmailJob } from "./email";
 import { processEventFanout } from "./event-fanout";
+import { processRetentionPurge } from "./retention-purge";
 import { processWebhookDeliver } from "./webhook-deliver";
 
 export type JobInput = { id?: string; name: string; data: unknown };
@@ -60,6 +61,11 @@ export function registerJobs(deps: WorkerDeps): QueueRegistry {
     [QUEUES.assets]: {
       [JOBS.scan]: unwrapIntoProcessor((d, jobId, data) => processAssetsScan(d, jobId, data), deps),
       [JOBS.processImage]: unwrapIntoProcessor((d, jobId, data) => processProcessImageJob(d, jobId, data), deps),
+    },
+    // T29 (spec §17 GDPR) — maintenance queue: retention + workspace purges.
+    // Enqueue on a daily cron/Repeat (see docs/security-checklist.md §17).
+    [QUEUES.maintenance]: {
+      [JOBS.purgeRetention]: unwrapIntoProcessor((d, jobId, data) => processRetentionPurge(d, jobId, data), deps),
     },
   };
 }

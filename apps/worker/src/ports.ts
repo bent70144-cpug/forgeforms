@@ -10,6 +10,7 @@
 import type { AppError, Ctx, Result } from "@formforge/core/bridge";
 import type { DeliveryOutcome, HttpPost, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
 import type { ObjectStore } from "@formforge/core/assets";
+import type { GdprStoresPort } from "./jobs/retention-purge";
 import type { JobName, QueueName } from "./queues/names";
 import type { Logger } from "./logger";
 
@@ -168,6 +169,13 @@ export type WorkerDeps = {
   mailer: Mailer;
   /** HTTP transport for webhook deliveries (injectable for tests). */
   post: HttpPost;
+  /**
+   * T29 (spec §17 GDPR) — GDPR store bundle for the retention/workspace purge
+   * job. Constructed over the DB when DATABASE_URL is set (see src/index.ts);
+   * omitted in dev/test → the job fails loudly instead of silently purging
+   * nothing (same posture as the T02 repository stubs).
+   */
+  gdpr?: GdprStoresPort;
   /** Jitter source for the backoff schedule (injectable for tests). */
   jitter: () => number;
   newId: IdFactory;

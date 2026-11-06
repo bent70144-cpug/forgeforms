@@ -57,6 +57,13 @@
       "when": 1793931807285,
       "tag": "0007_bizarre_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793939293430,
+      "tag": "0008_outgoing_franklin_storm",
+      "breakpoints": true
     }
   ]
 }

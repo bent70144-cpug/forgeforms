@@ -1,9 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/auth.config";
 import { appHostsFromEnv, createFetchHostRouteResolver, shouldAttemptHostRewrite } from "@/lib/domains/host-routing";
+import { publicPageHeadersFor } from "@/lib/security/csp";
 
 // M1 auth gate + T24 custom-domain routing (spec §2 middleware.ts:
 // "host → document routing, auth gate").
+//
+// T29 (spec §17): public pages also get CSP + hardening headers — see
+// lib/security/csp.ts for the policy rationale (nonce policy on the dynamic
+// embed plane, host-allowlist policy on ISR-cached planes).
 //
 // SPEC-NOTE: cookie-presence check only — sessions live in Postgres, so full
 // validation (sliding expiry, revocation) happens server-side via
@@ -36,24 +41,48 @@ function authGate(request: NextRequest): NextResponse | null {
   return null;
 }
 
+/** Edge-runtime-safe per-request nonce (base64 of a random UUID). */
+function requestNonce(): string {
+  return btoa(crypto.randomUUID());
+}
+
 export async function middleware(request: NextRequest) {
   const gated = authGate(request);
   if (gated) return gated;
 
+  const { pathname } = request.nextUrl;
+
+  // T29 (spec §17): CSP + nosniff + referrer policy on public pages. Applied
+  // BEFORE the custom-host branch so a rewrite response below can reuse it.
+  const securityHeaders = publicPageHeadersFor(pathname, requestNonce());
+
   const host = request.headers.get("host") ?? "";
-  if (shouldAttemptHostRewrite(host, request.nextUrl.pathname, appHostsFromEnv())) {
+  if (shouldAttemptHostRewrite(host, pathname, appHostsFromEnv())) {
     const documentId = await createFetchHostRouteResolver(request.nextUrl.origin)(host);
     if (documentId) {
       const url = request.nextUrl.clone();
-      url.pathname = `/_host${request.nextUrl.pathname === "/" ? "/index" : request.nextUrl.pathname}`;
+      url.pathname = `/_host${pathname === "/" ? "/index" : pathname}`;
       const headers = new Headers(request.headers);
       headers.set("x-ff-document-id", documentId);
       headers.set("x-ff-custom-host", host);
-      return NextResponse.rewrite(url, { request: { headers } });
+      const response = NextResponse.rewrite(url, { request: { headers } });
+      // Custom-host render = the /p/:slug plane (ISR-cached document HTML).
+      if (securityHeaders) {
+        for (const [key, value] of Object.entries(securityHeaders)) {
+          response.headers.set(key, value);
+        }
+      }
+      return response;
     }
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  if (securityHeaders) {
+    for (const [key, value] of Object.entries(securityHeaders)) {
+      response.headers.set(key, value);
+    }
+  }
+  return response;
 }
 
 export const config = {

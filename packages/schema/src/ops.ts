@@ -49,6 +49,9 @@ export const SettingsPatchSchema = z
     // SPEC-NOTE: `z.iso.datetime()` is the Zod 4 form of spec §7's `z.string().datetime()`.
     closeAt: z.iso.datetime().nullable(),
     maxSubmissions: z.number().int().positive().nullable(),
+    // T29 (spec §17 GDPR): per-form retention setting — send null to reset to
+    // "keep forever". Mirrors DocumentSettings.retentionDays (src/document.ts).
+    retentionDays: z.number().int().min(0).max(3650).nullable(),
     notifyEmails: z.array(z.email()),
     // T20 (spec §14.1.4): hidden-field extras — array-replaced wholesale like
     // notifyEmails (send [] to clear); the canonical DocumentSettings schema

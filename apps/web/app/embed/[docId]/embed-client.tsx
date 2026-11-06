@@ -11,6 +11,7 @@ import { useCallback, useEffect, useRef } from "react";
 
 import { isRequestHeightMessage, postToParent } from "./protocol";
 import type { Block } from "@formforge/core/templates";
+import { ReportAbuseLink } from "@/components/public/report-abuse-link";
 
 export type EmbedSnapshot = {
   documentId: string;
@@ -94,6 +95,11 @@ export default function EmbedClient({
       ) : (
         <UnavailableView docId={docId} />
       )}
+      {/* T29 (spec §17): the Report-abuse link rides on EVERY public page —
+          embedded documents included (opens in a new tab outside the iframe). */}
+      <p className="mt-3 text-right text-xs text-slate-400">
+        <ReportAbuseLink documentRef={docId} />
+      </p>
     </div>
   );
 }

@@ -13,8 +13,13 @@
 // the T02 client. Queue topology, job contracts and processors are final.
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
+import { Pool } from "pg";
 import { objectStoreFromEnv } from "@formforge/core/assets";
-import { createConsoleMailer, createResendMailer } from "@formforge/core/integrations";
+import { createConsoleMailer, createResendMailer, createSsrfSafePost } from "@formforge/core/integrations";
+import {
+  createGdprRetentionStore,
+  createGdprWorkspaceStore,
+} from "@formforge/db/repositories/gdpr";
 import { loadWorkerConfig } from "./config";
 import { createLogger } from "./logger";
 import type { EventRepositoryPort, WebhookRepositoryPort, WorkerDeps } from "./ports";
@@ -84,7 +89,14 @@ const queues = {
     connection,
     ...(QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.assets] ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.assets] } : {}),
   }),
-  // T18/T19: create the exports/analytics/maintenance Queues here (same
+  // T29 (spec §17 GDPR): maintenance queue — retention + workspace purges.
+  [QUEUES.maintenance]: new Queue(QUEUES.maintenance, {
+    connection,
+    ...(QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.maintenance]
+      ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.maintenance] }
+      : {}),
+  }),
+  // T18/T19: create the exports/analytics Queues here (same
   // pattern) and register processors in src/jobs/registry.ts.
 };
 
@@ -112,8 +124,33 @@ const deps: WorkerDeps = {
   // (spec §12 "or `skipped` in dev"). A ClamAV adapter swaps in here.
   scanner: { scan: async () => "unavailable" },
   mailer,
-  // Real transports: injectable in tests, direct fetch here.
-  post: (url, init) => fetch(url, init),
+  // T29 (spec §17): webhook egress goes through the SSRF guard — URL policy +
+  // DNS-then-resolved-IP connect (blocks 169.254.169.254 / 10.x / 127.0.0.1 /
+  // ::1 / DNS-rebinding). Injected here so EVERY delivery attempt, including
+  // retries and replays, is guarded (tests inject fakes via deps.post).
+  post: createSsrfSafePost(),
+  // T29 (spec §17 GDPR): retention + workspace purge job stores, over the DB
+  // when configured. NOTE: the maintenance plane must reach Postgres with a
+  // role that may touch every tenant (RLS is per-workspace; see
+  // packages/db/src/repositories/gdpr.ts header + docs/backups-restore-runbook.md).
+  ...(config.databaseUrl
+    ? (() => {
+        const pool = new Pool({ connectionString: config.databaseUrl });
+        const exec = {
+          async query(text: string, params?: readonly unknown[]) {
+            const result = await pool.query(text, (params ?? []) as unknown[]);
+            return { rows: result.rows as Record<string, unknown>[] };
+          },
+        };
+        return {
+          gdpr: {
+            retention: createGdprRetentionStore(exec),
+            workspaces: createGdprWorkspaceStore(exec),
+            workspaceGraceDays: Number(process.env["GDPR_WORKSPACE_GRACE_DAYS"] ?? 30),
+          },
+        };
+      })()
+    : {}),
   jitter: () => Math.random(),
   // INTEGRATION-DEBT: switch to uuidv7() from the T02 kernel (spec §4 ids).
   newId: () => crypto.randomUUID(),

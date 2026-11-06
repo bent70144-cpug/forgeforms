@@ -12,6 +12,7 @@
 // rev AND body, which the API layer answers as 409 CONFLICT.
 import { AppError, err, ok, type Ctx, type Result } from '../bridge';
 import { uuidv7 } from '../shared/ids';
+import { sanitizeDocumentBodyRichText } from './sanitize';
 import type { DocumentBodyJson, DocumentRecord, DocumentType } from './model';
 import type { DraftValidationIssue, DraftValidator } from './ports';
 import { applyDocOps, DocOpError, type OpDoc, type WireOp } from './apply';
@@ -21,6 +22,12 @@ export type CrudDeps = {
   documents: CrudDocumentsRepo;
   /** Full-document validation for create + every PATCH result (spec §8). */
   validator: DraftValidator;
+  /**
+   * T29 (spec §17): rich-text sanitizer applied to the body BEFORE it is
+   * stored ("sanitized on save"). Defaults to the core allowlist sanitizer.
+   * Pass a no-op ONLY in tests that assert raw pass-through behavior.
+   */
+  sanitize?: (body: DocumentBodyJson) => DocumentBodyJson;
   /** Sanity cap on ops per PATCH (spec §8 does not pin one). Default 500. */
   maxOpsPerPatch?: number;
 };
@@ -154,7 +161,9 @@ export function makeCreateDocument(deps: CrudDeps) {
       );
     }
 
-    const body = input.initialBody ?? emptyDocumentBody(input.type);
+    const body = deps.sanitize
+      ? deps.sanitize(input.initialBody ?? emptyDocumentBody(input.type))
+      : sanitizeDocumentBodyRichText(input.initialBody ?? emptyDocumentBody(input.type));
     const issues = await deps.validator.validate(body);
     if (issues.length > 0) {
       return err(validationError('Invalid document body', issuesToDetails(issues)));
@@ -363,8 +372,14 @@ export function makePatchDocument(deps: CrudDeps) {
         }
       }
 
+      // 2.5 T29 (spec §17): sanitize rich text BEFORE validation + storage —
+      // the stored draft never carries raw markup ("sanitized on save").
+      const sanitized = deps.sanitize
+        ? deps.sanitize(next.body)
+        : sanitizeDocumentBodyRichText(next.body);
+
       // 3. Validate the RESULT with the full DocumentBody validator (spec §8).
-      const issues = await deps.validator.validate(next.body);
+      const issues = await deps.validator.validate(sanitized);
       if (issues.length > 0) {
         return err(validationError('Invalid document body', issuesToDetails(issues)));
       }
@@ -379,7 +394,7 @@ export function makePatchDocument(deps: CrudDeps) {
         {
           title: next.meta.title !== record.title ? next.meta.title : undefined,
           slug: next.meta.slug !== undefined && next.meta.slug !== record.slug ? next.meta.slug : undefined,
-          draft: next.body,
+          draft: sanitized,
         },
         ctx.now(),
       );

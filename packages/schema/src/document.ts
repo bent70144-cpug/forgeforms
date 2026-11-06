@@ -23,6 +23,11 @@ export const DocumentSettings = z.object({
   // identical Zod 4 canonical form (same format, same error behavior).
   closeAt: z.iso.datetime().optional(),
   maxSubmissions: z.number().int().positive().optional(),
+  // T29 (spec §17 GDPR): per-form retention — delete this form's completed
+  // submission data older than N days. 0/undefined = keep forever (default).
+  // Enforced by the core DraftValidator too (documents/validation.ts); the
+  // worker's retention purge job reads it from the published snapshot.
+  retentionDays: z.number().int().min(0).max(3650).optional(),
   // SPEC-NOTE: `z.email()` is the Zod 4 canonical form of `z.string().email()`.
   notifyEmails: z.array(z.email()).default([]),
   // T20 (spec §14.1.4): optional hidden-field extras beyond the standard UTM

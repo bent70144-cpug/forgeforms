@@ -19,7 +19,9 @@ import type {
 // ---------------------------------------------------------------------------
 
 export type PublishStatePatch = {
-  status: 'published' | 'draft';
+  // T29: 'archived' is the terminal takedown state (spec §17) — reachable ONLY
+  // via makeTakedownDocument; publish/unpublish keep the published/draft pair.
+  status: 'published' | 'draft' | 'archived';
   publishedVersionId: string | null;
   updatedAt: Date;
 };
@@ -126,6 +128,12 @@ export type PublishPipelineDeps = {
   compiler: LogicCompiler;
   assets: AssetUrlResolver;
   publicUrl: PublicUrlBuilder;
+  /**
+   * T29 (spec §17): rich-text allowlist sanitizer applied during snapshot
+   * build. The save path (CrudDeps.sanitize) covers stored drafts; this covers
+   * the rendered snapshot — the public plane's security boundary.
+   */
+  sanitizeRichText?: (node: unknown) => unknown;
 };
 
 /** Reader-only subset used by the public snapshot reader. */

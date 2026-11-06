@@ -84,7 +84,18 @@ describe("workspaces (spec §6)", () => {
       "stripe_customer_id",
       "stripe_subscription_id",
       "created_at",
+      // T29 (spec §17 GDPR): soft-deletion marker for the workspace grace
+      // window — set by DELETE /api/v1/workspace, hard purge runs after it.
+      // SPEC-NOTE: extends the §6 DDL (spec.md updated to match); expand-only
+      // migration drizzle/0008, backward compatible.
+      "deleted_at",
     ]);
+  });
+
+  it("deleted_at is nullable timestamptz (null = live workspace)", () => {
+    const deletedAt = col(workspaces, "deleted_at");
+    expect(deletedAt.getSQLType()).toBe("timestamp with time zone");
+    expect(deletedAt.notNull).toBe(false);
   });
 
   it("plan defaults to 'free' (free | pro | business)", () => {
