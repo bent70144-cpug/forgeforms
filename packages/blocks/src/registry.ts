@@ -25,6 +25,13 @@ export type RenderProps<P, A = never> = {
   /** Rendered child blocks (layout blocks). */
   children?: ReactNode;
   disabled?: boolean;
+  /**
+   * T09 (spec §7.2 generic `prefillParam`): URL params the renderer was
+   * invoked with, so a question block can show its prefilled value. Optional
+   * and additive — content/action blocks ignore it; when absent no prefill
+   * applies (public snapshot rendering seeds answers via the logic engine).
+   */
+  urlParams?: Readonly<Record<string, string>>;
 };
 
 // SPEC-NOTE: §7.1 shows `BlockDef<P, A = never>`; kept exactly. Content/action
