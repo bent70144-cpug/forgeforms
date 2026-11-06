@@ -66,7 +66,7 @@ async function tabWalk(page: Page, maxSteps = 150): Promise<TabStop[]> {
     const stop = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
       if (!el || el === document.body) return null;
-      if (el.tagName === 'NEXTJS-PORTAL' || el.closest('nextjs-portal')) return null; // dev overlay
+      if (el.tagName === 'NEXTJS-PORTAL' || el.closest('nextjs-portal')) return 'SKIP'; // dev overlay: keep walking
       const style = getComputedStyle(el);
       const ariaLabel = el.getAttribute('aria-label');
       return {
@@ -84,6 +84,7 @@ async function tabWalk(page: Page, maxSteps = 150): Promise<TabStop[]> {
         inCanvas: el.closest('.react-flow') !== null,
       };
     });
+    if (stop === 'SKIP') continue;
     if (stop === null || seenKeys.has(stop.key)) return visited;
     seenKeys.add(stop.key);
     visited.push({

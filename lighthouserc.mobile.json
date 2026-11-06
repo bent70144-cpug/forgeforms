@@ -1,22 +1,65 @@
 {
   "$schema": "https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/schema.md",
-  "comment": "T28 (issue #28) — mobile Lighthouse budgets (spec §15 M3: Performance ≥85 mobile, Accessibility ≥90). Generated runtime copy gets the published /p/:slug URL appended by scripts/lhci-seed.mjs.",
+  "comment": "T28 (issue #28) \u2014 mobile Lighthouse budgets (spec \u00a715 M3: Performance \u226585 mobile, Accessibility \u226590). Generated runtime copy gets the published /p/:slug URL appended by scripts/lhci-seed.mjs.",
   "ci": {
     "collect": {
-      "url": ["http://localhost:3000/dev/form-plane-harness"],
-      "numberOfRuns": 1,
+      "url": [
+        "http://localhost:3000/dev/form-plane-harness"
+      ],
+      "numberOfRuns": 3,
       "settings": {
         "formFactor": "mobile",
-        "screenEmulation": { "mobile": true, "width": 390, "height": 844, "deviceScaleFactor": 2.625, "disabled": false },
-        "throttling": { "rttMs": 150, "throughputKbps": 1638.4, "requestLatencyMs": 562.5, "downloadThroughputKbps": 1638.4, "uploadThroughputKbps": 675, "cpuSlowdownMultiplier": 4 },
-        "skipAudits": ["canonical", "is-crawlable", "maskable-icon", "installable-manifest", "service-worker", "offline-start-url", "splash-screen", "themed-omnibox", "content-width"]
+        "screenEmulation": {
+          "mobile": true,
+          "width": 390,
+          "height": 844,
+          "deviceScaleFactor": 2.625,
+          "disabled": false
+        },
+        "throttling": {
+          "rttMs": 150,
+          "throughputKbps": 1638.4,
+          "requestLatencyMs": 562.5,
+          "downloadThroughputKbps": 1638.4,
+          "uploadThroughputKbps": 675,
+          "cpuSlowdownMultiplier": 4
+        },
+        "skipAudits": [
+          "canonical",
+          "is-crawlable",
+          "maskable-icon",
+          "installable-manifest",
+          "service-worker",
+          "offline-start-url",
+          "splash-screen",
+          "themed-omnibox",
+          "content-width"
+        ]
       }
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["error", { "minScore": 0.85 }],
-        "categories:accessibility": ["error", { "minScore": 0.9 }],
-        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "categories:performance": [
+          "error",
+          {
+            "minScore": 0.85,
+            "aggregationMethod": "median"
+          }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.9,
+            "aggregationMethod": "median"
+          }
+        ],
+        "categories:best-practices": [
+          "warn",
+          {
+            "minScore": 0.9,
+            "aggregationMethod": "median"
+          }
+        ],
         "categories:seo": "off"
       }
     }

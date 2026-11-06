@@ -114,7 +114,8 @@ test.describe('T28 axe — public form (conversational renderer harness)', () =>
 
     // Trigger the inline validation error state (required field, empty).
     await page.getByRole('button', { name: /ok/i }).click();
-    await expect(page.locator('[role="alert"]')).toContainText('This field is required.');
+    // __next-route-announcer__ also carries role=alert — scope to the inline error.
+    await expect(page.locator('[role="alert"]').first()).toContainText('This field is required.');
     await expectZeroCritical(page, 'public form (validation error)');
   });
 });
