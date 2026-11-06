@@ -20,3 +20,9 @@ coverage/
 next-env.d.ts
 .vercel
 .env*
+
+# Impeccable design-skill install (agent harness files, not app code)
+.github/agents/
+.github/hooks/
+PRODUCT.md
+DESIGN.md
