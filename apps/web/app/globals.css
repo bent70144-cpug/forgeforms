@@ -1150,3 +1150,1375 @@ body {
     display: none;
   }
 }
+
+/* ===========================================================================
+   Builder shell (B3, spec §4/§12) — three-pane editor chrome.
+   Tailwind-first; these small classes cover the repeated --ff-* token
+   patterns (pane chrome, tree rows, issue badges) where arbitrary-value
+   utilities would be noisy.
+   =========================================================================== */
+
+.ff-builder {
+  height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--ff-bg);
+  color: var(--ff-fg);
+}
+
+.ff-pane {
+  background: var(--ff-card);
+}
+
+.ff-pane--left { border-right: 1px solid var(--ff-border); }
+.ff-pane--right { border-left: 1px solid var(--ff-border); }
+.ff-pane--top { border-top: 1px solid var(--ff-border); }
+.ff-pane--bottom { border-bottom: 1px solid var(--ff-border); }
+
+.ff-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 0.55);
+  background: var(--ff-card);
+  color: var(--ff-fg);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ff-icon-btn:hover:not(:disabled) {
+  border-color: var(--ff-primary);
+  color: var(--ff-primary);
+}
+
+.ff-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ff-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  min-height: 2rem;
+  border: 0;
+  border-radius: calc(var(--ff-radius) * 0.45);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding-right: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ff-tree-row:hover {
+  background: color-mix(in srgb, var(--ff-primary) 7%, transparent);
+}
+
+.ff-tree-row[aria-selected="true"] {
+  background: color-mix(in srgb, var(--ff-primary) 12%, transparent);
+  color: var(--ff-primary);
+  font-weight: 600;
+}
+
+/* Tree rows are focusable <li role="treeitem"> — the global a/button focus
+   rule does not cover them (spec §12: focus ring always visible). */
+[role="treeitem"]:focus-visible {
+  outline: 2px solid var(--ff-primary);
+  outline-offset: 2px;
+}
+
+.ff-tree-toggle {
+  flex-shrink: 0;
+  width: 1rem;
+  color: var(--ff-muted);
+  font-size: 0.6875rem;
+  user-select: none;
+}
+
+.ff-tree-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-issue-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.3125rem;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* --- B8 · template gallery in the New flow (spec §11) + §24 inline Pro gate */
+
+/* "Generate with AI" — gated segment: disabled in place, inline badge, no modal. */
+.ff-tpl-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.ff-tpl-pro {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--ff-primary);
+  color: var(--ff-primary-fg);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.0625rem 0.4375rem;
+  text-transform: uppercase;
+}
+
+.ff-tpl-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--ff-muted);
+}
+
+/* In-modal gallery: scrollable radio list (§11 filter-by-type is the modal's
+   own type fieldset; rows keep name + category chip + catalog stats). */
+.ff-tpl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  max-height: 13rem;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  padding: 0.375rem;
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 0.66);
+  scrollbar-color: var(--ff-border) transparent;
+  scrollbar-width: thin;
+}
+
+.ff-tpl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 0.5);
+  cursor: pointer;
+  transition: background 120ms var(--ff-ease-out), border-color 120ms var(--ff-ease-out);
+}
+
+.ff-tpl-row:hover {
+  background: color-mix(in srgb, var(--ff-primary) 6%, transparent);
+}
+
+.ff-tpl-row--selected {
+  border-color: var(--ff-primary);
+  background: color-mix(in srgb, var(--ff-primary) 10%, transparent);
+}
+
+.ff-tpl-radio {
+  accent-color: var(--ff-primary);
+  flex-shrink: 0;
+}
+
+.ff-tpl-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.ff-tpl-name {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ff-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ff-tpl-meta {
+  font-size: 0.6875rem;
+  color: var(--ff-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ff-tpl-chip {
+  flex-shrink: 0;
+}
+
+/* --- theme + endings panels (B6, spec §8.2/§8.3/§23) — ff-th- prefix ------- */
+
+.ff-th-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.75rem;
+}
+
+.ff-th-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.ff-th-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.ff-th-section-title {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ff-muted);
+}
+
+.ff-th-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ff-th-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.5rem;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ff-th-preset:hover {
+  border-color: var(--ff-primary);
+}
+
+.ff-th-preset[aria-pressed="true"] {
+  border-color: var(--ff-primary);
+  outline: 2px solid var(--ff-primary);
+  outline-offset: 1px;
+}
+
+.ff-th-preset-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ff-th-preset-pill {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.625rem;
+}
+
+.ff-th-preset-name {
+  font-size: 0.75rem;
+  color: inherit;
+}
+
+.ff-th-color-rows,
+.ff-th-font-rows,
+.ff-th-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ff-th-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+}
+
+.ff-th-row-label {
+  flex: 0 0 5.5rem;
+  font-size: 0.8125rem;
+}
+
+.ff-th-color-input {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.375rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ff-th-hex-input {
+  width: 6.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+}
+
+.ff-th-input {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+.ff-th-input:disabled,
+fieldset:disabled .ff-th-input {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ff-th-select {
+  flex: 1;
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0.25rem 0.375rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.375rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+}
+
+.ff-th-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, #15803d 12%, transparent);
+  color: #15803d;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ff-th-badge--warn {
+  background: color-mix(in srgb, #b45309 14%, transparent);
+  color: #b45309;
+}
+
+.ff-th-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+}
+
+.ff-th-note {
+  font-size: 0.75rem;
+  color: var(--ff-muted);
+}
+
+.ff-th-segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.5rem;
+  width: fit-content;
+}
+
+.ff-th-seg-btn {
+  min-height: 2rem;
+  padding: 0.25rem 0.75rem;
+  border: 0;
+  border-left: 1px solid var(--ff-border);
+  background: transparent;
+  color: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.ff-th-seg-btn:first-child {
+  border-left: 0;
+}
+
+.ff-th-seg-btn:hover {
+  background: color-mix(in srgb, var(--ff-primary) 7%, transparent);
+}
+
+.ff-th-seg-btn[aria-pressed="true"] {
+  background: var(--ff-primary);
+  color: var(--ff-primary-fg);
+  font-weight: 600;
+}
+
+.ff-th-btn {
+  width: fit-content;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ff-th-btn:hover:not(:disabled) {
+  border-color: var(--ff-primary);
+  color: var(--ff-primary);
+}
+
+.ff-th-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ff-th-btn--danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.ff-th-btn--danger:hover:not(:disabled) {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: color-mix(in srgb, #dc2626 8%, transparent);
+}
+
+.ff-th-footer {
+  border-bottom: 0;
+}
+
+.ff-th-endings-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.ff-th-ending-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8125rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ff-th-ending-row:hover {
+  background: color-mix(in srgb, var(--ff-primary) 7%, transparent);
+}
+
+.ff-th-ending-row--active,
+.ff-th-ending-row[aria-current="true"] {
+  background: color-mix(in srgb, var(--ff-primary) 12%, transparent);
+  border-color: var(--ff-primary);
+}
+
+.ff-th-ending-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-th-chip {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.4375rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 999px;
+  font-size: 0.625rem;
+  color: var(--ff-muted);
+}
+
+.ff-th-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #dc2626;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.ff-th-preview {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ff-th-preview h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.ff-th-preview p {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* --- builder settings panel (ff-set-*, B5 settings milestone §6.6) -------- */
+
+.ff-set-panel {
+  font-size: 0.875rem;
+}
+
+.ff-set-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ff-set-section-title {
+  margin: 0;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--ff-border);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ff-muted);
+}
+
+.ff-set-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--ff-muted);
+}
+
+.ff-set-note--error {
+  color: #dc2626;
+}
+
+.ff-set-note--warn {
+  color: #b45309;
+}
+
+.ff-set-tabs {
+  display: flex;
+  gap: 0.125rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--ff-border);
+  padding: 0 0.5rem;
+}
+
+.ff-set-tab {
+  flex-shrink: 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  padding: 0.5rem 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ff-muted);
+  cursor: pointer;
+}
+
+.ff-set-tab:hover {
+  color: var(--ff-fg);
+}
+
+.ff-set-tab[aria-selected="true"] {
+  color: var(--ff-primary);
+  border-bottom-color: var(--ff-primary);
+}
+
+.ff-set-tab:focus-visible {
+  outline: 2px solid var(--ff-primary);
+  outline-offset: -2px;
+}
+
+.ff-set-input {
+  border-color: var(--ff-border);
+}
+
+.ff-set-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 2.25rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.375rem;
+  background: transparent;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--ff-fg);
+  cursor: pointer;
+}
+
+.ff-set-btn:hover:not(:disabled) {
+  border-color: var(--ff-primary);
+  color: var(--ff-primary);
+}
+
+.ff-set-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ff-set-switch {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--ff-primary);
+}
+
+.ff-set-link {
+  color: var(--ff-primary);
+}
+
+.ff-set-link:hover {
+  text-decoration: underline;
+}
+
+.ff-set-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.ff-set-chip-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--ff-muted);
+  cursor: pointer;
+}
+
+.ff-set-chip-remove:hover {
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  color: #dc2626;
+}
+
+.ff-set-preview {
+  border: 1px solid var(--ff-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--ff-card, var(--ff-bg));
+}
+
+.ff-set-preview-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 5rem;
+  background: color-mix(in srgb, var(--ff-muted) 14%, transparent);
+  font-size: 1.5rem;
+}
+
+/* ===========================================================================
+   Publish gate (B7, spec §4 button states / §7.5 draft-vs-published /
+   §8.1 issues drawer). All classes use the ff-pub- prefix; colors resolve
+   from the --ff-* tokens via color-mix so dark mode keeps working.
+   =========================================================================== */
+
+/* Primary publish button (top bar). */
+.ff-pub-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  border: 1px solid var(--ff-primary);
+  background: var(--ff-primary);
+  color: var(--ff-primary-fg);
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ff-pub-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ff-primary) 85%, black);
+}
+
+.ff-pub-btn:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+/* Fix N issues — same shape, destructive tone. */
+.ff-pub-btn--issues {
+  border-color: #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.ff-pub-btn--issues:hover:not(:disabled) {
+  background: color-mix(in srgb, #dc2626 85%, black);
+}
+
+/* §7.5 "Unpublished changes" chip (amber). */
+.ff-pub-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid #d97706;
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  color: #b45309;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* §7.5 one-time hint under the button (small muted text). */
+.ff-pub-hint {
+  margin: 0;
+  max-width: 15rem;
+  font-size: 0.6875rem;
+  line-height: 1.35;
+  color: var(--ff-muted);
+  text-align: right;
+}
+
+.ff-pub-note {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #b45309;
+  text-align: right;
+}
+
+.ff-pub-error {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #dc2626;
+  text-align: right;
+}
+
+/* --- §8.1 issues drawer ---------------------------------------------------- */
+
+.ff-pub-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ff-pub-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--ff-fg) 40%, transparent);
+  cursor: default;
+}
+
+.ff-pub-drawer {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, 100vw);
+  height: 100%;
+  background: var(--ff-card);
+  border-left: 1px solid var(--ff-border);
+  box-shadow: -0.5rem 0 1.5rem color-mix(in srgb, var(--ff-fg) 18%, transparent);
+}
+
+.ff-pub-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.ff-pub-drawer-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ff-fg);
+}
+
+.ff-pub-count {
+  margin: 0;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ff-muted);
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.ff-pub-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem 1.5rem;
+  outline: none;
+}
+
+.ff-pub-empty {
+  margin: 1.5rem 0;
+  font-size: 0.8125rem;
+  color: var(--ff-muted);
+  text-align: center;
+}
+
+.ff-pub-group + .ff-pub-group {
+  margin-top: 1rem;
+}
+
+.ff-pub-group-label {
+  margin: 0 0 0.375rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ff-muted);
+}
+
+.ff-pub-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.3125rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ff-muted) 18%, transparent);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.ff-pub-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ff-pub-issue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--ff-border);
+  border-left: 3px solid #dc2626;
+  border-radius: 0.625rem;
+  background: var(--ff-bg);
+}
+
+/* Warning-class issues (SENSITIVE_FIELD, §8.1 "warning, not blocking"). */
+.ff-pub-issue--warning {
+  border-left-color: #d97706;
+  background: color-mix(in srgb, #f59e0b 8%, var(--ff-bg));
+}
+
+.ff-pub-code {
+  align-self: flex-start;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, #dc2626 12%, transparent);
+  color: #b91c1c;
+}
+
+.ff-pub-issue--warning .ff-pub-code {
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #92400e;
+}
+
+.ff-pub-msg {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--ff-fg);
+}
+
+.ff-pub-abuse {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  color: #92400e;
+}
+
+.ff-pub-goto {
+  align-self: flex-start;
+  border: 1px solid var(--ff-border);
+  border-radius: 999px;
+  background: var(--ff-card);
+  color: var(--ff-fg);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ff-pub-goto:hover {
+  border-color: var(--ff-primary);
+  color: var(--ff-primary);
+}
+
+/* Mobile safe area: the drawer is full-height; respect the bottom inset. */
+@supports (padding: max(0px, env(safe-area-inset-bottom))) {
+  .ff-pub-list {
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Preview modal (spec §8.4) — B6-part-2. All classes use the ff-prev- prefix.
+ * Fixed overlay + centered dialog (~92vw × 88vh), device toggle frames and
+ * the lazy-renderer loading spinner. Theme-aware via the --ff-* variables.
+ * ------------------------------------------------------------------------- */
+.ff-prev-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.ff-prev-panel {
+  display: flex;
+  flex-direction: column;
+  width: 92vw;
+  height: 88vh;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ff-card);
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 1.6);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.35);
+}
+
+.ff-prev-panel:focus {
+  outline: none;
+}
+
+.ff-prev-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--ff-border);
+}
+
+.ff-prev-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: auto;
+}
+
+.ff-prev-title-text {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ff-fg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-prev-chip-draft {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.ff-prev-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ff-prev-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 0.55);
+  background: var(--ff-card);
+  color: var(--ff-fg);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ff-prev-tool-btn:hover {
+  border-color: var(--ff-primary);
+  color: var(--ff-primary);
+}
+
+.ff-prev-live-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 0.55);
+  background: var(--ff-card);
+  color: var(--ff-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ff-prev-live-link:hover {
+  border-color: var(--ff-primary);
+}
+
+.ff-prev-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--ff-border);
+  border-radius: calc(var(--ff-radius) * 0.55);
+}
+
+.ff-prev-seg button {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+  border: 0;
+  background: var(--ff-card);
+  color: var(--ff-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ff-prev-seg button + button {
+  border-left: 1px solid var(--ff-border);
+}
+
+.ff-prev-seg button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--ff-primary) 12%, var(--ff-card));
+  color: var(--ff-primary);
+  font-weight: 600;
+}
+
+.ff-prev-params {
+  display: flex;
+  min-width: 0;
+}
+
+.ff-prev-params-input {
+  width: 15rem;
+  max-width: 38vw;
+  min-height: 2rem;
+  padding: 0 0.5rem;
+  border: 1px solid var(--ff-border);
+  border-right: 0;
+  border-radius: calc(var(--ff-radius) * 0.55) 0 0 calc(var(--ff-radius) * 0.55);
+  background: var(--ff-bg);
+  color: var(--ff-fg);
+  font: inherit;
+  font-size: 0.8125rem;
+}
+
+.ff-prev-params-input:focus {
+  outline: 2px solid var(--ff-primary);
+  outline-offset: -1px;
+}
+
+.ff-prev-params-apply {
+  min-height: 2rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 0 calc(var(--ff-radius) * 0.55) calc(var(--ff-radius) * 0.55) 0;
+  background: var(--ff-card);
+  color: var(--ff-fg);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ff-prev-params-apply:hover {
+  border-color: var(--ff-primary);
+  color: var(--ff-primary);
+}
+
+.ff-prev-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  width: 100%;
+}
+
+.ff-prev-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 16rem;
+  padding: 0.125rem 0.375rem;
+  border: 1px solid var(--ff-border);
+  border-radius: 999px;
+  background: var(--ff-bg);
+  color: var(--ff-muted);
+  font-size: 0.75rem;
+}
+
+.ff-prev-chip > span {
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ff-prev-chip-x {
+  padding: 0 0.125rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.875rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ff-prev-chip-x:hover {
+  color: #dc2626;
+}
+
+.ff-prev-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  justify-content: center;
+  padding: 1rem;
+  overflow: auto;
+  background: color-mix(in srgb, var(--ff-border) 35%, var(--ff-bg));
+}
+
+.ff-prev-stage {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.ff-prev-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.ff-prev-frame--mobile {
+  width: 390px;
+  max-width: 100%;
+  border: 10px solid #0f172a;
+  border-radius: 36px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+}
+
+.ff-prev-frame-inner {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  background: #ffffff;
+}
+
+.ff-prev-frame--mobile .ff-prev-frame-inner {
+  border-radius: 26px;
+}
+
+/* The conversational renderer sizes itself for a full viewport (min-height:
+ * 100dvh); inside the preview frame it must fill the frame instead. The
+ * two-class selector also outranks the renderer's injected .ff-root rule. */
+.ff-prev-frame-inner .ff-root {
+  min-height: 100%;
+}
+
+.ff-prev-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  color: var(--ff-muted);
+  font-size: 0.875rem;
+}
+
+.ff-prev-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid color-mix(in srgb, var(--ff-primary) 30%, transparent);
+  border-top-color: var(--ff-primary);
+  border-radius: 999px;
+  animation: ff-prev-spin 0.8s linear infinite;
+}
+
+@keyframes ff-prev-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-prev-spinner {
+    animation-duration: 1.6s;
+  }
+}
+
+.ff-prev-close-x {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------------------------
+ * Builder integration (wave 3): ff-int- prefixed classes. Kept in globals.css
+ * because the goto-block flash is applied imperatively (classList.add) from
+ * the canvas "ff:goto-block" listener — a class swap, not a render-driven
+ * style, so a Tailwind utility would not fit.
+ * ------------------------------------------------------------------------- */
+
+.ff-int-flash {
+  animation: ff-int-flash-keyframes 1.2s ease-out 1;
+  outline: 2px solid var(--ff-primary);
+  outline-offset: 2px;
+  border-radius: var(--ff-radius, 8px);
+}
+
+@keyframes ff-int-flash-keyframes {
+  0% {
+    background-color: color-mix(in srgb, var(--ff-primary) 18%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-int-flash {
+    /* WCAG 2.2.2: no animation — keep a static high-visibility outline only. */
+    animation: none;
+  }
+}
+
+/* Builder right-pane tab strip (BuilderShell PaneTabs) — wave 3 integration. */
+.ff-pane-tab {
+  border: 1px solid transparent;
+  color: var(--ff-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.ff-pane-tab:hover {
+  color: var(--ff-fg);
+}
+.ff-pane-tab--active {
+  color: var(--ff-primary);
+  border-color: var(--ff-border);
+  background: color-mix(in srgb, var(--ff-primary) 8%, transparent);
+}
+.ff-pane-tab--active:hover {
+  color: var(--ff-primary);
+}
+
+/* ===========================================================================
+   Accessibility helpers (wave 3b a11y sweep, spec §12) — ff-a11y- prefix.
+   Appended by the §12 sweep; the global `prefers-reduced-motion` collapse
+   earlier in this file already guards every builder animation/transition
+   (and .ff-int-flash carries its own static-outline fallback), so no new
+   motion rules are added here.
+   =========================================================================== */
+
+/* .ff-a11y-announcer — visually hidden, screen-reader-only live region for
+   <LiveAnnouncer /> (lib/builder/announce.ts). Announced politely via
+   role="status" aria-live="polite"; must never catch pointer events or
+   focus, and must never shift layout (1px box, clipped). */
+.ff-a11y-announcer {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+  pointer-events: none;
+}

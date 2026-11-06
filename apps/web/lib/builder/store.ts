@@ -7,11 +7,14 @@
 // later adopts the pinned stack.
 
 import type { DocumentEnvelope, DocumentStatus } from "../bridge";
+import { mergeCoalescedEntry } from "./coalesce";
 import { emptyHistory, popRedo, popUndo, pushEntry, type History } from "./history";
 import { applyOps, invertOps, findBlock, emptyBody, type EditableDoc, type Op, type DocMeta } from "./ops";
 
 export type PanelTab = "block" | "document" | "theme" | "endings";
-export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error";
+// "offline" mirrors AutosaveStatus (§7.1: edits continue, queue kept) — added
+// when AutosaveController gained the offline state so the store can carry it.
+export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error" | "offline";
 
 export type EditorState = {
   docId: string;
@@ -33,7 +36,23 @@ export type EditorState = {
 
 export type EditorAction =
   | { type: "loaded"; envelope: DocumentEnvelope; mode: "api" | "mock" }
-  | { type: "apply"; ops: readonly Op[]; label?: string }
+  | {
+      type: "apply";
+      ops: readonly Op[];
+      label?: string;
+      /**
+       * Group id for grouped undo (spec §6.3, §11): entries sharing a group are
+       * undone/redone as ONE step (e.g. an AI multi-op apply batch).
+       */
+      group?: string;
+      /**
+       * Coalescing hint (spec §3.3): dispatches with the same `key` within
+       * COALESCE_WINDOW_MS merge into the last history entry AND into one
+       * outgoing op. Typing uses `update:<blockId>`; the timestamp `at` comes
+       * from the caller (injectable clock — the reducer never calls Date.now).
+       */
+      coalesce?: { key: string; at: number };
+    }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "emitDone"; nonce: number }
@@ -105,12 +124,45 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return state;
       }
       const inverse = invertOps(doc, action.ops);
+
+      // §3.3 coalescing: same-key dispatch within the window merges into the
+      // last history entry and into ONE outgoing op (typing = `update:<id>`;
+      // keyboard moves = `move:<id>`). Only consecutive edits coalesce — the
+      // redo stack must be empty (mergeCoalescedEntry clears it either way).
+      if (action.coalesce && action.ops.length === 1 && state.history.future.length === 0) {
+        const merged = mergeCoalescedEntry(state.history, {
+          key: action.coalesce.key,
+          at: action.coalesce.at,
+          op: action.ops[0] as Op,
+          inverse: inverse[0],
+          label: action.label,
+        });
+        if (merged) {
+          return withEmit(
+            {
+              ...state,
+              meta: next.meta,
+              body: next.body,
+              history: merged.history,
+            },
+            merged.ops,
+          );
+        }
+      }
+
       return withEmit(
         {
           ...state,
           meta: next.meta,
           body: next.body,
-          history: pushEntry(state.history, { label: action.label, ops: [...action.ops], inverse }),
+          history: pushEntry(state.history, {
+            label: action.label,
+            group: action.group,
+            coalesceKey: action.coalesce?.key,
+            coalesceAt: action.coalesce?.at,
+            ops: [...action.ops],
+            inverse,
+          }),
         },
         action.ops,
       );

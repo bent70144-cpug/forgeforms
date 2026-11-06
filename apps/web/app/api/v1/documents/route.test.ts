@@ -113,6 +113,16 @@ describe('POST /api/v1/documents (create modal, spec §14.1.2)', () => {
     expect(body.error.details?.[0]?.path).toBe('templateId');
   });
 
+  it('404 NOT_FOUND for an unknown templateId (route §4 conventions)', async () => {
+    const res = await createDocument(
+      json('POST', '', { type: 'form', title: 'Ghost', templateId: 'no-such-template' }),
+    );
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe('NOT_FOUND');
+    expect(body.error.message).toContain('no-such-template');
+  });
+
   it('403 FORBIDDEN without a session (spec §4 has no 401)', async () => {
     vi.mocked(getCurrentSession).mockResolvedValue(null);
     const res = await createDocument(json('POST', '', { type: 'form', title: 'x' }));

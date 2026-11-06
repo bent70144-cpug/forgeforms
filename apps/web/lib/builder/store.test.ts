@@ -108,6 +108,214 @@ describe("editorReducer — undo/redo round-trip", () => {
     const sec2 = undone.body.blocks[1];
     expect(sec2?.children?.map((c) => c.id)).toEqual(["s1", "s2"]);
   });
+
+  it("a multi-op apply stores ONE history entry whose inverse undoes the whole batch", () => {
+    const applied = editorReducer(state(), {
+      type: "apply",
+      ops: [
+        { op: "block.update", id: "a", props: { label: "One" } },
+        { op: "block.move", id: "a", parentId: null, index: 2 },
+        { op: "block.remove", id: "c" },
+      ],
+      label: "Batch edit",
+    });
+    expect(applied.history.past.length).toBe(1);
+    const undone = editorReducer(applied, { type: "undo" });
+    expect(undone.body).toStrictEqual(state().body);
+    expect(undone.emit?.ops.length).toBe(3); // whole batch reverted by one undo
+  });
+});
+
+describe("editorReducer — coalescing (§3.3)", () => {
+  const type = (s: EditorState, text: string, startAt = 0): EditorState => {
+    let next = s;
+    const chars = [...text];
+    for (let i = 0; i < chars.length; i++) {
+      next = editorReducer(next, {
+        type: "apply",
+        ops: [{ op: "block.update", id: "a", props: { label: chars.slice(0, i + 1).join("") } }],
+        label: "Typing",
+        coalesce: { key: "update:a", at: startAt + i * 100 },
+      });
+    }
+    return next;
+  };
+
+  it("5 updates on the same block within 800 ms coalesce into ONE history entry and ONE outgoing op", () => {
+    const typed = type(state(), "Hello");
+    expect(typed.history.past.length).toBe(1);
+    expect(typed.body.blocks[0]?.props.label).toBe("Hello");
+    // The emitted op is the merged patch — a single outgoing op.
+    expect(typed.emit?.ops).toEqual([{ op: "block.update", id: "a", props: { label: "Hello" } }]);
+    const mergedEntry = typed.history.past[0];
+    expect(mergedEntry?.ops).toEqual([{ op: "block.update", id: "a", props: { label: "Hello" } }]);
+    // Earliest inverse (§21): restores the label the block had before typing.
+    expect(mergedEntry?.inverse).toEqual([{ op: "block.update", id: "a", props: { label: null } }]);
+
+    // One undo reverts the whole typing burst.
+    const undone = editorReducer(typed, { type: "undo" });
+    expect(undone.body.blocks[0]?.props).toStrictEqual({});
+    expect(undone.emit?.ops).toEqual([{ op: "block.update", id: "a", props: { label: null } }]);
+    const redone = editorReducer(undone, { type: "redo" });
+    expect(redone.body.blocks[0]?.props.label).toBe("Hello");
+  });
+
+  it("typing on a DIFFERENT block starts a new entry", () => {
+    let s = state();
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "x" } }],
+      coalesce: { key: "update:a", at: 0 },
+    });
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "c", props: { label: "y" } }],
+      coalesce: { key: "update:c", at: 50 },
+    });
+    expect(s.history.past.length).toBe(2);
+  });
+
+  it("updates more than 800 ms apart do NOT coalesce; exactly 800 ms do", () => {
+    let s = type(state(), "ab", 0); // stamps 0, 100
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "abc" } }],
+      coalesce: { key: "update:a", at: 901 }, // 901 - 100 = 801 > 800
+    });
+    expect(s.history.past.length).toBe(2);
+
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "abcd" } }],
+      coalesce: { key: "update:a", at: 1701 }, // 1701 - 901 = 800 → merges with the newest
+    });
+    expect(s.history.past.length).toBe(2);
+    expect(s.body.blocks[0]?.props.label).toBe("abcd");
+  });
+
+  it("a dispatch WITHOUT a coalesce key never merges", () => {
+    let s = state();
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "x" } }],
+      coalesce: { key: "update:a", at: 0 },
+    });
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "xy" } }],
+    });
+    expect(s.history.past.length).toBe(2);
+  });
+
+  it("does not coalesce after an undo (only consecutive edits coalesce)", () => {
+    let s = state();
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "x" } }],
+      coalesce: { key: "update:a", at: 0 },
+    });
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "c", props: { label: "y" } }],
+      coalesce: { key: "update:c", at: 10 },
+    });
+    s = editorReducer(s, { type: "undo" }); // pops "update:c"
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "xy" } }],
+      coalesce: { key: "update:a", at: 20 }, // within window of the first entry — but not consecutive
+    });
+    expect(s.history.past.length).toBe(2);
+    expect(s.history.future.length).toBe(0); // the fresh edit still cleared the redo stack
+  });
+
+  it("keyboard move repeats coalesce into a single final move; undo restores the original position", () => {
+    let s = state();
+    for (const [i, idx] of [1, 2].entries()) {
+      s = editorReducer(s, {
+        type: "apply",
+        ops: [{ op: "block.move", id: "a", parentId: null, index: idx }],
+        label: "Moved",
+        coalesce: { key: "move:a", at: i * 100 },
+      });
+    }
+    expect(s.history.past.length).toBe(1);
+    expect(s.emit?.ops).toEqual([{ op: "block.move", id: "a", parentId: null, index: 2 }]);
+    expect(s.body.blocks.map((x) => x.id)).toEqual(["sec", "c", "a"]);
+
+    const undone = editorReducer(s, { type: "undo" });
+    expect(undone.body.blocks.map((x) => x.id)).toEqual(["a", "sec", "c"]);
+    const redone = editorReducer(undone, { type: "redo" });
+    expect(redone.body.blocks.map((x) => x.id)).toEqual(["sec", "c", "a"]);
+  });
+});
+
+describe("editorReducer — grouped undo (§6.3/§11)", () => {
+  it("entries sharing a group undo as ONE step and redo as one step", () => {
+    let s = state();
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "AI-1" } }],
+      label: "AI edit 1",
+      group: "ai-batch-1",
+    });
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [
+        { op: "block.update", id: "a", props: { label: "AI-2" } },
+        { op: "meta.update", patch: { title: "AI renamed" } },
+      ],
+      label: "AI edit 2",
+      group: "ai-batch-1",
+    });
+    expect(s.history.past.length).toBe(2);
+
+    const undone = editorReducer(s, { type: "undo" });
+    expect(undone.body.blocks[0]?.props).toStrictEqual({}); // label key deleted again
+    expect(undone.meta.title).toBe("Doc"); // both group entries reverted together
+    expect(undone.history.past.length).toBe(0);
+    expect(undone.history.future.length).toBe(1);
+
+    const redone = editorReducer(undone, { type: "redo" });
+    expect(redone.body.blocks[0]?.props.label).toBe("AI-2");
+    expect(redone.meta.title).toBe("AI renamed");
+    expect(redone.history.past.length).toBe(1); // merged group entry
+  });
+
+  it("a non-grouped edit between groups stays an independent undo step", () => {
+    let s = state();
+    s = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "meta.update", patch: { title: "g1" } }],
+      group: "g1",
+    });
+    s = editorReducer(s, { type: "apply", ops: [{ op: "meta.update", patch: { title: "solo" } }] });
+    const undone = editorReducer(s, { type: "undo" });
+    expect(undone.meta.title).toBe("g1");
+    expect(undone.history.past.length).toBe(1);
+  });
+});
+
+describe("editorReducer — history cap (§6.3)", () => {
+  it("keeps at most 100 entries, dropping the oldest", () => {
+    let s = state();
+    for (let i = 0; i < 105; i++) {
+      s = editorReducer(s, { type: "apply", ops: [{ op: "meta.update", patch: { title: `t${i}` } }] });
+    }
+    expect(s.history.past.length).toBe(100);
+    expect(s.history.past[0]?.ops[0]).toEqual({
+      op: "meta.update",
+      patch: { title: "t5" },
+    });
+    expect(s.meta.title).toBe("t104");
+    // Undo to empty restores the state at the CAP boundary: the five entries
+    // dropped from history (t0–t4) are permanent — the doc keeps "t4".
+    let undone = s;
+    while (undone.history.past.length > 0) {
+      undone = editorReducer(undone, { type: "undo" });
+    }
+    expect(undone.meta.title).toBe("t4");
+  });
 });
 
 describe("editorReducer — server reconciliation", () => {

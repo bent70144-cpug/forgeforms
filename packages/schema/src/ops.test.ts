@@ -21,11 +21,24 @@ describe("DocumentOpSchema", () => {
       "ending.upsert",
       { op: "ending.upsert", ending: { id: "end1", title: "Thanks!" } },
     ],
+    // B1/§21: optional position for a NEW ending/rule (inverse of remove).
+    [
+      "ending.upsert (with index)",
+      { op: "ending.upsert", index: 1, ending: { id: "end1", title: "Thanks!" } },
+    ],
     ["ending.remove", { op: "ending.remove", id: "end1" }],
     [
       "rule.upsert",
       {
         op: "rule.upsert",
+        rule: { id: "r1", scope: "b1", when: [], then: [], isFallback: false },
+      },
+    ],
+    [
+      "rule.upsert (with index)",
+      {
+        op: "rule.upsert",
+        index: 0,
         rule: { id: "r1", scope: "b1", when: [], then: [], isFallback: false },
       },
     ],
@@ -66,6 +79,34 @@ describe("DocumentOpSchema", () => {
         patch: { tokens: { "color.bg": null } },
       }).success,
     ).toBe(true);
+  });
+
+  // B1/§21: undo inverses must be able to DELETE keys that an earlier patch
+  // added — the merge-patch convention's null delete-token on the wire.
+  it("accepts null delete-tokens for meta.slug and settings.hiddenFields (§21 inverses)", () => {
+    expect(DocumentOpSchema.safeParse({ op: "meta.update", patch: { slug: null } }).success).toBe(
+      true,
+    );
+    expect(
+      DocumentOpSchema.safeParse({ op: "settings.update", patch: { hiddenFields: null } }).success,
+    ).toBe(true);
+  });
+
+  it("rejects ending/rule upserts with a negative or non-integer index", () => {
+    expect(
+      DocumentOpSchema.safeParse({
+        op: "ending.upsert",
+        index: -1,
+        ending: { id: "e1", title: "x" },
+      }).success,
+    ).toBe(false);
+    expect(
+      DocumentOpSchema.safeParse({
+        op: "rule.upsert",
+        index: 1.5,
+        rule: { id: "r1", scope: "b1", when: [], then: [], isFallback: false },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects settings.update patches with unknown value types", () => {
