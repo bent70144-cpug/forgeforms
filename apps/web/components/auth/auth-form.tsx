@@ -118,8 +118,6 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       <button type="submit" className="ff-button ff-button-primary" disabled={pending}>
         {pending ? "Please wait…" : mode === "login" ? "Log in" : "Create account"}
       </button>
-
-      {/* SPEC-NOTE: Google button (spec §14.1) arrives with OAuth in the M1 follow-up; reset-password likewise. */}
     </form>
   );
 }

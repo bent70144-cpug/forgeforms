@@ -9,6 +9,7 @@
 
 import {
   customType,
+  index,
   pgTable,
   primaryKey,
   text,
@@ -76,6 +77,48 @@ export const apiTokens = pgTable("api_tokens", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * DB-backed sessions (ticket #3 acceptance) — opaque sha256-hashed tokens with
+ * sliding expiry. Formalized here in T05 (moved out of the integration shim in
+ * src/bridge.ts); spec §6 lists no sessions table because Auth.js owns it in
+ * the original plan — we own the session store ourselves (see auth.config.ts).
+ */
+export const sessions = pgTable("sessions", {
+  id: uuid("id").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull().unique(), // sha256; raw token lives only in the cookie
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Single-use auth tokens for password reset + email verification (ticket #5).
+ * Hashed at rest (sha256 — the raw token is unguessable CSPRNG output and
+ * lives only inside the emailed link), single use via consumed_at, expiry
+ * enforced by the service (reset 1h, verification 24h).
+ */
+export const authTokens = pgTable(
+  "auth_tokens",
+  {
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // password_reset | email_verify — plain text per spec §6 conventions
+    kind: text("kind").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("auth_tokens_user_kind_idx").on(table.userId, table.kind)],
+);
+
+export const authTokenKinds = ["password_reset", "email_verify"] as const;
+export type AuthTokenKind = (typeof authTokenKinds)[number];
+
 export const workspacePlanValues = ["free", "pro", "business"] as const;
 export type WorkspacePlan = (typeof workspacePlanValues)[number];
 
@@ -98,7 +141,11 @@ export type Membership = typeof memberships.$inferSelect;
 export type NewMembership = typeof memberships.$inferInsert;
 export type ApiToken = typeof apiTokens.$inferSelect;
 export type NewApiToken = typeof apiTokens.$inferInsert;
+export type Session = typeof sessions.$inferSelect;
+export type NewSession = typeof sessions.$inferInsert;
+export type AuthToken = typeof authTokens.$inferSelect;
+export type NewAuthToken = typeof authTokens.$inferInsert;
 
 // Re-exported so downstream packages can reference the table objects without
 // reaching into internals (spec §3: modules import through public surfaces).
-export const identityTables = { users, workspaces, memberships, apiTokens } as const;
+export const identityTables = { users, workspaces, memberships, apiTokens, sessions, authTokens } as const;

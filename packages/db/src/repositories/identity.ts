@@ -88,6 +88,16 @@ export class DrizzleUserRepository {
     const row = rows[0];
     return row ? toUser(row) : null;
   }
+
+  // Ticket #5: password reset — replace the stored hash.
+  async setPasswordHash(id: string, passwordHash: string | null): Promise<void> {
+    await this.db.update(users).set({ passwordHash }).where(eq(users.id, id));
+  }
+
+  // Ticket #5: email verification — update the verified-at column.
+  async markEmailVerified(id: string, verifiedAt: Date): Promise<void> {
+    await this.db.update(users).set({ emailVerifiedAt: verifiedAt }).where(eq(users.id, id));
+  }
 }
 
 export class DrizzleWorkspaceRepository {

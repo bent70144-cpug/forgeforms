@@ -29,5 +29,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // /forgot and /reset-password are reachable both logged-out and mid-recovery —
+  // no gate, matching the auth pages' open access.
   matcher: ["/dashboard/:path*", "/login", "/register"],
 };

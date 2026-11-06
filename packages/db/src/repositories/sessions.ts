@@ -84,4 +84,13 @@ export class DrizzleSessionRepository {
       .returning({ id: sessions.id });
     return deleted.length > 0;
   }
+
+  // Ticket #5: revoke every session for a user (password reset → sign out everywhere).
+  async deleteForUser(userId: string): Promise<number> {
+    const deleted = await this.db
+      .delete(sessions)
+      .where(eq(sessions.userId, userId))
+      .returning({ id: sessions.id });
+    return deleted.length;
+  }
 }

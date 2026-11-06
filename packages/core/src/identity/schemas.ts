@@ -24,6 +24,22 @@ export const LoginInputSchema = z.object({
 });
 export type LoginInput = z.infer<typeof LoginInputSchema>;
 
+// Ticket #5: forgot/reset password + verification inputs.
+export const RequestPasswordResetInputSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("Enter a valid email address")),
+});
+export type RequestPasswordResetInput = z.infer<typeof RequestPasswordResetInputSchema>;
+
+export const ResetPasswordInputSchema = z.object({
+  token: z.string().min(1, "Reset token is required").max(200),
+  password: z.string().min(8, "Use at least 8 characters").max(200, "Password is too long"),
+});
+export type ResetPasswordInput = z.infer<typeof ResetPasswordInputSchema>;
+
 /** Map a ZodError to the spec §4 `details` shape for inline field errors. */
 export function zodToDetails(error: z.ZodError): AppErrorDetail[] {
   return error.issues.map((issue) => ({

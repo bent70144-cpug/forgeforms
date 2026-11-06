@@ -7,9 +7,12 @@ import { getTableConfig } from "drizzle-orm/pg-core";
 import {
   apiTokenScopes,
   apiTokens,
+  authTokenKinds,
+  authTokens,
   identityTables,
   membershipRoleValues,
   memberships,
+  sessions,
   users,
   workspacePlanValues,
   workspaces,
@@ -139,8 +142,60 @@ describe("api_tokens (spec §6)", () => {
   });
 });
 
+describe("sessions (ticket #3: DB-backed sessions, formalized in T05)", () => {
+  it("has the hashed-token columns and a cascade FK to users", () => {
+    expect(columnNames(sessions)).toEqual(["id", "user_id", "token_hash", "expires_at", "created_at"]);
+    const tokenHash = col(sessions, "token_hash");
+    expect(tokenHash.notNull).toBe(true);
+    expect(uniqueColumnNames(sessions)).toContain("token_hash");
+    expect(getTableConfig(sessions).foreignKeys).toHaveLength(1);
+  });
+});
+
+describe("auth_tokens (ticket #5: reset + verification tokens)", () => {
+  it("has the single-use hashed-token columns", () => {
+    expect(columnNames(authTokens)).toEqual([
+      "id",
+      "user_id",
+      "kind",
+      "token_hash",
+      "expires_at",
+      "consumed_at",
+      "created_at",
+    ]);
+  });
+
+  it("token_hash is unique + not null (sha256 at rest; raw token never stored)", () => {
+    const tokenHash = col(authTokens, "token_hash");
+    expect(tokenHash.notNull).toBe(true);
+    expect(uniqueColumnNames(authTokens)).toContain("token_hash");
+  });
+
+  it("consumed_at is nullable (single-use marker set atomically)", () => {
+    expect(col(authTokens, "consumed_at").notNull).toBe(false);
+    expect(col(authTokens, "expires_at").notNull).toBe(true);
+  });
+
+  it("has a cascade FK to users and a (user_id, kind) lookup index", () => {
+    const config = getTableConfig(authTokens);
+    expect(config.foreignKeys).toHaveLength(1);
+    const indexColumns = config.indexes.flatMap((i) =>
+      i.config.columns.map((c) => ("name" in c ? (c.name as string) : "")),
+    );
+    expect(indexColumns).toEqual(expect.arrayContaining(["user_id", "kind"]));
+    expect(authTokenKinds).toEqual(["password_reset", "email_verify"]);
+  });
+});
+
 describe("schema surface", () => {
-  it("exports exactly the four identity tables", () => {
-    expect(Object.keys(identityTables).sort()).toEqual(["apiTokens", "memberships", "users", "workspaces"]);
+  it("exports exactly the identity tables", () => {
+    expect(Object.keys(identityTables).sort()).toEqual([
+      "apiTokens",
+      "authTokens",
+      "memberships",
+      "sessions",
+      "users",
+      "workspaces",
+    ]);
   });
 });

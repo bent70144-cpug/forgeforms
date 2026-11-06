@@ -3,11 +3,11 @@
 // can't run preserve, so component tests need explicit automatic JSX.
 // Everything else stays default (node env, plain `*.test.ts` discovery).
 //
-// The `@/*` tsconfig path alias is mirrored here so route-handler tests can
-// import `@/lib/...` modules (T07 route tests, T07 session loader in _lib/auth).
+// The `@/*` tsconfig path alias is mirrored here (T05) so route-handler tests
+// and lib/ modules resolve (T07 route tests, session loader in _lib/auth).
 
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -15,12 +15,12 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./", import.meta.url)),
     },
   },
-  // Playwright specs (apps/web/e2e, written for CI; not runnable in the unit
-  // sandbox — no @playwright/test dependency) must not be picked up here.
-  test: {
-    exclude: ["**/node_modules/**", "**/.git/**", "e2e/**"],
-  },
   oxc: {
     jsx: { runtime: "automatic" },
+  },
+  test: {
+    // `*.spec.ts` under e2e/ belongs to Playwright (@playwright/test's
+    // test.describe throws when run under Vitest) — keep them out of `pnpm test`.
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });
