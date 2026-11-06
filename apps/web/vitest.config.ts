@@ -15,6 +15,11 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./", import.meta.url)),
     },
   },
+  // Playwright specs (apps/web/e2e, written for CI; not runnable in the unit
+  // sandbox — no @playwright/test dependency) must not be picked up here.
+  test: {
+    exclude: ["**/node_modules/**", "**/.git/**", "e2e/**"],
+  },
   oxc: {
     jsx: { runtime: "automatic" },
   },

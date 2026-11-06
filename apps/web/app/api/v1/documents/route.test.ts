@@ -125,6 +125,9 @@ describe('POST /api/v1/documents (create modal, spec §14.1.2)', () => {
 describe('GET /api/v1/documents (dashboard list)', () => {
   it('200 { data, nextCursor } — most recently updated first', async () => {
     const first = await createDocument(json('POST', '', { type: 'form', title: 'Alpha' }));
+    // updatedAt ties are broken by id; keep the two creates a few ms apart so
+    // the ordering assertion is deterministic across fast machines.
+    await new Promise((resolve) => setTimeout(resolve, 5));
     const second = await createDocument(json('POST', '', { type: 'page', title: 'Beta' }));
     expect(first.ok && second.ok).toBe(true);
 
