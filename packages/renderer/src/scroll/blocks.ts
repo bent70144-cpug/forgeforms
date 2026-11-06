@@ -2,7 +2,7 @@
 // Everything here is defensive: snapshots may carry unresolved asset ids or
 // missing props, and malformed blocks must degrade — never crash the page.
 
-import type { SnapshotBlock } from "../bridge";
+import type { SnapshotBlock } from "../snapshot";
 
 export type HeroViewProps = {
   title: string;

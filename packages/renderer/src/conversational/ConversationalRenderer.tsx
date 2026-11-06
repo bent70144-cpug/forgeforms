@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from 'react';
-import type { DocumentBody } from '../bridge';
+import type { DocumentBody } from '../document-model';
 import { swallowEscape } from './inputs/shared';
 import { createFetchIngestClient } from './ingest/fetchIngestClient';
 import type { IngestClient } from './ingest/types';

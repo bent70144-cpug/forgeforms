@@ -17,7 +17,7 @@ import { createMockIngestClient } from '../ingest/mockIngestClient';
 import type { IngestClient } from '../ingest/types';
 import { CONVERSATIONAL_STYLES } from '../styles';
 import { basicDoc, formDoc, q } from '../machine/__tests__/fixtures';
-import type { DocumentBody } from '../../bridge';
+import type { DocumentBody } from '../../document-model';
 
 let container: HTMLDivElement;
 let root: Root | null = null;

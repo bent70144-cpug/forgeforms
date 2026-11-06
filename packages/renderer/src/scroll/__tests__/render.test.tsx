@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
-import type { Snapshot, SnapshotBlock } from "../../bridge";
+import type { Snapshot, SnapshotBlock } from "../../snapshot";
 import { ScrollRenderer } from "../ScrollRenderer";
 import { GoneView } from "../sections/GoneView";
 

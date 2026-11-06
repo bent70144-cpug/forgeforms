@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import type { SnapshotBlock } from "../../bridge";
+import type { SnapshotBlock } from "../../snapshot";
 import {
   isBlockRenderable,
   normalizeButtonProps,

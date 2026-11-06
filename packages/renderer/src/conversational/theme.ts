@@ -3,7 +3,7 @@
 // consumption time): it styles itself with inline styles + CSS variables so
 // any host app picks it up without extra build config.
 import type { CSSProperties } from 'react';
-import type { Theme } from '../bridge';
+import type { Theme } from '../document-model';
 
 export interface ThemeVars extends CSSProperties {
   '--ff-bg': string;

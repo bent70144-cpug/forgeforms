@@ -1,5 +1,5 @@
 // Shared fixtures for conversational renderer machine tests.
-import type { Block, DocumentBody, Ending, Rule } from '../../../bridge';
+import type { Block, DocumentBody, Ending, Rule } from '../../../document-model';
 import { buildMachineDoc } from '../helpers';
 import type { MachineDoc } from '../types';
 

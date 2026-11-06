@@ -1,5 +1,5 @@
 // Welcome screen (spec §15 M3 / issue #12). Driven by the optional document
-// `welcome` config (INTEGRATION-DEBT: shape pending T06 — see bridge.ts).
+// `welcome` config (SPEC-NOTE: shape pending T06 alignment — re-ticketed with the issue #30 follow-up).
 // Enter anywhere starts the flow (wired by the parent via a window listener).
 export function WelcomeScreen(props: {
   title: string;

@@ -6,7 +6,7 @@
 // client never rejects something the server would accept (only the reverse is
 // avoided; anything the client accepts is re-validated server-side).
 import { isQuestionKind, propBool, propNum, propStr, asSelectValue } from '../machine/helpers';
-import type { Block } from '../../bridge';
+import type { Block } from '../../document-model';
 
 export const MSG_REQUIRED = 'This field is required.';
 

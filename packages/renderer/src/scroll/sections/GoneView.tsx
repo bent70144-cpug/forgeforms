@@ -3,7 +3,7 @@
  * "unavailable" page — HTTP 410). SPEC-NOTE: App Router pages can only emit 200/404
  * (notFound()/redirect — Next 15 has no 410 primitive for pages), so this renders
  * the gone UI with noindex metadata; a middleware-level rewrite can upgrade it to a
- * true 410 status later (INTEGRATION-DEBT, see packages/renderer/src/bridge.ts).
+ * true 410 status later (re-ticketed with the issue #30 follow-up).
  */
 export function GoneView({ locale }: { locale?: string }) {
   return (

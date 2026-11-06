@@ -4,7 +4,7 @@
 // T20 (issue #20): `Routing` is the T13 engine's compiled program
 // (`@formforge/core/logic`) — same engine package on client and server.
 import type { Routing } from '@formforge/core/logic';
-import type { Block, DocumentBody, Ending } from '../../bridge';
+import type { Block, DocumentBody, Ending } from '../../document-model';
 
 export type Phase = 'idle' | 'question' | 'validating' | 'submitting' | 'done' | 'error';
 

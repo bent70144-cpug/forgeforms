@@ -1,7 +1,7 @@
 // One-question screen (spec §10.2): heading, description, per-kind input,
 // accessible inline validation message, continue button, keyboard hint.
 // Mounted with key={blockId} by the parent so each question gets fresh focus.
-import type { Block } from '../../bridge';
+import type { Block } from '../../document-model';
 import {
   isInstantAnswer,
   isQuestionKind,

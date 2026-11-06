@@ -8,7 +8,7 @@
 import { renderToString } from 'react-dom/server';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ScrollRenderer } from '../ScrollRenderer';
-import type { Snapshot } from '../../bridge';
+import type { Snapshot } from '../../snapshot';
 
 function snapshot(blocks: Snapshot['blocks'], overrides: Partial<Snapshot> = {}): Snapshot {
   return {

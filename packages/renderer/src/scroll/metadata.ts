@@ -2,7 +2,7 @@
 // snapshot.settings.seo). Returns a structural subset of Next.js `Metadata`
 // so callers can return it directly from generateMetadata.
 
-import type { Snapshot } from "../bridge";
+import type { Snapshot } from "../snapshot";
 
 /**
  * Minimal Next-Metadata-compatible shape. Kept local so this package does not

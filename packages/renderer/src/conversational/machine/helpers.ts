@@ -7,7 +7,7 @@ import {
   type Block,
   type DocumentBody,
   type Ending,
-} from '../../bridge';
+} from '../../document-model';
 import type { MachineDoc, NormalizedSettings, ResolvedEnding } from './types';
 
 export { isInstantAnswer, isQuestionKind };

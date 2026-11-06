@@ -1,16 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { getPublishedSnapshot } from "../../bridge";
+import {
+  configureSnapshotReader,
+  getPublishedSnapshot,
+  type Snapshot,
+} from "../../snapshot";
 import { ScrollRenderer } from "../ScrollRenderer";
 import { BlockSection } from "../sections/BlockSection";
 
-describe("getPublishedSnapshot (bridge placeholder)", () => {
-  it("fails visibly until T10 lands — never throws", async () => {
+describe("getPublishedSnapshot (injectable reader, issue #30)", () => {
+  it("fails visibly until a reader is configured — never throws", async () => {
     const result = await getPublishedSnapshot("some-slug");
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.code).toBe("NOT_IMPLEMENTED");
-      expect(result.error.message).toContain("T10");
+      expect(result.error.message).toContain("configureSnapshotReader");
     }
+  });
+
+  it("delegates to the configured reader", async () => {
+    const fake: Snapshot = { documentId: "doc-1", type: "page", title: "Hi" };
+    configureSnapshotReader(async (key) => {
+      expect(key).toBe("some-slug");
+      return { ok: true, value: fake };
+    });
+    const result = await getPublishedSnapshot("some-slug");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.title).toBe("Hi");
   });
 });
 

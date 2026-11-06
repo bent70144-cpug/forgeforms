@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildPageMetadata, buildUnavailableMetadata } from "../metadata";
 import { classifySnapshotError } from "../errors";
-import type { Snapshot } from "../../bridge";
+import type { Snapshot } from "../../snapshot";
 
 function snapshot(overrides: Partial<Snapshot> = {}): Snapshot {
   return {

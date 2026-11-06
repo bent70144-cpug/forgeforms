@@ -1,4 +1,4 @@
-import type { Snapshot } from "../bridge";
+import type { Snapshot } from "../snapshot";
 import { cssVarsToStyle, normalizeCssVars } from "./theme";
 import { BlockSection } from "./sections/BlockSection";
 import { BrandingBadge } from "./sections/BrandingBadge";
