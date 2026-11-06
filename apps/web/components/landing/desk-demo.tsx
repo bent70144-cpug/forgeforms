@@ -23,7 +23,9 @@ const EMBED_SNIPPET =
 
 export function DeskDemo() {
   const [plane, setPlane] = useState<Plane>("form");
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const copiedTimer = useRef<number | undefined>(undefined);
 
@@ -65,13 +67,12 @@ export function DeskDemo() {
   const copySnippet = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(EMBED_SNIPPET);
-      setCopied(true);
-      window.clearTimeout(copiedTimer.current);
-      copiedTimer.current = window.setTimeout(() => setCopied(false), 2000);
+      setCopyState("copied");
     } catch {
-      // Clipboard unavailable (permissions/insecure context): the snippet is
-      // selectable text anyway, so silently keep the pre-copy state.
+      setCopyState("failed");
     }
+    window.clearTimeout(copiedTimer.current);
+    copiedTimer.current = window.setTimeout(() => setCopyState("idle"), 2500);
   }, []);
 
   return (
@@ -116,7 +117,7 @@ export function DeskDemo() {
             aria-labelledby="ff-land-tab-form"
             className="ff-land-plane ff-land-plane-form"
           >
-            <h3 className="ff-land-sheet-title">Cooking class RSVP</h3>
+            <p className="ff-land-sheet-title">Cooking class RSVP</p>
             <hr className="ff-land-sheet-rule" />
             <div className="ff-land-field">
               <label htmlFor="ff-land-demo-name">Name</label>
@@ -152,7 +153,7 @@ export function DeskDemo() {
             aria-labelledby="ff-land-tab-page"
             className="ff-land-plane ff-land-plane-page"
           >
-            <h4 className="ff-land-minihead">Cooking class, Thursday at six</h4>
+            <p className="ff-land-minihead">Cooking class, Thursday at six</p>
             <p className="ff-land-minibody">
               Twelve seats at the long table in Alfama. We cook, we eat,
               everyone takes a jar home.
@@ -176,10 +177,14 @@ export function DeskDemo() {
                 className="ff-land-btn ff-land-btn--card ff-land-btn--small"
                 onClick={copySnippet}
               >
-                {copied ? "Copied" : "Copy snippet"}
+                {copyState === "copied" ? "Copied" : "Copy snippet"}
               </button>
               <span className="ff-land-small" role="status">
-                {copied ? "Pasted wherever you need it." : ""}
+                {copyState === "copied"
+                  ? "Pasted wherever you need it."
+                  : copyState === "failed"
+                    ? "Copy didn’t work. Select the snippet and copy manually."
+                    : ""}
               </span>
             </div>
             <p className="ff-land-small ff-land-embed-note">
