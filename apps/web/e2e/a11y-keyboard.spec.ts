@@ -42,7 +42,7 @@ async function register(page: Page): Promise<void> {
 }
 
 /** Collect visible interactive elements reachable by keyboard traversal. */
-async function interactiveKeys(page: Page): Promise<Set<string>> {
+async function interactiveKeys(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const selector =
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -52,7 +52,7 @@ async function interactiveKeys(page: Page): Promise<Set<string>> {
       if (el.getClientRects().length === 0) continue; // display:none trees
       keys.add(`${el.tagName}[${el.getAttribute('aria-label') ?? el.textContent?.trim().slice(0, 40) ?? ''}]`);
     }
-    return keys;
+    return [...keys]; // Set is not serializable through page.evaluate
   });
 }
 
@@ -99,7 +99,7 @@ async function tabWalk(page: Page, maxSteps = 150): Promise<TabStop[]> {
 
 async function expectCleanSweep(page: Page, surface: string, minStops = 3): Promise<TabStop[]> {
   const interactive = await interactiveKeys(page);
-  expect(interactive.size, `[${surface}] the surface exposes interactive elements`).toBeGreaterThan(0);
+  expect(interactive.length, `[${surface}] the surface exposes interactive elements`).toBeGreaterThan(0);
 
   const stops = await tabWalk(page);
   expect(stops.length, `[${surface}] the walk reaches tab stops`).toBeGreaterThan(minStops);

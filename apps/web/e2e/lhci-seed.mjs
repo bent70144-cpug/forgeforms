@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const BASE = process.env.FF_URL ?? 'http://localhost:3000';
-const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+const ROOT = fileURLToPath(new URL('../../../', import.meta.url)); // repo root (e2e -> web -> apps -> root)
 
 const uniq = () => `t28lhci-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
