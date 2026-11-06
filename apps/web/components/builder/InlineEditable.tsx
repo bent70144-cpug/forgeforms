@@ -31,11 +31,32 @@ export function InlineEditable({
 }: InlineEditableProps) {
   const [draft, setDraft] = useState(value);
   const fieldRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  // §12 focus management: remember who opened the editor (card via Enter, or
+  // whatever held focus) so closing it (commit/cancel) restores focus instead
+  // of dropping it on <body> when the input unmounts.
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   // Prefill the draft each time the editor opens (card Enter, span click).
   useEffect(() => {
     if (editing) setDraft(value);
   }, [editing, value]);
+
+  // §12: capture who opened the editor BEFORE the auto-focus effect below
+  // moves focus into the input (effects run in declaration order). When the
+  // editor closes, give focus back to that element — but never steal focus
+  // the user has already moved elsewhere.
+  useEffect(() => {
+    if (editing) {
+      if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+        restoreFocusRef.current = document.activeElement;
+      }
+      return;
+    }
+    const restore = restoreFocusRef.current;
+    restoreFocusRef.current = null;
+    if (!restore || typeof document === "undefined") return;
+    if (document.activeElement === document.body) restore.focus();
+  }, [editing]);
 
   // Auto-focus + select on entering edit (spec §5.2).
   useEffect(() => {
@@ -76,6 +97,7 @@ export function InlineEditable({
         data-testid="inline-editable"
         title="Click to edit"
         onClick={onBegin}
+        dir="auto"
         className="cursor-text rounded px-0.5 -mx-0.5 hover:bg-slate-100"
       >
         {value}
@@ -89,6 +111,8 @@ export function InlineEditable({
     },
     value: draft,
     "aria-label": ariaLabel,
+    // §14: the editor follows the text direction of its content (RTL/emoji).
+    dir: "auto" as const,
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
       setDraft(event.target.value);
     },

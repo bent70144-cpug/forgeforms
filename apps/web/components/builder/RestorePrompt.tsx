@@ -16,7 +16,7 @@
 //                     with an explanatory note.
 // Discard removes the stored record immediately (offline.discardPending).
 
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 
 export type RestoreRequest = {
   kind: "restore" | "discard-stale";
@@ -32,6 +32,17 @@ export type RestorePromptProps = {
 };
 
 export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptProps): ReactElement | null {
+  // §12 focus management: the prompt is a modal decision — move focus into it
+  // when it appears (the `data-ff-default-focus` control, else the first
+  // button) so keyboard users act on it instead of editing an obscured page.
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!request) return;
+    const preferred = dialogRef.current?.querySelector<HTMLElement>("[data-ff-default-focus]");
+    (preferred ?? dialogRef.current?.querySelector<HTMLElement>("button"))?.focus();
+  }, [request]);
+
   if (!request) return null;
 
   const stale = request.kind === "discard-stale";
@@ -41,6 +52,7 @@ export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptPr
   return (
     <div className="fixed inset-x-0 bottom-4 z-50 flex justify-center px-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-label="Restore unsaved changes"
         data-testid="restore-prompt"

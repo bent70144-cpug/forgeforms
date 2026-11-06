@@ -9,7 +9,7 @@
 // blockMeta.isContainerKind) are expandable. Missing-label blocks get a small
 // issue badge (spec §8.1 "Block" level, kept deliberately simple).
 
-import { useMemo, useState, type KeyboardEvent } from "react";
+import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useBuilder } from "./context";
 import { blockDisplayLabel, blockIcon, getBlockMeta, isContainerKind } from "@/lib/builder/blockMeta";
 import type { Block } from "@/lib/bridge";
@@ -55,6 +55,10 @@ export function BlocksTree() {
   const { state, dispatch } = useBuilder();
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  // Roving tabindex needs REAL focus movement (§12): dispatching selection
+  // alone leaves DOM focus on the previous row, so screen readers (which
+  // follow focus) would never see the arrow-key navigation.
+  const treeRef = useRef<HTMLUListElement | null>(null);
 
   const rows = useMemo(
     () => flattenBlocks(state.body.blocks, collapsed),
@@ -64,9 +68,14 @@ export function BlocksTree() {
   // Roving tabindex: the focused row wins, else the selected one, else first.
   const activeId = focusedId ?? state.selection ?? rows[0]?.block.id ?? null;
 
+  const focusRow = (id: string): void => {
+    treeRef.current?.querySelector<HTMLElement>(`[data-block-id="${id}"]`)?.focus();
+  };
+
   const select = (id: string) => {
     setFocusedId(id);
     dispatch({ type: "select", id });
+    focusRow(id); // keep DOM focus in lockstep with the roving tabindex
   };
 
   const toggle = (id: string) => {
@@ -127,6 +136,7 @@ export function BlocksTree() {
 
   return (
     <ul
+      ref={treeRef}
       role="tree"
       aria-label="Blocks"
       data-testid="blocks-tree"
@@ -163,7 +173,7 @@ export function BlocksTree() {
               <span className="ff-tree-toggle" aria-hidden="true" />
             )}
             <span aria-hidden="true">{blockIcon(row.block.kind)}</span>
-            <span className="ff-tree-label">{blockDisplayLabel(row.block)}</span>
+            <span className="ff-tree-label" dir="auto">{blockDisplayLabel(row.block)}</span>
             {issues > 0 && (
               <span
                 className="ff-issue-badge"

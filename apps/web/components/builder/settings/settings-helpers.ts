@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Block } from "@formforge/schema";
-import { useBuilder } from "../context";
+import { useBuilderDispatch } from "../context";
 import type { Op } from "@/lib/builder/ops";
 
 // ---------------------------------------------------------------------------
@@ -330,7 +330,9 @@ export function useDebouncedPatch(
   makeOp: (value: string) => readonly Op[],
   options: DebouncedPatchOptions = {},
 ): (value: string) => void {
-  const { dispatch } = useBuilder();
+  // Dispatch-only subscription (§13): hosts that read state re-render anyway,
+  // but the hook itself never needs document changes to re-run its effects.
+  const dispatch = useBuilderDispatch();
   // Refs keep the push callback stable across renders (§13: stable props).
   const makeOpRef = useRef(makeOp);
   makeOpRef.current = makeOp;

@@ -347,8 +347,8 @@ function SocialPreview({
         {image ? <span className="truncate px-2 text-xs">{image}</span> : <span>🖼</span>}
       </div>
       <div className="flex min-w-0 flex-col gap-0.5 p-2">
-        <span className="truncate text-sm font-semibold">{title}</span>
-        <span className="line-clamp-2 text-xs text-[color:var(--ff-muted)]">{description}</span>
+        <span className="truncate text-sm font-semibold" dir="auto">{title}</span>
+        <span className="line-clamp-2 text-xs text-[color:var(--ff-muted)]" dir="auto">{description}</span>
         <span className="text-xs text-[color:var(--ff-muted)]">formforge.app</span>
       </div>
     </div>

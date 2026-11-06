@@ -114,6 +114,7 @@ export function TopBar({
             onClick={startEdit}
             className="truncate rounded-md px-2 py-1.5 text-sm font-semibold hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_8%,transparent)]"
             title="Click to rename"
+            dir="auto"
           >
             {title || "Untitled"}
           </button>

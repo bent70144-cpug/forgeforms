@@ -27,6 +27,7 @@ import {
   type EditSelectedDetail,
 } from "@/lib/builder/canvas-ops";
 import { blockDisplayLabel } from "@/lib/builder/blockMeta";
+import { announce } from "@/lib/builder/announce";
 import { duplicateBlockOp, findBlock, setDeep } from "@/lib/builder/ops";
 import { BlockCard } from "./BlockCard";
 import { EmptyCanvasState } from "./EmptyCanvasState";
@@ -173,8 +174,18 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
 
   const move = useCallback(
     (id: string, delta: number) => {
-      const op = moveByOffset(stateRef.current.body.blocks, id, delta);
-      if (op) dispatch({ type: "apply", ops: [op], label: delta < 0 ? "Move up" : "Move down" });
+      const current = stateRef.current.body.blocks;
+      const op = moveByOffset(current, id, delta);
+      if (!op) return;
+      dispatch({ type: "apply", ops: [op], label: delta < 0 ? "Move up" : "Move down" });
+      // §12/§6.2 live announcement — same message for the toolbar arrows as
+      // for the Alt+↑/↓ keyboard path (see useShortcuts).
+      const found = findBlock(current, id);
+      if (found) {
+        announce(
+          `${blockDisplayLabel(found.block)} moved to position ${found.index + delta + 1} of ${found.list.length}`,
+        );
+      }
     },
     [dispatch],
   );
@@ -314,7 +325,7 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
             className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-white p-4 text-left shadow-sm hover:shadow-md"
           >
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-slate-800">
+              <span className="block truncate text-sm font-medium text-slate-800" dir="auto">
                 {ending.title}
               </span>
               <span className="text-xs text-slate-500">Final screen shown after submission</span>

@@ -17,6 +17,7 @@
 // invoking control on close.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LiveAnnouncer } from "@/lib/builder/announce";
 import { useBuilder } from "./context";
 import { ContextualBanner, type BannerKind } from "./ContextualBanner";
 import { LeftPane } from "./LeftPane";
@@ -140,6 +141,10 @@ export function BuilderShell({
 
   return (
     <div className="ff-builder" data-testid="builder-shell">
+      {/* §12/§6.2: the ONE polite live region for the whole builder — block
+          moves (Alt+↑/↓ and the toolbar arrows) announce "… moved to
+          position N of M" through the ff:announce window event. */}
+      <LiveAnnouncer />
       <header className="ff-pane ff-pane--bottom shrink-0">
         <TopBar
           saveStatusStore={saveStatusStore}

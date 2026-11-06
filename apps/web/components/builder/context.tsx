@@ -31,6 +31,11 @@ type BuilderContextValue = {
   dispatch: Dispatch<EditorAction>;
 };
 
+// §13 selector narrowing: dispatch is identity-stable, so components that only
+// dispatch (UndoToast, useDebouncedPatch) can subscribe to THIS context alone
+// and stop re-rendering on every document/selection/save-state change.
+const BuilderDispatchContext = createContext<Dispatch<EditorAction> | null>(null);
+
 // Exported so static-render tests (vitest node env, react-dom/server) can
 // seed a loaded EditorState without a DOM/Provider dispatch cycle. Production
 // code must go through BuilderProvider.
@@ -57,7 +62,11 @@ export function BuilderProvider({
     (arg: EditorState | string) => (typeof arg === "string" ? initialEditorState(arg) : arg),
   );
   const value = useMemo<BuilderContextValue>(() => ({ state, dispatch }), [state]);
-  return <BuilderContext.Provider value={value}>{children}</BuilderContext.Provider>;
+  return (
+    <BuilderContext.Provider value={value}>
+      <BuilderDispatchContext.Provider value={dispatch}>{children}</BuilderDispatchContext.Provider>
+    </BuilderContext.Provider>
+  );
 }
 
 export function useBuilder(): BuilderContextValue {
@@ -66,6 +75,18 @@ export function useBuilder(): BuilderContextValue {
     throw new Error("useBuilder must be used inside <BuilderProvider> (builder page).");
   }
   return ctx;
+}
+
+/**
+ * Dispatch only — for components/hooks that never read state. Unlike
+ * `useBuilder()`, this never re-renders when the document changes (§13).
+ */
+export function useBuilderDispatch(): Dispatch<EditorAction> {
+  const dispatch = useContext(BuilderDispatchContext);
+  if (!dispatch) {
+    throw new Error("useBuilderDispatch must be used inside <BuilderProvider> (builder page).");
+  }
+  return dispatch;
 }
 
 /** Store state only — for components that never dispatch. */

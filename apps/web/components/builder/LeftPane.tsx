@@ -116,7 +116,7 @@ export function LeftPane() {
                 title="Open the endings editor"
               >
                 <span aria-hidden="true">🏁</span>
-                <span className="ff-tree-label">{ending.title}</span>
+                <span className="ff-tree-label" dir="auto">{ending.title}</span>
               </button>
             </li>
           ))}

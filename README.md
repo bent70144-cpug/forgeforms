@@ -11,7 +11,7 @@ The build spec is the source of truth: [`spec.md`](./spec.md).
 
 ## Features
 
-- **Block editor** — 23 block kinds (content, question, layout, action families) with drag-and-drop, autosave, and full undo/redo history (`apps/web/lib/builder`).
+- **Block editor** — 23 block kinds (content, question, layout, action families) with a three-pane WYSIWYG builder, keyboard-first reordering, op-based autosave, and full undo/redo history (`apps/web/lib/builder`).
 - **Two render planes** (`packages/renderer`) — a server-rendered *scroll* plane for pages/portfolios and a client-side *conversational* plane for forms, with a strict ≤120 KB bundle budget enforced by test.
 - **Conditional logic engine** (`packages/core/src/logic`) — golden-file tested compiler + evaluator (operators, combinators, gotos, defaults, URL-param prefill) with a visual React Flow canvas and lint checks for cycles, dangling and unreachable rules.
 - **Submissions & results** — idempotent ingest with Turnstile support and XSS-hardened answers; results dashboard with KPI cards, trend charts, drop-off panel, NPS bars and paginated submissions table.
@@ -26,6 +26,37 @@ The build spec is the source of truth: [`spec.md`](./spec.md).
 - **Embed protocol** — iframe widgets post height + completion messages to the parent page (`packages/blocks/src/shared/embed-protocol.ts`).
 - **GDPR & abuse** — workspace/account deletion, retention purge, abuse reporting with staff takedown (`docs/security-checklist.md`).
 - **Accessibility** — Playwright keyboard sweep, axe checks and Lighthouse CI budgets (`lighthouserc.desktop.json`, `lighthouserc.mobile.json`).
+
+## Builder (document editor)
+
+The builder is the in-app editor for every document type (forms first; pages and portfolios reuse it). It lives at **`/d/[docId]`** (`apps/web/app/(app)/d/[docId]`) as a three-pane workspace — blocks tree, WYSIWYG canvas rendering the same block `Render` components as the public renderer, and a settings/theme/endings panel — with a top bar (inline title, save indicator, undo/redo, preview, publish).
+
+Everything is op-based: the UI dispatches one of 11 typed ops (`block.insert/update/move/remove`, `settings/theme/meta.update`, `ending/rule.upsert/remove`) through a single store (`apps/web/lib/builder/`), which derives exact inverse ops for undo/redo, coalesces typing bursts, and autosaves op batches (`{ baseRev, ops }`) with backoff, offline IndexedDB persistence, 409 auto-rebase and a conflict dialog. Edits are draft-only until `POST /documents/:id/publish`.
+
+Milestones (builder build plan):
+
+| Milestone | Scope |
+|---|---|
+| **B0** | Baseline audit of the builder against its spec — [`docs/builder-audit.md`](./docs/builder-audit.md) |
+| **B1** | Store, ops + exact inverses, coalescing (800 ms), grouped undo, fast-check round-trip property tests |
+| **B2** | Autosave batching + backoff, IndexedDB offline queue, restore prompt, 409 rebase/conflict dialog, multi-tab banner |
+| **B3** | Canvas with selection chrome, insertion points, unknown-block placeholder, per-card error boundary, inline text editing |
+| **B4** | Block picker (`/`, `Cmd/Ctrl+K`), keyboard reorder + move announcements, 8 s undo toast, copy/paste with re-id |
+| **B5** | Settings panel (document + per-block editors), debounced text fields, slug/notify validation |
+| **B6** | Theme presets with WCAG contrast badges, endings editor, sandboxed draft preview (real renderer, mock ingest) |
+| **B7** | Publish gate: stable validation codes, Issues drawer with "Go to", draft-vs-published chip |
+| **B8** | AI ops as one undoable group, keyboard help dialog, a11y sweep, performance budgets |
+
+Notes: the store intentionally mirrors the spec's pinned Zustand+Immer shape as a plain React reducer (zero-dependency policy — see the audit), reordering is keyboard-first (pointer/touch drag is tracked in the audit's follow-ups), and plan gates render as static inline notes until entitlements are resolved client-side.
+
+### Builder tests
+
+```bash
+pnpm --filter @formforge web test        # unit + component + integration (Vitest)
+pnpm --filter @formforge web typecheck   # tsc --noEmit
+```
+
+End-to-end (Playwright) suites for the builder live in `apps/web/e2e/` (`builder.spec.ts`, `a11y-*.spec.ts`) with their own config and boot modes — see [`apps/web/e2e/README.md`](./apps/web/e2e/README.md) for prerequisites and run commands. The builder's detailed per-section status, known gaps and follow-ups are tracked in [`docs/builder-audit.md`](./docs/builder-audit.md); keyboard-accessibility notes are in [`docs/a11y-keyboard-sweep.md`](./docs/a11y-keyboard-sweep.md). The product-wide spec is [`spec.md`](./spec.md) (§14 UI specification; the dedicated builder spec is maintained outside this repository).
 
 ## Tech stack
 

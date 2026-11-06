@@ -15,7 +15,7 @@
 // dismisses, aria-live="polite" role="status". No confirm dialog (§6.4).
 
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
-import { useBuilder } from "./context";
+import { useBuilderDispatch } from "./context";
 
 export const UNDO_TOAST_MS = 8000;
 
@@ -147,7 +147,9 @@ export function UndoToastView(props: {
 // ---------------------------------------------------------------------------
 
 export function UndoToast() {
-  const { dispatch } = useBuilder();
+  // Dispatch-only subscription (§13): the toast never reads the document, so
+  // it must not re-render on every store change.
+  const dispatch = useBuilderDispatch();
   const [toast, setToast] = useState<UndoToastState>(null);
   const toastRef = useRef(toast);
   toastRef.current = toast;

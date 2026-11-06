@@ -258,7 +258,7 @@ export function EndingsPanel() {
                 }}
               >
                 <span aria-hidden="true">🏁</span>
-                <span className="ff-th-ending-title">{ending.title}</span>
+                <span className="ff-th-ending-title" dir="auto">{ending.title}</span>
                 <span className="ff-th-chip" aria-hidden="true">
                   {endingChip(ending)}
                 </span>
@@ -448,6 +448,7 @@ export function EndingsPanel() {
           }}
         >
           <h4
+            dir="auto"
             style={{
               color: tokens("color.fg"),
               fontFamily: `"${state.body.theme.fontHeading}", system-ui, sans-serif`,
@@ -456,9 +457,9 @@ export function EndingsPanel() {
             {selected.title}
           </h4>
           {selected.redirectUrl ? (
-            <p style={{ color: tokens("color.muted") }}>Redirects to {selected.redirectUrl}</p>
+            <p dir="auto" style={{ color: tokens("color.muted") }}>Redirects to {selected.redirectUrl}</p>
           ) : (
-            <p style={{ color: tokens("color.muted") }}>{selected.body || "No body text."}</p>
+            <p dir="auto" style={{ color: tokens("color.muted") }}>{selected.body || "No body text."}</p>
           )}
           <span
             aria-hidden="true"

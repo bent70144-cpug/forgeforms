@@ -26,6 +26,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import type { Block, DocumentBody, Rule } from "@/lib/bridge";
 import { useBuilder } from "./context";
 import { blockDisplayLabel } from "@/lib/builder/blockMeta";
+import { announce } from "@/lib/builder/announce";
 import { regeneratePropIds } from "@/lib/builder/clipboard";
 import { duplicateBlockOp, findBlock, type Op } from "@/lib/builder/ops";
 import { isBlockPickerOpen } from "./useBlockPicker";
@@ -266,6 +267,14 @@ export function useShortcuts(): { helpOpen: boolean; closeHelp: () => void } {
             if (!move) return;
             e.preventDefault();
             dispatch({ type: "apply", ops: [move.op], label: "Move question" });
+            // §12/§6.2: announce the move through the single polite live
+            // region (same contract as the canvas toolbar arrows).
+            const moved = s.selection ? findBlock(s.body.blocks, s.selection) : null;
+            if (moved) {
+              announce(
+                `${blockDisplayLabel(moved.block)} moved to position ${moved.index + delta + 1} of ${moved.list.length}`,
+              );
+            }
             return;
           }
           if (e.shiftKey) return;
@@ -323,6 +332,14 @@ const SHORTCUT_ROWS: ReadonlyArray<readonly [keys: string, action: string]> = [
 ];
 
 export function ShortcutsHelpDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactElement | null {
+  // §12 focus management: a modal help dialog takes focus when it opens
+  // (panel itself, Esc-to-close) instead of leaving focus on the page
+  // behind the backdrop.
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (open) panelRef.current?.focus();
+  }, [open]);
+
   if (!open) return null;
   return h(
     "div",
@@ -339,11 +356,13 @@ export function ShortcutsHelpDialog({ open, onClose }: { open: boolean; onClose:
     h(
       "div",
       {
+        ref: panelRef,
         role: "dialog",
         "aria-modal": "true",
         "aria-label": "Keyboard shortcuts",
+        tabIndex: -1,
         className:
-          "relative mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-stone-200 bg-white p-6 shadow-xl dark:border-stone-700 dark:bg-stone-900",
+          "relative mx-auto mt-[12vh] w-[calc(100%-2rem)] max-w-lg rounded-xl border border-stone-200 bg-white p-6 shadow-xl outline-none dark:border-stone-700 dark:bg-stone-900",
       },
       h("h2", { className: "mb-4 text-base font-semibold" }, "Keyboard shortcuts"),
       h(
