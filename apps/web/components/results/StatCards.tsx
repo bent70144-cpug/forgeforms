@@ -34,11 +34,11 @@ export function StatCards({ counts }: { counts: SummaryCounts }) {
       {cards.map((card) => (
         <div
           key={card.label}
-          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4"
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{card.label}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{card.value}</p>
-          <p className="mt-0.5 text-xs text-slate-500">{card.sub}</p>
+          <p className="text-sm font-medium text-[var(--ff-muted)]">{card.label}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--ff-fg)]">{card.value}</p>
+          <p className="mt-0.5 text-xs text-[var(--ff-muted)]">{card.sub}</p>
         </div>
       ))}
     </div>

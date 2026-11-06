@@ -11,15 +11,15 @@ export interface DropOffPanelProps {
 export function DropOffPanel({ enabled, steps }: DropOffPanelProps) {
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 text-sm text-neutral-600 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-        <p className="font-medium text-neutral-900 dark:text-neutral-100">Advanced analytics is a Pro feature.</p>
+      <div className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6 text-sm text-[var(--ff-muted)]">
+        <p className="font-medium text-[var(--ff-fg)]">Advanced analytics is a Pro feature.</p>
         <p className="mt-1">Upgrade your workspace to see per-question drop-off.</p>
       </div>
     );
   }
   if (steps.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+      <p className="rounded-[var(--ff-radius)] border border-dashed border-[var(--ff-border)] p-6 text-sm text-[var(--ff-muted)]">
         No per-question activity in this range yet.
       </p>
     );
@@ -27,15 +27,18 @@ export function DropOffPanel({ enabled, steps }: DropOffPanelProps) {
   return (
     <ul className="space-y-3">
       {steps.map((step) => (
-        <li key={step.blockId} className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <li
+          key={step.blockId}
+          className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4"
+        >
           <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span className="font-medium text-neutral-900 dark:text-neutral-100">{step.blockId}</span>
-            <span className="tabular-nums text-neutral-500 dark:text-neutral-400">
+            <span className="font-medium text-[var(--ff-fg)]">{step.blockId}</span>
+            <span className="tabular-nums text-[var(--ff-muted)]">
               {formatInt(step.views)} views · {formatInt(step.passes)} passed
             </span>
           </div>
           <div
-            className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800"
+            className="mt-2 h-2 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)]"
             role="meter"
             aria-valuenow={Math.round((1 - step.dropOffRate) * 100)}
             aria-valuemin={0}
@@ -43,11 +46,11 @@ export function DropOffPanel({ enabled, steps }: DropOffPanelProps) {
             aria-label={`${step.blockId} pass rate ${formatPct(1 - step.dropOffRate)}`}
           >
             <div
-              className="h-full rounded-full bg-emerald-500"
+              className="h-full rounded-full bg-emerald-500 dark:bg-emerald-400"
               style={{ width: `${Math.round((1 - step.dropOffRate) * 100)}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-neutral-400 dark:text-neutral-500">
+          <p className="mt-1 text-xs tabular-nums text-[var(--ff-muted)]">
             {formatPct(step.dropOffRate)} drop-off
           </p>
         </li>

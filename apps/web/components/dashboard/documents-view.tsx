@@ -22,7 +22,6 @@ import {
 } from '@/lib/documents/client';
 import {
   documentStatusBadge,
-  documentStatusTone,
   documentTypeBadge,
   publicShareUrl,
   relativeUpdatedAt,
@@ -38,6 +37,15 @@ type LoadState =
   | { kind: 'error'; message: string };
 
 const VIEW_STORAGE_KEY = 'ff:dashboard:view';
+
+// Shared button recipes — token-driven so they flip with dark mode.
+const BTN_PRIMARY =
+  'inline-flex h-9 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-3.5 text-sm font-medium text-[var(--ff-primary-fg)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50';
+// Small row-action variants (height h-8; .ff-doc-actions tightens the padding).
+const BTN_SECONDARY_SM =
+  'inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-2.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))] disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_DESTRUCTIVE_SM =
+  'inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-red-300/50 bg-[var(--ff-card)] px-2.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-400/30 dark:text-red-400';
 
 export function DocumentsView({ templates }: { templates: DashboardTemplate[] }) {
   const [view, setView] = useState<ViewMode>('grid');
@@ -127,8 +135,8 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
 
   return (
     <section aria-label="Documents">
-      <div className="ff-toolbar">
-        <h1 className="m-0 text-lg font-semibold">Documents</h1>
+      <div className="ff-toolbar flex-wrap gap-y-2">
+        <h1 className="m-0 text-lg font-semibold text-balance">Documents</h1>
         <div className="ff-seg" role="group" aria-label="Layout">
           <button type="button" aria-pressed={view === 'grid'} onClick={() => switchView('grid')}>
             Grid
@@ -140,7 +148,7 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
         <div className="ml-auto">
           <button
             type="button"
-            className="ff-button ff-button-primary"
+            className={BTN_PRIMARY}
             onClick={() => setCreating(true)}
           >
             New document
@@ -163,13 +171,13 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
       )}
 
       {state.kind === 'error' && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="ff-banner ff-banner-error">
           <p className="font-medium">Documents could not be loaded.</p>
           <p className="mt-1">{state.message}</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="mt-3 rounded border border-amber-300 px-3 py-1.5 text-xs font-medium hover:bg-amber-100"
+            className="mt-3 inline-flex h-8 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-current/40 bg-transparent px-2.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)]"
           >
             Retry
           </button>
@@ -181,7 +189,10 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
       {docs && docs.length > 0 && view === 'grid' && (
         <ul className="ff-doc-grid" style={{ margin: 0, padding: 0, listStyle: 'none' }}>
           {docs.map((doc) => (
-            <li key={doc.id} className="ff-doc-card">
+            <li
+              key={doc.id}
+              className="ff-doc-card transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md"
+            >
               <a href={`/d/${doc.id}`} className="ff-doc-title">
                 {doc.title}
               </a>
@@ -237,9 +248,11 @@ export function DocumentsView({ templates }: { templates: DashboardTemplate[] })
 /** Type + status badges, updated time (and the pending submissions count). */
 function DocumentMeta({ doc, compact = false }: { doc: DocumentSummaryDto; compact?: boolean }) {
   return (
-    <div className="ff-doc-meta">
+    <div className="ff-doc-meta tabular-nums">
       <span className="ff-badge ff-badge--accent">{documentTypeBadge(doc.type)}</span>
-      <span className={`ff-badge ff-badge--${documentStatusTone(doc.status)}`}>
+      <span
+        className={`ff-badge ${doc.status === 'published' ? 'ff-badge--positive' : 'ff-badge--muted'}`}
+      >
         {documentStatusBadge(doc.status)}
       </span>
       {!compact && (
@@ -271,12 +284,12 @@ function DocumentActions({
   const busy = busyId === doc.id;
   return (
     <div className="ff-doc-actions">
-      <a href={`/d/${doc.id}`} className="ff-button ff-button-ghost">
+      <a href={`/d/${doc.id}`} className={BTN_SECONDARY_SM}>
         Open
       </a>
       <button
         type="button"
-        className="ff-button ff-button-ghost"
+        className={BTN_SECONDARY_SM}
         title={`Copy public link (${doc.slug}) — works once the document is published`}
         onClick={onCopyLink}
       >
@@ -284,7 +297,7 @@ function DocumentActions({
       </button>
       <button
         type="button"
-        className="ff-button ff-button-ghost"
+        className={BTN_SECONDARY_SM}
         disabled={busy}
         onClick={onDuplicate}
       >
@@ -292,7 +305,7 @@ function DocumentActions({
       </button>
       <button
         type="button"
-        className="ff-button ff-button-ghost"
+        className={BTN_DESTRUCTIVE_SM}
         disabled={busy}
         onClick={onArchive}
       >

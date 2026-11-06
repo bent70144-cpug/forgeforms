@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Forgot password" };
 export default function ForgotPasswordPage() {
   return (
     <>
-      <h1>Forgot your password?</h1>
+      <h1 className="text-balance">Forgot your password?</h1>
       <p className="ff-subtle">
         Enter your email and we&apos;ll send you a link to choose a new one. The link works once
         and expires after an hour.

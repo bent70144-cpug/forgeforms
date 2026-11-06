@@ -19,11 +19,21 @@ const RATE_LIMIT_PER_MINUTE = 5;
 const limiter = new InMemoryRateLimiter();
 
 export async function POST(req: Request): Promise<Response> {
+  // No-JS form posts from /report-abuse get redirects back to the page; JSON
+  // callers keep the structured API responses.
+  const formPost = !(req.headers.get("content-type") ?? "").includes("application/json");
+  const redirectTo = (query: string) =>
+    new Response(null, {
+      status: 303,
+      headers: { location: new URL(`/report-abuse?${query}`, req.url).toString(), "cache-control": "no-store" },
+    });
+
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     req.headers.get("x-real-ip") ??
     "unknown";
   if (!(await limiter.tryTake(`abuse:${ip}`, RATE_LIMIT_PER_MINUTE))) {
+    if (formPost) return redirectTo("error=ratelimited");
     return new Response(JSON.stringify({ error: { code: "RATE_LIMITED", message: "Too many abuse reports; try again later" } }), {
       status: 429,
       headers: { "content-type": JSON_MEDIA, "retry-after": "60", "cache-control": "no-store" },
@@ -41,7 +51,10 @@ export async function POST(req: Request): Promise<Response> {
       input = Object.fromEntries(form.entries());
     }
     const parsed = parseAbuseReport(input);
-    if (!parsed.ok) return handleApiError(parsed.error);
+    if (!parsed.ok) {
+      if (formPost) return redirectTo("error=1");
+      return handleApiError(parsed.error);
+    }
 
     // Structured staff-review log. NEVER logs the reporter email or the free
     // text (spec §17: no PII sprawl) — only shapes/flags.
@@ -56,6 +69,7 @@ export async function POST(req: Request): Promise<Response> {
       }),
     );
     // 202 Accepted: the report is queued for human review, not processed.
+    if (formPost) return redirectTo("submitted=1");
     return new Response(JSON.stringify({ accepted: true }), {
       status: 202,
       headers: { "content-type": JSON_MEDIA, "cache-control": "no-store" },

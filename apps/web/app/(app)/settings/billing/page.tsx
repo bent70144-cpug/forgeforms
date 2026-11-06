@@ -35,15 +35,9 @@ function CheckoutFlash({ params }: { params: SearchParams }) {
   const info = FLASH_INFO[checkout ?? portal ?? ''];
   return (
     <>
-      {info ? (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {info}
-        </p>
-      ) : null}
+      {info ? <p className="ff-banner ff-banner-success">{info}</p> : null}
       {error ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {ERROR_TEXT[error] ?? `Billing error (${error}).`}
-        </p>
+        <p className="ff-banner ff-banner-error">{ERROR_TEXT[error] ?? `Billing error (${error}).`}</p>
       ) : null}
     </>
   );
@@ -59,15 +53,15 @@ export default async function BillingSettingsPage({
   const currentEntry = PLAN_CATALOG[snapshot.plan];
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-10">
+    <div className="mx-auto w-full max-w-5xl px-6 py-10">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="text-2xl font-bold tracking-tight text-balance">Billing</h1>
+          <p className="mt-1 text-base text-[var(--ff-muted)]">
             Current plan:{' '}
-            <span className="font-semibold text-slate-900">{currentEntry.name}</span>
+            <span className="font-semibold text-[var(--ff-fg)]">{currentEntry.name}</span>
             {snapshot.storageReady ? null : (
-              <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+              <span className="ff-chip ml-2 align-middle">
                 billing storage pending migration — showing defaults
               </span>
             )}
@@ -77,7 +71,7 @@ export default async function BillingSettingsPage({
           <form action={openPortalAction}>
             <button
               type="submit"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-4 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))]"
             >
               Manage billing
             </button>
@@ -85,21 +79,24 @@ export default async function BillingSettingsPage({
         ) : null}
       </header>
 
-      <div className="mt-6">
+      <div className="mt-6 space-y-3">
         <CheckoutFlash params={params} />
       </div>
 
-      <section aria-label="Seats" className="mt-6 rounded-xl border border-slate-200 p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Team seats
-        </h2>
-        <p className="mt-2 text-2xl font-bold">
+      <section
+        aria-label="Seats"
+        className="mt-6 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6"
+      >
+        <h2 className="text-sm font-medium text-[var(--ff-muted)]">Team seats</h2>
+        <p className="mt-2 text-2xl font-bold tabular-nums">
           {snapshot.seats.used}
-          <span className="text-base font-normal text-slate-500"> / {snapshot.seats.limit} used</span>
+          <span className="text-base font-normal text-[var(--ff-muted)]">
+            {' '}
+            / {snapshot.seats.limit} used
+          </span>
         </p>
-        <p className="mt-2 text-sm text-slate-500">
-          Members are invited from Settings → Team. Seat limits come from your plan
-          (Free 1 · Pro 3 · Business 10).
+        <p className="mt-2 text-base text-[var(--ff-muted)]">
+          Seat limits come from your plan (Free 1 · Pro 3 · Business 10).
         </p>
       </section>
 
@@ -124,12 +121,12 @@ export default async function BillingSettingsPage({
           })}
         </div>
         {!snapshot.stripe.configured ? (
-          <p className="mt-4 text-xs text-slate-500">
+          <p className="mt-4 text-xs text-[var(--ff-muted)]">
             Upgrade buttons are disabled because STRIPE_SECRET_KEY is not set. Webhooks
-            remain active at <code>/api/webhooks/stripe</code>.
+            remain active at <code className="rounded bg-[var(--ff-bg)] px-1">/api/webhooks/stripe</code>.
           </p>
         ) : null}
       </section>
-    </main>
+    </div>
   );
 }

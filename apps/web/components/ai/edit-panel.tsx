@@ -69,19 +69,17 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
   return (
     <section
       aria-label="Edit with AI"
-      className="space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-700"
+      className="space-y-4 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6"
     >
       <header>
-        <h2 className="text-base font-semibold">Edit with AI</h2>
-        <p className="text-sm opacity-70">
+        <h2 className="text-base font-semibold text-[var(--ff-fg)]">Edit with AI</h2>
+        <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">
           Proposals are shown as a diff first. Nothing changes until you apply them.
         </p>
       </header>
 
-      <div className="space-y-2">
-        <label htmlFor={instructionId} className="block text-sm font-medium">
-          What should change?
-        </label>
+      <div className="ff-field">
+        <label htmlFor={instructionId}>What should change?</label>
         <textarea
           id={instructionId}
           value={instruction}
@@ -89,13 +87,13 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
           rows={2}
           maxLength={1000}
           placeholder="e.g. Make the email question required and move it first"
-          className="w-full rounded border border-neutral-300 p-2 text-sm dark:border-neutral-600 dark:bg-neutral-900"
+          className="w-full rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)] focus-visible:border-[var(--ff-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ff-primary)]"
         />
         <button
           type="button"
           onClick={() => void propose()}
           disabled={status === "loading" || instruction.trim().length === 0}
-          className="rounded bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          className="ff-button ff-button-primary self-start text-sm disabled:cursor-not-allowed disabled:opacity-50"
         >
           {status === "loading" ? "Proposing…" : "Propose changes"}
         </button>
@@ -113,15 +111,15 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
 
       {proposal ? (
         <div className="space-y-3">
-          <p className="text-sm">
+          <p className="text-sm text-[var(--ff-fg)]">
             <span className="font-medium">{proposal.summary}</span>{" "}
-            <span className="opacity-70">
+            <span className="tabular-nums text-[var(--ff-muted)]">
               ({proposal.ops.length} op{proposal.ops.length === 1 ? "" : "s"})
             </span>
           </p>
           <ul
             aria-label="Proposed changes"
-            className="space-y-1 rounded bg-neutral-50 p-3 font-mono text-xs dark:bg-neutral-800"
+            className="space-y-1 rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] p-3 font-mono text-xs leading-relaxed text-[var(--ff-fg)]"
           >
             {proposal.diff.map((line, index) => (
               <li key={index}>{line}</li>
@@ -138,7 +136,7 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
                 onApply?.(proposal.ops);
                 setApplied(true);
               }}
-              className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+              className="ff-button ff-button-primary text-sm"
             >
               Apply ops
             </button>

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Create your account" };
 export default function RegisterPage() {
   return (
     <>
-      <h1>Create your account</h1>
+      <h1 className="text-balance">Create your account</h1>
       <p className="ff-subtle">A personal workspace is set up for you automatically.</p>
       <AuthForm mode="register" />
       <p className="ff-auth-alt">

@@ -5,7 +5,9 @@
 // per T19 ownership this page ships at its own route /d/:docId/analytics. The
 // integrator can embed <AnalyticsTab> into the Results tabs once T16 lands.
 
+import type { Metadata } from "next";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { DropOffPanel } from "./_components/DropOffPanel";
 import { KpiCards } from "./_components/KpiCards";
@@ -15,6 +17,10 @@ import type { RangeSpec } from "../../../../../../../packages/core/src/analytics
 
 // Beacons/queries must never be cached at the page level.
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Analytics — FormForge",
+};
 
 interface AnalyticsPageProps {
   params: Promise<{ docId: string }>;
@@ -32,21 +38,25 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
   const data = await loadAnalyticsTabData(docId, spec);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    <div className="mx-auto max-w-5xl px-6 py-10">
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-neutral-400 dark:text-neutral-500">Results</p>
-          <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-50">Analytics</h1>
-          <p className="mt-0.5 font-mono text-xs text-neutral-400 dark:text-neutral-500">{docId}</p>
+          <Link
+            href={`/d/${docId}/results`}
+            className="text-sm text-[var(--ff-muted)] transition-colors hover:text-[var(--ff-fg)]"
+          >
+            ← Results
+          </Link>
+          <h1 className="text-2xl font-semibold text-balance text-[var(--ff-fg)]">Analytics</h1>
         </div>
         <nav aria-label="Range" className="flex items-center gap-1 text-sm">
           <Link
             href={`/d/${docId}/analytics?range=7`}
             aria-current={spec.kind === "preset" && spec.preset === "7d" ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 ${
+            className={`rounded-md px-3 py-1.5 transition-colors ${
               spec.kind === "preset" && spec.preset === "7d"
-                ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                ? "bg-[var(--ff-primary)] text-[var(--ff-primary-fg)]"
+                : "text-[var(--ff-muted)] hover:text-[var(--ff-fg)]"
             }`}
           >
             Last 7 days
@@ -54,10 +64,10 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
           <Link
             href={`/d/${docId}/analytics?range=30`}
             aria-current={spec.kind === "preset" && spec.preset === "30d" ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 ${
+            className={`rounded-md px-3 py-1.5 transition-colors ${
               spec.kind === "preset" && spec.preset === "30d"
-                ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                ? "bg-[var(--ff-primary)] text-[var(--ff-primary-fg)]"
+                : "text-[var(--ff-muted)] hover:text-[var(--ff-fg)]"
             }`}
           >
             Last 30 days
@@ -67,15 +77,27 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
 
       {data === null ? (
         <EmptyState
-          title="Analytics unavailable"
-          body="We couldn't load analytics right now. If this is a fresh environment, make sure DATABASE_URL is configured and the analytics tables exist."
+          title="Analytics couldn’t load"
+          body="Something went wrong loading analytics. Try again in a moment."
         />
       ) : data.summary.kpis.views === 0 &&
         data.summary.kpis.starts === 0 &&
         data.summary.kpis.submissions === 0 ? (
         <EmptyState
-          title="No responses yet — share your link"
-          body="Once your document is live, views, starts and completions will appear here within minutes."
+          title="No responses yet"
+          body="Analytics appear here once your form starts collecting responses."
+          hint={
+            <>
+              Want the raw answers? Open the{" "}
+              <Link
+                href={`/d/${docId}/results`}
+                className="text-[var(--ff-primary)] underline underline-offset-2 hover:opacity-80"
+              >
+                Results tab
+              </Link>
+              .
+            </>
+          }
         />
       ) : (
         <div className="space-y-6">
@@ -87,17 +109,17 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
             completionRate={data.summary.kpis.completionRate}
           />
           <section aria-labelledby="trend-heading">
-            <h2 id="trend-heading" className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            <h2 id="trend-heading" className="mb-2 text-sm font-medium text-[var(--ff-fg)]">
               Trend
             </h2>
             <TrendChart series={data.summary.series} />
           </section>
           <section aria-labelledby="dropoff-heading">
-            <h2 id="dropoff-heading" className="mb-2 text-sm font-medium text-neutral-700 dark:text-neutral-300">
+            <h2 id="dropoff-heading" className="mb-2 text-sm font-medium text-[var(--ff-fg)]">
               Drop-off per question
             </h2>
             {data.dropOff === null ? (
-              <p className="rounded-lg border border-dashed border-neutral-300 p-6 text-sm text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+              <p className="rounded-[var(--ff-radius)] border border-dashed border-[var(--ff-border)] p-6 text-sm text-[var(--ff-muted)]">
                 Drop-off is unavailable in this range.
               </p>
             ) : (
@@ -106,15 +128,16 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
           </section>
         </div>
       )}
-    </main>
+    </div>
   );
 }
 
-function EmptyState({ title, body }: { title: string; body: string }) {
+function EmptyState({ title, body, hint }: { title: string; body: string; hint?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-neutral-300 p-10 text-center dark:border-neutral-700">
-      <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{title}</p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-neutral-500 dark:text-neutral-400">{body}</p>
+    <div className="ff-empty">
+      <p className="text-base font-semibold text-[var(--ff-fg)]">{title}</p>
+      <p className="max-w-md text-sm leading-relaxed text-[var(--ff-muted)]">{body}</p>
+      {hint ? <p className="max-w-md text-sm text-[var(--ff-muted)]">{hint}</p> : null}
     </div>
   );
 }

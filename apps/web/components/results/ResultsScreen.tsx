@@ -10,7 +10,7 @@ import {
   describeError,
   type DocumentSummary,
 } from "../../lib/results";
-import { EmptyState, ErrorState, Skeleton } from "./Feedback";
+import { EmptyState, ErrorState, Skeleton, errorCodeOf } from "./Feedback";
 import { SubmissionsTable } from "./SubmissionsTable";
 import { SummaryTab } from "./SummaryTab";
 
@@ -22,8 +22,8 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: "analytics", label: "Analytics" },
 ];
 
-const TAB_ACTIVE = "border-indigo-600 text-slate-900";
-const TAB_IDLE = "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700";
+const TAB_ACTIVE = "border-[var(--ff-primary)] text-[var(--ff-fg)]";
+const TAB_IDLE = "border-transparent text-[var(--ff-muted)] hover:text-[var(--ff-fg)]";
 
 function typeBadge(type: DocumentSummary["type"]): string {
   return type.charAt(0).toUpperCase() + type.slice(1);
@@ -34,6 +34,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
   const [tab, setTabState] = useState<Tab>("submissions");
   const [doc, setDoc] = useState<DocumentSummary | null>(null);
   const [docError, setDocError] = useState<string | null>(null);
+  const [docErrorCode, setDocErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -58,13 +59,17 @@ export function ResultsScreen({ docId }: { docId: string }) {
     let cancelled = false;
     setLoading(true);
     setDocError(null);
+    setDocErrorCode(null);
     client
       .getDocument(docId)
       .then((d) => {
         if (!cancelled) setDoc(d);
       })
       .catch((err) => {
-        if (!cancelled) setDocError(describeError(err));
+        if (!cancelled) {
+          setDocError(describeError(err));
+          setDocErrorCode(errorCodeOf(err));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -86,8 +91,8 @@ export function ResultsScreen({ docId }: { docId: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+    <div>
+      <header className="border-b border-[var(--ff-border)] bg-[var(--ff-card)]">
         <div className="mx-auto max-w-7xl px-6 pt-6">
           {loading ? (
             <div className="space-y-3">
@@ -96,32 +101,31 @@ export function ResultsScreen({ docId }: { docId: string }) {
             </div>
           ) : docError ? (
             <div className="pb-6">
-              <ErrorState message={docError} onRetry={() => setNonce((n) => n + 1)} />
+              <ErrorState
+                message={docError}
+                code={docErrorCode}
+                onRetry={() => setNonce((n) => n + 1)}
+              />
             </div>
           ) : doc ? (
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="truncate text-xl font-semibold text-slate-900">{doc.title}</h1>
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                    {typeBadge(doc.type)}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-xl font-semibold text-[var(--ff-fg)]">{doc.title}</h1>
+                  <span className="ff-badge">{typeBadge(doc.type)}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-                      doc.status === "published"
-                        ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20"
-                        : "bg-slate-50 text-slate-600 ring-slate-500/20"
+                    className={`ff-badge ${
+                      doc.status === "published" ? "ff-badge--positive" : "ff-badge--muted"
                     }`}
                   >
                     {doc.status}
                   </span>
                 </div>
-                <p className="mt-1 font-mono text-xs text-slate-500">/d/{docId}/results</p>
               </div>
               <button
                 type="button"
                 onClick={() => void copyShareLink()}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="ff-button ff-button-ghost text-sm transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
               >
                 {copied ? "Link copied ✓" : "Copy public link"}
               </button>
@@ -138,7 +142,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
                   type="button"
                   aria-selected={selected}
                   onClick={() => setTab(t.id)}
-                  className={`border-b-2 pb-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${selected ? TAB_ACTIVE : TAB_IDLE}`}
+                  className={`border-b-2 pb-3 text-sm font-medium transition-colors ${selected ? TAB_ACTIVE : TAB_IDLE}`}
                 >
                   {t.label}
                 </button>
@@ -148,9 +152,9 @@ export function ResultsScreen({ docId }: { docId: string }) {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <div className="mx-auto max-w-7xl px-6 py-6">
         {docError ? (
-          <p className="text-sm text-slate-500">Load the document above to see its results.</p>
+          <p className="text-sm text-[var(--ff-muted)]">Load the document above to see its results.</p>
         ) : !doc ? (
           <div className="space-y-3" role="status" aria-label="Loading results">
             <Skeleton className="h-10 w-full rounded-lg" />
@@ -168,14 +172,14 @@ export function ResultsScreen({ docId }: { docId: string }) {
             action={
               <Link
                 href={`/d/${docId}/analytics`}
-                className="inline-flex items-center rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+                className="ff-button ff-button-primary text-sm"
               >
                 Open analytics →
               </Link>
             }
           />
         )}
-      </main>
+      </div>
     </div>
   );
 }

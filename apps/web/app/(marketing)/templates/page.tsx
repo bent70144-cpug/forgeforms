@@ -20,6 +20,12 @@ const FILTERS: { key: TemplateCategory | "all"; label: string }[] = [
   { key: "portfolio", label: "Portfolios" },
 ];
 
+const CATEGORY_SINGULAR: Record<TemplateCategory, string> = {
+  form: "form",
+  page: "landing page",
+  portfolio: "portfolio",
+};
+
 export default async function TemplatesPage({
   searchParams,
 }: {
@@ -29,14 +35,18 @@ export default async function TemplatesPage({
   const active = FILTERS.some((f) => f.key === category) ? (category as TemplateCategory | "all") : "all";
   const templates = listTemplates(active === "all" ? {} : { category: active });
 
+  const countLabel =
+    active === "all"
+      ? "hand-built templates"
+      : `hand-built ${CATEGORY_SINGULAR[active]} template${templates.length === 1 ? "" : "s"}`;
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-12">
       <header className="max-w-2xl">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900">Start from a template</h1>
-        <p className="mt-3 text-lg leading-relaxed text-slate-600">
-          {templates.length} hand-built {active === "all" ? "" : `${FILTERS.find((f) => f.key === active)?.label.toLowerCase()} `}
-          {templates.length === 1 ? "template" : "templates"} with original copy, working logic and on-brand themes.
-          Pick one, connect your form, publish.
+        <h1 className="text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">Start from a template</h1>
+        <p className="mt-3 text-lg leading-relaxed text-[var(--ff-muted)]">
+          <span className="tabular-nums">{templates.length}</span> {countLabel} with original copy, working logic and
+          on-brand themes. Pick one, connect your form, publish.
         </p>
       </header>
 
@@ -49,10 +59,10 @@ export default async function TemplatesPage({
               key={f.key}
               href={href}
               aria-current={isActive ? "page" : undefined}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900"
+                  ? "bg-[var(--ff-fg)] text-[var(--ff-bg)]"
+                  : "border border-[var(--ff-border)] text-[var(--ff-muted)] hover:border-[var(--ff-muted)] hover:text-[var(--ff-fg)]"
               }`}
             >
               {f.label}
@@ -62,7 +72,7 @@ export default async function TemplatesPage({
       </nav>
 
       {templates.length === 0 ? (
-        <p className="mt-12 rounded-2xl border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
+        <p className="mt-12 rounded-[var(--ff-radius)] border border-dashed border-[var(--ff-border)] bg-[var(--ff-card)] p-10 text-center text-sm text-[var(--ff-muted)]">
           No templates in this category yet — try another filter.
         </p>
       ) : (

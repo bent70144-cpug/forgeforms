@@ -16,7 +16,7 @@ import {
   type ResultsClient,
   type SubmissionDTO,
 } from "../../lib/results";
-import { Skeleton } from "./Feedback";
+import { Skeleton, errorCodeOf, friendlyErrorMessage } from "./Feedback";
 import { StatusPill } from "./StatusPill";
 
 export interface SubmissionDrawerProps {
@@ -43,8 +43,8 @@ function scalar(value: unknown): string {
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2">
-      <dt className="shrink-0 text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="min-w-0 break-words text-right text-sm text-slate-800">{children}</dd>
+      <dt className="shrink-0 text-xs font-medium text-[var(--ff-muted)]">{label}</dt>
+      <dd className="min-w-0 break-words text-right text-sm tabular-nums text-[var(--ff-fg)]">{children}</dd>
     </div>
   );
 }
@@ -61,11 +61,11 @@ function RecordSection({
   const entries = Object.entries(record);
   return (
     <section>
-      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      <h3 className="text-sm font-semibold text-[var(--ff-fg)]">{title}</h3>
       {entries.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-500">{emptyHint}</p>
+        <p className="mt-2 text-sm text-[var(--ff-muted)]">{emptyHint}</p>
       ) : (
-        <dl className="mt-1 divide-y divide-slate-100">
+        <dl className="mt-1 divide-y divide-[var(--ff-border)]">
           {entries.map(([key, value]) => (
             <MetaRow key={key} label={key}>
               <span className="break-all font-mono text-xs">{scalar(value)}</span>
@@ -80,6 +80,7 @@ function RecordSection({
 export function SubmissionDrawer({ docId, client, submission, blocks, onClose }: SubmissionDrawerProps) {
   const [detail, setDetail] = useState<SubmissionDTO | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorCode, setLoadErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -103,13 +104,17 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
     let cancelled = false;
     setLoading(true);
     setLoadError(null);
+    setLoadErrorCode(null);
     client
       .getSubmission(docId, submission.id)
       .then((s) => {
         if (!cancelled) setDetail(s);
       })
       .catch((err) => {
-        if (!cancelled) setLoadError(describeError(err));
+        if (!cancelled) {
+          setLoadError(describeError(err));
+          setLoadErrorCode(errorCodeOf(err));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -129,15 +134,15 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
         type="button"
         aria-label="Close submission drawer"
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-slate-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+        className="absolute inset-0 h-full w-full cursor-default bg-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white dark:bg-black/60"
       />
-      <div className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-white shadow-2xl">
-        <header className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
+      <div className="absolute inset-y-0 right-0 flex w-full max-w-xl flex-col bg-[var(--ff-card)] shadow-2xl">
+        <header className="flex items-center justify-between gap-4 border-b border-[var(--ff-border)] px-6 py-4">
           <div className="min-w-0">
-            <h2 id="submission-drawer-title" className="text-base font-semibold text-slate-900">
+            <h2 id="submission-drawer-title" className="text-base font-semibold text-[var(--ff-fg)]">
               Submission
             </h2>
-            <p className="mt-0.5 truncate font-mono text-xs text-slate-500">{view.publicToken || view.id}</p>
+            <p className="mt-0.5 truncate font-mono text-xs text-[var(--ff-muted)]">{view.publicToken || view.id}</p>
           </div>
           <div className="flex items-center gap-3">
             <StatusPill status={view.status} />
@@ -146,7 +151,7 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              className="rounded-lg p-1.5 text-[var(--ff-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)] hover:text-[var(--ff-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ff-primary)]"
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l8 8M14 6l-8 8" />
@@ -157,12 +162,19 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
 
         <div className="flex-1 space-y-7 overflow-y-auto px-6 py-5">
           {loadError ? (
-            <div role="alert" className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              <span>Detail request failed: {loadError}</span>
+            <div
+              role="alert"
+              className="rounded-[calc(var(--ff-radius)*0.66)] border border-[color-mix(in_srgb,var(--ff-fg)_12%,transparent)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] px-3 py-2 text-sm"
+            >
+              <p className="font-medium text-[var(--ff-fg)]">{friendlyErrorMessage(loadErrorCode)}</p>
+              <details className="mt-1">
+                <summary className="cursor-pointer text-xs text-[var(--ff-muted)]">Technical details</summary>
+                <p className="mt-1 break-words font-mono text-xs leading-relaxed text-[var(--ff-muted)]">{loadError}</p>
+              </details>
               <button
                 type="button"
                 onClick={() => setNonce((n) => n + 1)}
-                className="font-medium text-rose-800 underline decoration-rose-300 underline-offset-2 hover:text-rose-600"
+                className="mt-2 text-sm font-medium text-[var(--ff-primary)] hover:underline"
               >
                 Retry
               </button>
@@ -170,8 +182,8 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
           ) : null}
 
           <section>
-            <h3 className="text-sm font-semibold text-slate-900">Metadata</h3>
-            <dl className="mt-1 divide-y divide-slate-100">
+            <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Metadata</h3>
+            <dl className="mt-1 divide-y divide-[var(--ff-border)]">
               <MetaRow label="Submitted">{formatDateTime(submittedAt)}</MetaRow>
               <MetaRow label="Started">{formatDateTime(view.startedAt)}</MetaRow>
               <MetaRow label="Status"><StatusPill status={view.status} /></MetaRow>
@@ -186,8 +198,8 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
           </section>
 
           <section>
-            <h3 className="text-sm font-semibold text-slate-900">Answers</h3>
-            <p className="mt-0.5 text-xs text-slate-500">Grouped by block, labels from the document snapshot.</p>
+            <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Answers</h3>
+            <p className="mt-0.5 text-xs text-[var(--ff-muted)]">Grouped by block, labels from the document snapshot.</p>
             <ul className="mt-3 space-y-3">
               {questionBlocks.map((block) => {
                 const value = view.answers?.[block.id];
@@ -195,17 +207,17 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
                 return (
                   <li
                     key={block.id}
-                    className={`rounded-lg border px-4 py-3 ${
-                      text === "—" ? "border-dashed border-slate-200 bg-slate-50/50" : "border-slate-200 bg-white"
+                    className={`rounded-[calc(var(--ff-radius)*0.66)] border px-4 py-3 ${
+                      text === "—" ? "border-dashed border-[var(--ff-border)] bg-[var(--ff-bg)]" : "border-[var(--ff-border)]"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-medium text-slate-800">{questionLabel(block)}</p>
-                      <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-slate-500">
+                      <p className="text-sm font-medium text-[var(--ff-fg)]">{questionLabel(block)}</p>
+                      <span className="shrink-0 rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--ff-muted)]">
                         {block.kind}
                       </span>
                     </div>
-                    <p className={`mt-1 whitespace-pre-wrap break-words text-sm ${text === "—" ? "text-slate-500" : "text-slate-700"}`}>
+                    <p className={`mt-1 whitespace-pre-wrap break-words text-sm ${text === "—" ? "text-[var(--ff-muted)]" : "text-[var(--ff-fg)]"}`}>
                       {text}
                     </p>
                   </li>

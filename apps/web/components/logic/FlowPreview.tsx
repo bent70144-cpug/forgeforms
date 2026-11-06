@@ -44,11 +44,17 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
   }, [body.blocks, body.endings]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-3" data-testid="flow-preview">
-      <div className="text-xs font-semibold text-slate-500">Preview flow (engine: @formforge/core/logic)</div>
+    <section
+      className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4"
+      data-testid="flow-preview"
+    >
+      <div className="text-xs font-semibold text-[var(--ff-muted)]">Preview flow (engine: @formforge/core/logic)</div>
 
       {lintErrors.length > 0 && (
-        <ul className="mt-2 rounded-lg bg-red-50 p-2 text-[11px] text-red-700" data-testid="lint-errors">
+        <ul
+          className="mt-2 rounded-md bg-red-50 p-2 text-[11px] leading-relaxed text-red-700 dark:bg-red-500/10 dark:text-red-300"
+          data-testid="lint-errors"
+        >
           {lintErrors.map((error, i) => (
             <li key={i}>
               {error.ruleId ? `Rule "${error.ruleId}"` : error.blockId ? `Block "${error.blockId}"` : "Logic"}
@@ -60,14 +66,14 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
       )}
 
       {questions.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
           {questions.slice(0, 6).map((q) => (
-            <label key={q.id} className="flex items-center gap-1 text-[11px] text-slate-500">
+            <label key={q.id} className="flex items-center gap-1.5 text-[11px] text-[var(--ff-muted)]">
               {(typeof q.props["label"] === "string" && q.props["label"]) || q.id}
               {q.kind === "nps" || q.kind === "rating" || q.kind === "number" ? (
                 <input
                   type="number"
-                  className="w-16 rounded-md border border-slate-200 px-1.5 py-0.5 text-xs"
+                  className="w-16 rounded-md border border-[var(--ff-border)] bg-transparent px-1.5 py-0.5 text-xs tabular-nums text-[var(--ff-fg)]"
                   aria-label={`Preview answer for ${q.id}`}
                   value={typeof overrides[q.id] === "number" ? String(overrides[q.id]) : ""}
                   onChange={(e) =>
@@ -79,17 +85,17 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
                 />
               ) : (
                 <input
-                  className="w-24 rounded-md border border-slate-200 px-1.5 py-0.5 text-xs"
+                  className="w-24 rounded-md border border-[var(--ff-border)] bg-transparent px-1.5 py-0.5 text-xs text-[var(--ff-fg)]"
                   aria-label={`Preview answer for ${q.id}`}
                   onChange={(e) => setOverrides((prev) => ({ ...prev, [q.id]: e.target.value || undefined }))}
                 />
               )}
             </label>
           ))}
-          <label className="flex items-center gap-1 text-[11px] text-slate-500">
+          <label className="flex items-center gap-1.5 text-[11px] text-[var(--ff-muted)]">
             hidden
             <input
-              className="w-28 rounded-md border border-slate-200 px-1.5 py-0.5 text-xs font-mono"
+              className="w-28 rounded-md border border-[var(--ff-border)] bg-transparent px-1.5 py-0.5 font-mono text-xs text-[var(--ff-fg)]"
               aria-label="Hidden fields JSON"
               value={hiddenJson}
               onChange={(e) => setHiddenJson(e.target.value)}
@@ -98,24 +104,29 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
         </div>
       )}
 
-      <ol className="mt-2 space-y-1" data-testid="preview-path">
+      <ol className="mt-3 space-y-1" data-testid="preview-path">
         {simulation.steps.map((step, i) => (
-          <li key={`${step.blockId}-${i}`} className="text-xs text-slate-600">
-            <span className="font-medium text-slate-800">{nodeById.get(step.blockId) ?? step.blockId}</span>
+          <li key={`${step.blockId}-${i}`} className="text-xs text-[var(--ff-muted)]">
+            <span className="font-medium text-[var(--ff-fg)]">{nodeById.get(step.blockId) ?? step.blockId}</span>
             {" → "}
-            <span className="text-indigo-600">{nodeById.get(step.next) ?? step.next}</span>
+            <span className="text-[var(--ff-primary)]">{nodeById.get(step.next) ?? step.next}</span>
           </li>
         ))}
       </ol>
-      <div className="mt-2 text-xs">
+      <div className="mt-3 text-xs">
         {simulation.ending !== null ? (
-          <span className="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700" data-testid="preview-ending">
+          <span
+            className="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
+            data-testid="preview-ending"
+          >
             ends at {nodeById.get(simulation.ending) ?? simulation.ending}
           </span>
         ) : simulation.truncated ? (
-          <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">flow truncated (possible loop)</span>
+          <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
+            flow truncated (possible loop)
+          </span>
         ) : (
-          <span className="text-slate-500">add a question to preview the flow</span>
+          <span className="text-[var(--ff-muted)]">add a question to preview the flow</span>
         )}
       </div>
     </section>

@@ -79,25 +79,23 @@ export function AiDraftDialog({
   return (
     <section
       aria-label="AI draft"
-      className="space-y-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-700"
+      className="space-y-4 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6"
     >
       <header className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">Draft with AI</h2>
+        <h2 className="text-base font-semibold text-[var(--ff-fg)]">Draft with AI</h2>
         {onClose ? (
           <button
             type="button"
             onClick={onClose}
-            className="rounded px-2 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="rounded px-2 py-1 text-sm text-[var(--ff-muted)] transition-colors hover:text-[var(--ff-fg)]"
           >
             Close
           </button>
         ) : null}
       </header>
 
-      <div className="space-y-2">
-        <label htmlFor={promptId} className="block text-sm font-medium">
-          Describe what to build
-        </label>
+      <div className="ff-field">
+        <label htmlFor={promptId}>Describe what to build</label>
         <textarea
           id={promptId}
           value={prompt}
@@ -105,17 +103,19 @@ export function AiDraftDialog({
           rows={3}
           maxLength={2000}
           placeholder="e.g. A two-question customer feedback form with an NPS rating"
-          className="w-full rounded border border-neutral-300 p-2 text-sm dark:border-neutral-600 dark:bg-neutral-900"
+          className="w-full rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)] focus-visible:border-[var(--ff-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ff-primary)]"
         />
-        <div className="flex items-center gap-2">
-          <label htmlFor={`${promptId}-type`} className="text-sm">
-            Type
-          </label>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={`${promptId}-type`} className="text-sm text-[var(--ff-fg)]">
+          Type
+        </label>
+        <span className="relative inline-flex">
           <select
             id={`${promptId}-type`}
             value={documentType}
             onChange={(event) => setDocumentType(event.target.value as DocumentType)}
-            className="rounded border border-neutral-300 px-2 py-1 text-sm dark:border-neutral-600 dark:bg-neutral-900"
+            className="appearance-none rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-bg)] py-1.5 pl-3 pr-8 text-sm text-[var(--ff-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ff-primary)]"
           >
             {DOCUMENT_TYPES.map((type) => (
               <option key={type} value={type}>
@@ -123,15 +123,27 @@ export function AiDraftDialog({
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            onClick={() => void generate()}
-            disabled={status === "loading" || prompt.trim().length === 0}
-            className="ml-auto rounded bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ff-muted)]"
           >
-            {status === "loading" ? "Drafting…" : "Generate draft"}
-          </button>
-        </div>
+            <path
+              fillRule="evenodd"
+              clipRule="evenodd"
+              d="M5.23 7.47a.75.75 0 0 1 1.06 0L10 11.19l3.71-3.72a.75.75 0 1 1 1.06 1.06l-4.24 4.25a.75.75 0 0 1-1.06 0L5.23 8.53a.75.75 0 0 1 0-1.06Z"
+            />
+          </svg>
+        </span>
+        <button
+          type="button"
+          onClick={() => void generate()}
+          disabled={status === "loading" || prompt.trim().length === 0}
+          className="ff-button ff-button-primary ml-auto text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {status === "loading" ? "Drafting…" : "Generate draft"}
+        </button>
       </div>
 
       <p aria-live="polite" className="text-sm">
@@ -142,24 +154,26 @@ export function AiDraftDialog({
               : (error ?? "Draft failed.")}
           </span>
         ) : null}
-        {quotaLabel}
+        {quotaLabel ? (
+          <span className="ml-2 tabular-nums text-[var(--ff-muted)]">{quotaLabel}</span>
+        ) : null}
       </p>
 
       {draft ? (
         <div className="space-y-3">
           <BodyPreview body={draft.body} />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => onInsert?.(draft.body)}
-              className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+              className="ff-button ff-button-primary text-sm"
             >
               Insert into document
             </button>
             <button
               type="button"
               onClick={() => void generate()}
-              className="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
+              className="ff-button ff-button-ghost text-sm"
             >
               Regenerate
             </button>

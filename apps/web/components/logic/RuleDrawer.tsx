@@ -53,21 +53,21 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
 
   return (
     <aside
-      className="absolute right-0 top-0 z-20 flex h-full w-[400px] max-w-[90vw] flex-col border-l border-slate-200 bg-white shadow-xl"
+      className="absolute right-0 top-0 z-20 flex h-full w-[400px] max-w-[90vw] flex-col border-l border-[var(--ff-border)] bg-[var(--ff-card)] shadow-xl"
       data-testid="rule-drawer"
       aria-label={`Rules for ${scope.label}`}
     >
-      <header className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+      <header className="flex items-center justify-between border-b border-[var(--ff-border)] px-4 py-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <div className="text-[11px] font-medium text-[var(--ff-muted)]">
             {scope.kind === "start" ? "Start" : scope.kind === "ending" ? "Ending" : scope.questionKind ?? "Question"}
           </div>
-          <h2 className="text-sm font-semibold text-slate-800">{scope.label}</h2>
+          <h2 className="text-sm font-semibold text-[var(--ff-fg)]">{scope.label}</h2>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-500 hover:bg-slate-50"
+          className="rounded-md border border-[var(--ff-border)] px-2 py-1 text-xs text-[var(--ff-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] hover:text-[var(--ff-fg)]"
           aria-label="Close rules drawer"
         >
           ✕
@@ -76,8 +76,8 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
 
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {isEnding && (
-          <p className="text-sm text-slate-500">
-            Endings are targets of <code className="rounded bg-slate-100 px-1">goto</code> actions.
+          <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
+            Endings are targets of <code className="rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1">goto</code> actions.
             Configure them on the question nodes (or Start) with rules.
           </p>
         )}
@@ -107,7 +107,7 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                className="rounded-lg border border-[color-mix(in_srgb,var(--ff-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--ff-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-primary)_18%,transparent)]"
                 onClick={() => onApply([upsertRuleOp(newRuleDraft(scope.id))])}
               >
                 + Add rule
@@ -115,7 +115,7 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
               {fallback === null && (
                 <button
                   type="button"
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="rounded-lg border border-[var(--ff-border)] px-3 py-1.5 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
                   onClick={() => {
                     const draft = newRuleDraft(scope.id);
                     onApply([upsertRuleOp({ ...draft, isFallback: true, conditions: [], actions: [emptyGotoDraft()] })]);
@@ -193,16 +193,16 @@ function RuleCard({
 
   return (
     <section
-      className="mb-4 rounded-xl border border-slate-200 p-3"
+      className="mb-4 rounded-[calc(var(--ff-radius)*0.9)] border border-[var(--ff-border)] p-3"
       data-testid={`rule-${rule.id}`}
     >
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs font-semibold text-slate-500">
+        <span className="text-xs font-semibold text-[var(--ff-muted)]">
           {draft.isFallback ? "In all other cases" : "IF (all match — AND)"}
         </span>
         <button
           type="button"
-          className="text-xs text-red-600 hover:underline"
+          className="text-xs text-red-600 hover:underline dark:text-red-400"
           onClick={() => onApply([removeRuleOp(rule.id)])}
           aria-label={`Delete rule ${rule.id}`}
         >
@@ -214,7 +214,7 @@ function RuleCard({
         draft.conditions.map((condition) => (
           <div key={condition.key} className="mb-2 flex flex-wrap items-center gap-1.5">
             <select
-              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+              className="rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)]"
               value={condition.source}
               aria-label="Condition source"
               onChange={(e) =>
@@ -226,7 +226,7 @@ function RuleCard({
               <option value="hidden">@hidden</option>
             </select>
             <input
-              className="w-28 rounded-md border border-slate-200 px-2 py-1 text-xs"
+              className="w-28 rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)]"
               value={condition.ref}
               placeholder={condition.source === "block" ? "block id" : "name"}
               aria-label="Condition reference"
@@ -234,7 +234,7 @@ function RuleCard({
               onChange={(e) => updateCondition(condition.key, { ref: e.target.value })}
             />
             <select
-              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+              className="rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)]"
               value={condition.op}
               aria-label="Operator"
               onChange={(e) => updateCondition(condition.key, { op: e.target.value as ConditionDraft["op"] })}
@@ -247,7 +247,7 @@ function RuleCard({
             </select>
             {condition.op !== "isEmpty" && (
               <input
-                className="w-24 rounded-md border border-slate-200 px-2 py-1 text-xs"
+                className="w-24 rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)]"
                 value={condition.right}
                 placeholder="value"
                 aria-label="Compare value"
@@ -256,7 +256,7 @@ function RuleCard({
             )}
             <button
               type="button"
-              className="text-xs text-slate-500 hover:text-red-600"
+              className="text-xs text-[var(--ff-muted)] transition-colors hover:text-red-600 dark:hover:text-red-400"
               aria-label="Remove condition"
               onClick={() =>
                 persist({
@@ -273,19 +273,19 @@ function RuleCard({
       {!draft.isFallback && (
         <button
           type="button"
-          className="mb-2 text-[11px] font-medium text-indigo-600 hover:underline"
+          className="mb-2 text-[11px] font-medium text-[var(--ff-primary)] hover:underline"
           onClick={() => persist({ ...draft, conditions: [...draft.conditions, emptyConditionDraft()] })}
         >
           + AND condition
         </button>
       )}
 
-      <div className="mt-1 border-t border-slate-100 pt-2">
-        <div className="mb-1 text-xs font-semibold text-slate-500">THEN</div>
+      <div className="mt-1 border-t border-[var(--ff-border)] pt-2">
+        <div className="mb-1 text-xs font-semibold text-[var(--ff-muted)]">THEN</div>
         {draft.actions.map((action) => (
           <div key={action.key} className="mb-2 flex flex-wrap items-center gap-1.5">
             <select
-              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+              className="rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)]"
               value={action.kind}
               aria-label="Action type"
               onChange={(e) => {
@@ -303,7 +303,7 @@ function RuleCard({
             </select>
             {action.kind === "goto" ? (
               <select
-                className="max-w-[180px] rounded-md border border-slate-200 bg-white px-2 py-1 text-xs"
+                className="max-w-[180px] rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)]"
                 value={action.target}
                 aria-label="Goto target"
                 onChange={(e) => updateAction(action.key, { target: e.target.value })}
@@ -318,14 +318,14 @@ function RuleCard({
             ) : (
               <>
                 <input
-                  className="w-24 rounded-md border border-slate-200 px-2 py-1 text-xs"
+                  className="w-24 rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)]"
                   value={action.var}
                   placeholder="variable"
                   aria-label="Variable name"
                   onChange={(e) => updateAction(action.key, { var: e.target.value })}
                 />
                 <input
-                  className="w-24 rounded-md border border-slate-200 px-2 py-1 text-xs"
+                  className="w-24 rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)]"
                   value={action.value}
                   placeholder="value"
                   aria-label="Variable value"
@@ -335,7 +335,7 @@ function RuleCard({
             )}
             <button
               type="button"
-              className="text-xs text-slate-500 hover:text-red-600"
+              className="text-xs text-[var(--ff-muted)] transition-colors hover:text-red-600 dark:hover:text-red-400"
               aria-label="Remove action"
               onClick={() => persist({ ...draft, actions: draft.actions.filter((a) => a.key !== action.key) })}
             >
@@ -345,7 +345,7 @@ function RuleCard({
         ))}
         <button
           type="button"
-          className="text-[11px] font-medium text-indigo-600 hover:underline"
+          className="text-[11px] font-medium text-[var(--ff-primary)] hover:underline"
           onClick={() => persist({ ...draft, actions: [...draft.actions, emptyGotoDraft()] })}
         >
           + action
@@ -382,14 +382,14 @@ function PrefillSection({
   useEffect(() => setValue(current), [current]);
 
   return (
-    <section className="mt-4 rounded-xl border border-slate-200 p-3">
-      <div className="text-xs font-semibold text-slate-500">Prefill via URL param</div>
-      <p className="mt-1 text-[11px] text-slate-500">
+    <section className="mt-4 rounded-[calc(var(--ff-radius)*0.9)] border border-[var(--ff-border)] p-3">
+      <div className="text-xs font-semibold text-[var(--ff-muted)]">Prefill via URL param</div>
+      <p className="mt-1 text-[11px] leading-relaxed text-[var(--ff-muted)]">
         Answers this question from a URL parameter (e.g. <code>?email=…</code>).
       </p>
       <div className="mt-2 flex items-center gap-2">
         <input
-          className="w-40 rounded-md border border-slate-200 px-2 py-1 text-xs"
+          className="w-40 rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)]"
           value={value}
           placeholder="param name"
           aria-label="Prefill URL parameter"
@@ -401,7 +401,7 @@ function PrefillSection({
           }}
         />
         {value !== current && (
-          <span className="text-[11px] text-amber-700">unsaved — blur or tab away to apply</span>
+          <span className="text-[11px] text-amber-700 dark:text-amber-400">unsaved — blur or tab away to apply</span>
         )}
       </div>
     </section>
@@ -427,25 +427,34 @@ function HiddenFieldsSection({
   };
 
   return (
-    <section className="mt-4 rounded-xl border border-slate-200 p-3" data-testid="hidden-fields">
-      <div className="text-xs font-semibold text-slate-500">Hidden fields (UTM capture)</div>
-      <p className="mt-1 text-[11px] text-slate-500">
+    <section
+      className="mt-4 rounded-[calc(var(--ff-radius)*0.9)] border border-[var(--ff-border)] p-3"
+      data-testid="hidden-fields"
+    >
+      <div className="text-xs font-semibold text-[var(--ff-muted)]">Hidden fields (UTM capture)</div>
+      <p className="mt-1 text-[11px] leading-relaxed text-[var(--ff-muted)]">
         Captured from the public URL on start (spec §10.3) and stored with every submission — visible
-        in the results drawer. Use <code className="rounded bg-slate-100 px-1">@hidden:&lt;name&gt;</code> in conditions.
+        in the results drawer. Use <code className="rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1">@hidden:&lt;name&gt;</code> in conditions.
       </p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {DEFAULT_HIDDEN_FIELDS.map((field) => (
-          <li key={field} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">
+          <li
+            key={field}
+            className="rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-2 py-0.5 text-[11px] text-[var(--ff-muted)]"
+          >
             {field}
           </li>
         ))}
         {extras.map((extra) => (
-          <li key={extra.name} className="flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] text-indigo-700">
+          <li
+            key={extra.name}
+            className="flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] px-2 py-0.5 text-[11px] text-[var(--ff-primary)]"
+          >
             {extra.name}
             <button
               type="button"
               aria-label={`Remove hidden field ${extra.name}`}
-              className="text-indigo-600 hover:text-red-600"
+              className="transition-colors hover:text-red-600 dark:hover:text-red-400"
               onClick={() => saveExtras(extras.filter((e) => e.name !== extra.name))}
             >
               ✕
@@ -455,7 +464,7 @@ function HiddenFieldsSection({
       </ul>
       <div className="mt-2 flex items-center gap-1.5">
         <input
-          className="w-40 rounded-md border border-slate-200 px-2 py-1 text-xs"
+          className="w-40 rounded-md border border-[var(--ff-border)] bg-transparent px-2 py-1 text-xs text-[var(--ff-fg)] placeholder:text-[var(--ff-muted)]"
           value={name}
           placeholder="extra param (e.g. referrer)"
           aria-label="Extra hidden field name"
@@ -463,7 +472,7 @@ function HiddenFieldsSection({
         />
         <button
           type="button"
-          className="rounded-md border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          className="rounded-md border border-[var(--ff-border)] px-2 py-1 text-xs font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
           onClick={() => {
             const trimmed = name.trim();
             if (trimmed === "") return;

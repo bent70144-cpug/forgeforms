@@ -4,9 +4,43 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { ResultsApiError } from "../../lib/results";
+
+/**
+ * Friendly one-liners per API error code (spec §4). The raw code/message is
+ * never shown as the headline — it stays available inside a collapsed
+ * <details> for debugging.
+ */
+const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
+  NOT_FOUND: "This document doesn’t exist or you don’t have access to it.",
+  FORBIDDEN: "You don’t have access to this document.",
+  VALIDATION: "That request wasn’t valid.",
+  CONFLICT: "This document changed recently — refresh and try again.",
+  RATE_LIMITED: "Too many requests — wait a moment and retry.",
+  PLAN_LIMIT: "Your plan doesn’t include this.",
+  INTERNAL: "Something went wrong loading results.",
+};
+
+/** Headline text for an error state, from an optional machine code. */
+export function friendlyErrorMessage(code?: string | null): string {
+  if (code != null && FRIENDLY_ERROR_MESSAGES[code] != null) {
+    return FRIENDLY_ERROR_MESSAGES[code]!;
+  }
+  return FRIENDLY_ERROR_MESSAGES.INTERNAL!;
+}
+
+/** Machine code of a fetch failure, if it is a typed API error. */
+export function errorCodeOf(err: unknown): string | null {
+  return err instanceof ResultsApiError ? err.code : null;
+}
 
 export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-slate-200/80 ${className}`} aria-hidden="true" />;
+  return (
+    <div
+      className={`animate-pulse motion-reduce:animate-none rounded-md bg-[color-mix(in_srgb,var(--ff-fg)_10%,transparent)] ${className}`}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function TableSkeleton({ rows = 8 }: { rows?: number }) {
@@ -49,9 +83,9 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
+    <div className="ff-empty">
       <svg
-        className="mb-3 h-10 w-10 text-slate-400"
+        className="h-10 w-10 text-[var(--ff-muted)]"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -64,28 +98,45 @@ export function EmptyState({
           d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
         />
       </svg>
-      <p className="text-sm font-semibold text-slate-900">{title}</p>
-      {description ? <p className="mt-1 max-w-sm text-sm text-slate-500">{description}</p> : null}
-      {action ? <div className="mt-4">{action}</div> : null}
+      <p className="text-base font-semibold text-balance text-[var(--ff-fg)]">{title}</p>
+      {description ? (
+        <p className="max-w-sm text-sm leading-relaxed text-[var(--ff-muted)]">{description}</p>
+      ) : null}
+      {action ? <div>{action}</div> : null}
     </div>
   );
 }
 
-export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+export function ErrorState({
+  message,
+  code,
+  onRetry,
+}: {
+  /** Raw technical message (describeError output) — shown only in <details>. */
+  message: string;
+  /** Machine error code (e.g. "NOT_FOUND") — picks the friendly headline. */
+  code?: string | null;
+  onRetry: () => void;
+}) {
   return (
     <div
       role="alert"
-      className="flex flex-col items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-6 py-12 text-center"
+      className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-6 py-10 text-center"
     >
-      <p className="text-sm font-semibold text-rose-900">Couldn&apos;t load results</p>
-      <p className="mt-1 max-w-md text-sm text-rose-700">{message}</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 inline-flex items-center rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
-      >
+      <p className="text-base font-semibold text-balance text-[var(--ff-fg)]">
+        {friendlyErrorMessage(code)}
+      </p>
+      <button type="button" onClick={onRetry} className="ff-button ff-button-primary mt-4 text-sm">
         Try again
       </button>
+      <details className="mt-4">
+        <summary className="cursor-pointer text-xs text-[var(--ff-muted)] transition-colors hover:text-[var(--ff-fg)]">
+          Technical details
+        </summary>
+        <p className="mx-auto mt-2 max-w-md break-words text-left font-mono text-xs leading-relaxed text-[var(--ff-muted)]">
+          {message}
+        </p>
+      </details>
     </div>
   );
 }

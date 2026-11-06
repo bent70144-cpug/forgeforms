@@ -39,12 +39,16 @@ function StartNode({ data }: NodeProps<FlowNode>) {
   return (
     <div
       className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm ${
-        data.active ? "border-indigo-500 bg-indigo-600 text-white" : "border-slate-300 bg-white text-slate-800"
+        data.active
+          ? "border-[var(--ff-primary)] bg-[var(--ff-primary)] text-[var(--ff-primary-fg)]"
+          : "border-[var(--ff-border)] bg-[var(--ff-card)] text-[var(--ff-fg)]"
       }`}
     >
-      <span aria-hidden>▶</span>
+      <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3 fill-current">
+        <path d="M3 1.6a.8.8 0 0 1 1.22-.68l6.4 4.4a.8.8 0 0 1 0 1.36l-6.4 4.4A.8.8 0 0 1 3 10.4Z" />
+      </svg>
       {data.label}
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-500" />
+      <Handle type="source" position={Position.Bottom} className="!bg-[var(--ff-muted)]" />
     </div>
   );
 }
@@ -52,18 +56,18 @@ function StartNode({ data }: NodeProps<FlowNode>) {
 function QuestionNode({ data }: NodeProps<FlowNode>) {
   return (
     <div
-      className={`min-w-[180px] rounded-xl border px-4 py-3 text-sm shadow-sm ${
+      className={`min-w-[180px] rounded-[var(--ff-radius)] border px-4 py-3 text-sm shadow-sm ${
         data.active
-          ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-300"
-          : "border-slate-300 bg-white"
+          ? "border-[var(--ff-primary)] bg-[color-mix(in_srgb,var(--ff-primary)_10%,var(--ff-card))] ring-2 ring-[color-mix(in_srgb,var(--ff-primary)_40%,transparent)]"
+          : "border-[var(--ff-border)] bg-[var(--ff-card)]"
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-500" />
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <Handle type="target" position={Position.Top} className="!bg-[var(--ff-muted)]" />
+      <div className="text-[11px] font-medium text-[var(--ff-muted)]">
         {data.questionKind ?? "question"}
       </div>
-      <div className="mt-1 font-medium text-slate-800">{data.label}</div>
-      <Handle type="source" position={Position.Bottom} className="!bg-slate-500" />
+      <div className="mt-1 font-medium text-[var(--ff-fg)]">{data.label}</div>
+      <Handle type="source" position={Position.Bottom} className="!bg-[var(--ff-muted)]" />
     </div>
   );
 }
@@ -71,17 +75,17 @@ function QuestionNode({ data }: NodeProps<FlowNode>) {
 function EndingNode({ data }: NodeProps<FlowNode>) {
   return (
     <div
-      className={`min-w-[160px] rounded-xl border px-4 py-3 text-sm shadow-sm ${
+      className={`min-w-[160px] rounded-[var(--ff-radius)] border px-4 py-3 text-sm shadow-sm ${
         data.active
-          ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-300"
-          : "border-slate-300 bg-slate-50"
+          ? "border-emerald-500 bg-emerald-50 ring-2 ring-emerald-300 dark:border-emerald-400 dark:bg-emerald-500/10 dark:ring-emerald-500/40"
+          : "border-[var(--ff-border)] bg-[var(--ff-bg)]"
       }`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-slate-500" />
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
+      <Handle type="target" position={Position.Top} className="!bg-[var(--ff-muted)]" />
+      <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
         ending
       </div>
-      <div className="mt-1 font-medium text-slate-800">{data.label}</div>
+      <div className="mt-1 font-medium text-[var(--ff-fg)]">{data.label}</div>
     </div>
   );
 }

@@ -28,25 +28,21 @@ const EMPTY_FORM: DocumentBody = {
   logic: { rules: [] },
 };
 
-export function AiWorkbench({ docId }: { docId: string }) {
+export function AiWorkbench({ docId: _docId }: { docId: string }) {
   const [document, setDocument] = useState<DocumentBody>(EMPTY_FORM);
   const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
       <header>
-        <h1 className="text-xl font-semibold">AI for document {docId}</h1>
-        <p className="text-sm opacity-70">
+        <h1 className="text-xl font-semibold text-balance text-[var(--ff-fg)]">AI assist</h1>
+        <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">
           Draft a document from a prompt, or propose edits to the current one.
         </p>
       </header>
 
       {notice ? (
-        <p
-          role="status"
-          aria-live="polite"
-          className="rounded border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200"
-        >
+        <p role="status" aria-live="polite" className="ff-banner ff-banner-success">
           {notice}
         </p>
       ) : null}
@@ -72,9 +68,9 @@ export function AiWorkbench({ docId }: { docId: string }) {
         }}
       />
 
-      <section aria-label="Current document" className="text-sm opacity-80">
-        <h2 className="font-medium">Current document</h2>
-        <p className="font-mono text-xs">
+      <section aria-label="Current document" className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6">
+        <h2 className="text-base font-semibold text-[var(--ff-fg)]">Current document</h2>
+        <p className="mt-1 font-mono text-xs tabular-nums text-[var(--ff-muted)]">
           {document.type} · {document.blocks.length} block(s) · schemaVersion{" "}
           {document.schemaVersion}
         </p>
