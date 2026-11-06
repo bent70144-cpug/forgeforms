@@ -10,6 +10,15 @@ export const ERROR_CODES = [
   'RATE_LIMITED',
   'PLAN_LIMIT',
   'INTERNAL',
+  // SPEC-NOTE (T10): §4 has no code for unpublish; mapped to 410 by callers.
+  'UNPUBLISHED',
+  // SPEC-NOTE (T27): AI-plane extensions (see apps/web/api mapping).
+  'UNAUTHENTICATED',
+  'UNPROCESSABLE',
+  'AI_OUTPUT_INVALID',
+  'AI_PROVIDER_ERROR',
+  'AI_NOT_CONFIGURED',
+  'CONFIRMATION_REQUIRED',
 ] as const;
 
 export const ErrorCodeSchema = z.enum(ERROR_CODES);
@@ -30,7 +39,7 @@ export const ErrorBodySchema = z.object({
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
 export type ErrorBody = z.infer<typeof ErrorBodySchema>;
 
-/** spec §4 — error code → HTTP status. */
+/** spec §4 (with T10/T27 extensions) — error code → HTTP status. Mirrors packages/core/src/shared/errors.ts. */
 export const HTTP_STATUS_BY_CODE: Record<ErrorCode, number> = {
   NOT_FOUND: 404,
   FORBIDDEN: 403,
@@ -39,4 +48,11 @@ export const HTTP_STATUS_BY_CODE: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   PLAN_LIMIT: 402,
   INTERNAL: 500,
+  UNPUBLISHED: 410,
+  UNAUTHENTICATED: 401,
+  UNPROCESSABLE: 422,
+  AI_OUTPUT_INVALID: 502,
+  AI_PROVIDER_ERROR: 502,
+  AI_NOT_CONFIGURED: 503,
+  CONFIRMATION_REQUIRED: 422,
 };
