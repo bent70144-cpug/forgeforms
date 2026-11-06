@@ -5,9 +5,9 @@
 // document reference (an internal id/slug), the reporter-supplied contact
 // (OPTIONAL, truncated) and nothing else reach the log. Rate limiting reuses
 // the ingest limiter seam (same in-memory token bucket per IP).
-import { AppError, err, ok, type Result } from "@formforge/core";
 import { InMemoryRateLimiter } from "@formforge/core/submissions";
 import { handleApiError, JSON_MEDIA } from "@/app/api/v1/_lib/respond";
+import { parseAbuseReport } from "@/lib/abuse/parse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,38 +17,6 @@ const RATE_LIMIT_PER_MINUTE = 5;
 // One bucket per server instance is acceptable for an abuse intake (the real
 // deployment swaps in the Redis limiter with the ingest plane — same seam).
 const limiter = new InMemoryRateLimiter();
-
-type AbuseReportInput = {
-  documentRef?: unknown;
-  reason?: unknown;
-  contact?: unknown;
-};
-
-export type AbuseReportRecord = {
-  documentRef: string;
-  reasonLength: number;
-  hasContact: boolean;
-  reportedAt: string;
-};
-
-/** Pure: normalize + validate the report body (unit-tested). */
-export function parseAbuseReport(input: unknown): Result<AbuseReportRecord, AppError> {
-  const body = (typeof input === "object" && input !== null ? input : {}) as AbuseReportInput;
-  const documentRef = typeof body.documentRef === "string" ? body.documentRef.trim() : "";
-  if (documentRef.length === 0 || documentRef.length > 300) {
-    return err(
-      AppError.validation("A document link or reference is required", [
-        { path: "documentRef", message: "1-300 characters" },
-      ]),
-    );
-  }
-  return ok({
-    documentRef,
-    reasonLength: typeof body.reason === "string" ? Math.min(body.reason.length, 2000) : 0,
-    hasContact: typeof body.contact === "string" && body.contact.trim().length > 0,
-    reportedAt: new Date().toISOString(),
-  });
-}
 
 export async function POST(req: Request): Promise<Response> {
   const ip =

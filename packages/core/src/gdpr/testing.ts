@@ -8,7 +8,6 @@ import type {
   ExportedMembership,
   ExportedSubmission,
   ExportedWebhookEndpoint,
-  ExportedWorkspace,
   RetentionStore,
   WorkspaceExportStore,
   WorkspaceLifecycleRow,

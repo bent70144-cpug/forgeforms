@@ -1,3 +1,5 @@
+"use client";
+
 // file-upload input (T16, spec §7.2 answer { assetIds } + §10.1 upload plane).
 //
 // Every picked file goes direct-to-storage: presign (public API) → PUT →

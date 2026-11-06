@@ -25,7 +25,7 @@ function publishedHarness(title = 'My form') {
 
 describe('makeTakedownDocument (admin abuse takedown, spec §17)', () => {
   it('archives a published document, drops the snapshot and purges cache', async () => {
-    const { store, cdn, deps } = publishedHarness();
+    const { cdn, deps } = publishedHarness();
     const result = await makeTakedownDocument(deps)(makeCtx(), 'doc_1');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -38,7 +38,7 @@ describe('makeTakedownDocument (admin abuse takedown, spec §17)', () => {
   });
 
   it('is idempotent for already-archived documents but still purges cache', async () => {
-    const { store, cdn, deps } = publishedHarness();
+    const { cdn, deps } = publishedHarness();
     await deps.documents.updatePublishState('ws_a', 'doc_1', { status: 'archived', publishedVersionId: null, updatedAt: new Date() });
     cdn.tags.length = 0;
     cdn.keys.length = 0;

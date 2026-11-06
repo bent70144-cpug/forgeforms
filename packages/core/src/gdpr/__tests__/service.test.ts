@@ -18,10 +18,7 @@ import type { InMemoryGdprState } from '../testing';
 const T0 = Date.parse('2026-11-06T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
 
-function clock(start: number = T0) {
-  let current = start;
-  return { now: () => new Date(current), jumpTo: (ms: number) => { current = ms; } };
-}
+
 
 function ctxFor(state: InMemoryGdprState, workspaceId: string) {
   const member = state.memberships.get(workspaceId)?.[0];

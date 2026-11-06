@@ -142,7 +142,6 @@ export async function deleteAccount(
   const memberships = await deps.accounts.listMembershipsForUser(userId);
   const workspacesScheduled: string[] = [];
   const workspacesKept: string[] = [];
-  const graceDays = deps.defaultGraceDays ?? DEFAULT_WORKSPACE_GRACE_DAYS;
   const now = deps.now();
 
   for (const membership of memberships) {

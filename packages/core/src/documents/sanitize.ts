@@ -40,10 +40,6 @@ export const RICH_TEXT_ALLOWED_TAGS: ReadonlySet<string> = new Set([
 /** Void (self-closing) tags on the allowlist. */
 const VOID_TAGS: ReadonlySet<string> = new Set(['br', 'hr']);
 
-/** Attributes that survive, per tag. All other attributes are dropped. */
-const ALLOWED_ATTRS: Readonly<Record<string, ReadonlySet<string>>> = {
-  a: new Set(['href', 'title']),
-};
 
 /** Tags whose entire content is dropped (never unwrapped into text). */
 const DROP_WITH_CONTENT: ReadonlySet<string> = new Set([
@@ -353,7 +349,7 @@ function serializeNode(node: unknown, activeMarks: ReadonlySet<string>): string 
   }
 }
 
-function serializeTextNode(node: Record<string, unknown>, activeMarks: ReadonlySet<string>): string {
+function serializeTextNode(node: Record<string, unknown>, _activeMarks: ReadonlySet<string>): string {
   const text = typeof node.text === 'string' ? node.text : '';
   if (text === '') return '';
   const marks = markSet(node.marks);

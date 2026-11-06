@@ -9,7 +9,8 @@ import {
   createInMemoryDocumentStore,
   emptyDocumentBody,
 } from "@formforge/core";
-import { POST as postAbuseReport, parseAbuseReport } from "@/app/api/public/abuse-report/route";
+import { POST as postAbuseReport } from "@/app/api/public/abuse-report/route";
+import { parseAbuseReport } from "@/lib/abuse/parse";
 import { POST as postTakedown } from "@/app/api/internal/admin/documents/[id]/takedown/route";
 import { isStaffKeyValid } from "@/lib/security/staff";
 import { configureDocumentsApi } from "@/lib/api/documents";

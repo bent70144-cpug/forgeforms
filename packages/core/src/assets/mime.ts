@@ -79,7 +79,6 @@ function looksLikeText(bytes: Uint8Array): boolean {
   let decodeFailed = false;
   const decoded = new TextDecoder("utf-8", {
     fatal: true,
-    // eslint-disable-next-line @typescript-eslint/no-useless-catch -- intentionally scoped
   });
   let text: string;
   try {
