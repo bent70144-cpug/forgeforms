@@ -10,6 +10,8 @@ export type BlockViewProps = {
   answer?: unknown;
   onAnswer?: (value: unknown) => void;
   disabled?: boolean;
+  /** URL params for question-block prefill (T09 §7.2 `prefillParam`); optional. */
+  urlParams?: Readonly<Record<string, string>>;
 };
 
 /**
@@ -25,7 +27,7 @@ export type BlockViewProps = {
  * at runtime; SPEC-NOTE: the conversational/scroll renderers — T10/T12 — may
  * bypass `BlockView` for step-level control).
  */
-export function BlockView({ block, answer, onAnswer, disabled }: BlockViewProps): ReactElement | null {
+export function BlockView({ block, answer, onAnswer, disabled, urlParams }: BlockViewProps): ReactElement | null {
   const def = getBlockDef(block.kind);
   if (!def) return null;
   if (block.hidden) return null;
@@ -39,10 +41,17 @@ export function BlockView({ block, answer, onAnswer, disabled }: BlockViewProps)
       answer={answer}
       onAnswer={onAnswer}
       disabled={disabled}
+      urlParams={urlParams}
     />
   ));
   return (
-    <Render props={parsed.data} answer={answer} onAnswer={onAnswer} disabled={disabled}>
+    <Render
+      props={parsed.data}
+      answer={answer}
+      onAnswer={onAnswer}
+      disabled={disabled}
+      urlParams={urlParams}
+    >
       {children}
     </Render>
   );
