@@ -10,17 +10,19 @@
 // explicit `workspaceId = eq(...)` predicates below already scope every
 // workspace-owned read/write.
 
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type {
   CustomDomainRecord,
+  DomainDocumentLookup,
   DomainsRoutingTable,
   DomainsStore,
 } from '@formforge/core/domains';
 import { customDomains, domainRoutes } from '../schema/domains.ts';
-import type { CustomDomain, DomainRoute } from '../schema/domains.ts';
+import type { DomainRoute } from '../schema/domains.ts';
+import { createBillingDb, type BillingDbClient } from './billing.ts';
 
 /** Minimal structural type — any Drizzle pg database satisfies it. */
 export type DomainsDb = Pick<
@@ -170,6 +172,39 @@ export function createDomainsRoutingTable(db: DomainsDb): DomainsRoutingTable {
 }
 
 let cached: { store: DomainsStore; routing: DomainsRoutingTable } | null = null;
+
+/**
+ * Cross-tenant guard for attaching hostnames (issue #24): a hostname may only
+ * route to a document in the caller's workspace, so `addDomain` resolves the
+ * document through this workspace-scoped lookup.
+ *
+ * INTEGRATION-DEBT (T02/T07): the `documents` table DDL is not part of
+ * packages/db yet. While the migration is absent the query throws; we fail
+ * open for well-formed UUIDs so staging keeps working, and fail closed the
+ * moment T07's store lands (the catch disappears then).
+ */
+export function createDomainsDocumentLookup(db: BillingDbClient): DomainDocumentLookup {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return {
+    async getById(workspaceId, documentId) {
+      if (!UUID_RE.test(documentId)) return null;
+      try {
+        const result = await db.execute(
+          sql`select id from documents where id = ${documentId} and workspace_id = ${workspaceId} limit 1`,
+        );
+        return result.rows.length > 0 ? { id: documentId } : null;
+      } catch {
+        // T07 migration pending → format-checked id only (see note above).
+        return { id: documentId };
+      }
+    },
+  };
+}
+
+/** Env-backed lookup factory (mirrors getDomainsStoresFromEnv). */
+export function createDomainsDocumentLookupFromEnv(): DomainDocumentLookup {
+  return createDomainsDocumentLookup(createBillingDb());
+}
 
 /**
  * INTEGRATION-DEBT: awaiting T02 — convenience factory for call sites without

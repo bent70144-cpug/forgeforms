@@ -2,7 +2,7 @@
 // validation, PLAN_LIMIT→402 mapping, remove + list shapes. The domains
 // service and the auth gate are mocked — route wiring only.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { AppError, ok, err } from "@formforge/core/domains";
+import { AppError, ok, err } from "@formforge/core";
 
 vi.mock("../../../../lib/domains/server", () => ({
   getDomainsService: vi.fn(),
@@ -130,9 +130,13 @@ describe("POST /api/v1/domains", () => {
     ])));
     const response = await POST(jsonRequest("POST", { hostname: "docs.example.com", documentId: DOMAIN_PENDING.documentId }));
     expect(response.status).toBe(402);
-    const body = (await response.json()) as { error: { code: string; details: { capability?: string } } };
+    const body = (await response.json()) as { error: { code: string; details: { path?: string; message: string }[] } };
     expect(body.error.code).toBe("PLAN_LIMIT");
-    expect(body.error.details.capability).toBe("customDomains");
+    // §4 details shape: [{ path, message }] — capability rides in an entry.
+    const capability = body.error.details.find((d) => d.path === "capability")?.message;
+    expect(capability).toBe("customDomains");
+    const requiredPlan = body.error.details.find((d) => d.path === "requiredPlan")?.message;
+    expect(requiredPlan).toBe("pro");
   });
 
   it("409 on a hostname that is already attached", async () => {

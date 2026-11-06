@@ -3,8 +3,9 @@
 // entry (spec §10.1). A failed check returns 200 with verified:false — the
 // domain stays pending and NEVER routes; the settings UI shows the state.
 import { AppError, requireScope } from '@formforge/core/api';
-import { authenticate } from '../../../../_lib/auth';
-import { handleApiError, ok } from '../../../../_lib/respond';
+import { authenticate } from '../../../_lib/auth';
+import { handleApiError, ok } from '../../../_lib/respond';
+import { toServiceCtx } from '../../../../../../lib/domains/api-ctx';
 import { getDomainsService, routingTarget } from '../../../../../../lib/domains/server';
 import { domainToDto } from '../../../../../../lib/domains/dto';
 
@@ -26,7 +27,7 @@ export async function POST(
       throw AppError.validation('Invalid domain id', [{ path: 'id', message: 'Must be a uuid' }]);
     }
     const service = getDomainsService();
-    const result = await service.verifyDomain(ctx, id);
+    const result = await service.verifyDomain(toServiceCtx(ctx), id);
     if (!result.ok) throw result.error;
     return ok({
       domain: domainToDto(result.value.domain, routingTarget()),

@@ -26,7 +26,6 @@ import {
 import type {
   AddDomainOutcome,
   CustomDomainRecord,
-  DnsInstructions,
   RemoveOutcome,
   VerificationMethod,
   VerifyOutcome,

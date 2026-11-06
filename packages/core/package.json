@@ -13,6 +13,7 @@
     "./templates": "./src/templates/index.ts",
     "./billing": "./src/billing/index.ts",
     "./domains": "./src/domains/index.ts",
+    "./domains/routing": "./src/domains/routing.ts",
     "./api": "./src/api/index.ts",
     "./ai": "./src/ai/index.ts"
   },

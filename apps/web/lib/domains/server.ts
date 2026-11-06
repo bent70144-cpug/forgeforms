@@ -4,6 +4,7 @@
 // is assembled:
 //   store/routing ← @formforge/db repositories (Drizzle over custom_domains /
 //                   domain_routes — the §8 KV routing-table substitute)
+//   documents     ← @formforge/db cross-tenant document lookup
 //   dns           ← node resolver (manual TXT/CNAME verification fallback)
 //   provisioner   ← Cloudflare for SaaS when CLOUDFLARE_API_TOKEN is set,
 //                   manual DNS instructions otherwise
@@ -11,25 +12,25 @@
 //                   publish/unpublish — spec §8 step 5)
 //   gate          ← billing entitlements (can() + §13 customDomains quota)
 // Tests never import this file — they build the service with fakes.
-import { sql } from 'drizzle-orm';
 import {
   createCloudflareProvisioner,
   createManualProvisioner,
   createNodeDnsLookup,
   makeDomainsService,
   type DomainGate,
-  type DomainDocumentLookup,
   type DomainsService,
   type DomainsServiceDeps,
 } from '@formforge/core/domains';
-import { noopCdnPurge } from '@formforge/core/documents';
+import { noopCdnPurge } from '@formforge/core';
 import { createEntitlementsService } from '@formforge/core/billing';
 import {
   createBillingDb,
   createBillingRepository,
-  type BillingDbClient,
 } from '@formforge/db/repositories/billing';
-import { getDomainsStoresFromEnv } from '@formforge/db/repositories/domains';
+import {
+  createDomainsDocumentLookupFromEnv,
+  getDomainsStoresFromEnv,
+} from '@formforge/db/repositories/domains';
 
 /** Public routing target customers CNAME to (SPEC-NOTE: env-overridable for
  * staging; defaults to the production edge hostname). */
@@ -65,34 +66,6 @@ export function createDomainsGateFromEnv(env: NodeJS.ProcessEnv = process.env): 
   });
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * Cross-tenant guard: a hostname may only attach to a document in the caller's
- * workspace. INTEGRATION-DEBT (T07): the `documents` table DDL is not part of
- * packages/db yet, so the tenant-scoped query is attempted and — while that
- * migration is absent — falls back to accepting well-formed ids (staging keeps
- * working; the moment T07's store lands this becomes strictly fail-closed).
- */
-export function createDocumentLookupFromEnv(env: NodeJS.ProcessEnv = process.env): DomainDocumentLookup {
-  const client: BillingDbClient = createBillingDb(env.DATABASE_URL ?? '');
-  return {
-    async getById(workspaceId, documentId) {
-      if (!UUID_RE.test(documentId)) return null;
-      try {
-        const result = await client.execute(
-          sql`select id from documents where id = ${documentId} and workspace_id = ${workspaceId} limit 1`,
-        );
-        if (result.rows.length > 0) return { id: documentId };
-        return null;
-      } catch {
-        // T07 migration pending → format-checked id only (see note above).
-        return { id: documentId };
-      }
-    },
-  };
-}
-
 /** Assemble the domains service from process env (memoized per process). */
 export function getDomainsService(): DomainsService {
   const globalForDomains = globalThis as typeof globalThis & {
@@ -111,7 +84,7 @@ export function createDomainsServiceFromEnv(env: NodeJS.ProcessEnv = process.env
     provisioner: createProvisionerFromEnv(env),
     cdn: noopCdnPurge,
     routingTarget: routingTarget(env),
-    documents: createDocumentLookupFromEnv(env),
+    documents: createDomainsDocumentLookupFromEnv(),
     now: () => new Date(),
   };
   return makeDomainsService(deps, createDomainsGateFromEnv(env));

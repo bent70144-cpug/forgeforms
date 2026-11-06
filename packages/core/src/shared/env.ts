@@ -57,6 +57,10 @@ export const appEnvSchema = z.object({
   // manual DNS (TXT/CNAME) fallback is used.
   CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
   CLOUDFLARE_ZONE_ID: z.string().min(1).optional(),
+  // T24 staging override: the hostname customers CNAME to (manual DNS
+  // fallback instructions). Defaults to the production edge hostname in
+  // apps/web/lib/domains/server.ts — not part of spec §5, harmless to omit.
+  FORMFORGE_ROUTING_TARGET: z.string().min(1).optional(),
 });
 
 export type AppEnv = z.infer<typeof appEnvSchema>;

@@ -6,13 +6,22 @@
 //    table through /api/internal/host-route);
 //  - the node route handler (the Drizzle routing table from @formforge/db).
 // Pure helpers here are unit-tested; the middleware stays a thin wrapper.
-import { isAppHost, normalizeRequestHost } from '@formforge/core/domains';
+//
+// EDGE RULE: import the deep, pure routing helpers — NOT the
+// @formforge/core/domains barrel. The barrel exports the service, which pulls
+// billing → stripe signature (node:crypto) into the edge bundle and webpack
+// fails the middleware build ("UnhandledSchemeError: node:crypto"), 500-ing
+// every page. `routing.ts` is pure (see its header) and edge-safe.
+import { isAppHost, normalizeRequestHost } from '@formforge/core/domains/routing';
 
 /** TTL for middleware-side host lookups (§13 plan changes move slowly; DNS even slower). */
 export const HOST_ROUTE_TTL_MS = 15_000;
 
+/** The env slice the helpers read — kept structural so tests pass plain records. */
+export type EnvLike = Partial<Record<string, string | undefined>>;
+
 /** The deployment's own hosts — never rewritten to _host (auth/marketing app). */
-export function appHostsFromEnv(env: NodeJS.ProcessEnv = process.env): string[] {
+export function appHostsFromEnv(env: EnvLike = process.env): string[] {
   const hosts = new Set<string>(['localhost', '127.0.0.1']);
   for (const key of ['NEXT_PUBLIC_APP_URL', 'PUBLIC_BASE_URL']) {
     const raw = env[key];
