@@ -69,7 +69,6 @@ export default function HarnessClient({ docId }: { docId: string }) {
         messages arrive from the embed shell (only height/complete pass the harness guards).
       </p>
       <div className="mt-3 rounded-xl border border-slate-200 p-4">
-        {/* eslint-disable-next-line @next/next/no-img-element -- plain iframe, not an img */}
         <iframe ref={frameRef} src={`/embed/${docId}`} title="Harness child frame" className="h-48 w-full rounded-lg border border-slate-300" />
       </div>
 
