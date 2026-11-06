@@ -42,3 +42,19 @@ export function createDrizzleRepositories(db: Db = getDb()) {
 // Ctx-scoped functions) — kept alongside the auth-session repo above. Selective
 // export: its DTO type names intentionally mirror identity.ts's.
 export { createIdentityRepositories, type IdentityRepositories } from "./access.ts";
+
+// T04 (issue #4): RLS-bound tenant repositories — every call runs inside a
+// transaction with `app.workspace_id` set and `role formforge_app` assumed.
+export {
+  applyTenantScope,
+  assertWorkspaceId,
+  createTenantRepositories,
+  tenantRoleSql,
+  tenantScopeSql,
+  userScopeSql,
+  withTenantScope,
+  withUserScope,
+  type TenantDocumentsRepo,
+  type TenantRepositories,
+  type TenantSubmissionsRepo,
+} from "./tenant.ts";

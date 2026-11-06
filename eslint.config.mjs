@@ -5,6 +5,9 @@ export default tseslint.config(
     ignores: [
       "**/node_modules/**",
       "**/.next/**",
+      // Next.js regenerates this during `next build` with a triple-slash
+      // reference to .next/types — generated file, gitignored, never linted.
+      "**/next-env.d.ts",
       "**/dist/**",
       "**/coverage/**",
       "worktrees/**",

@@ -11,6 +11,16 @@ export type { ErrorCode, Result } from '../bridge';
 export { API_SCOPES, hasScope, isApiScope, requireScope } from './scopes';
 export type { ApiScope } from './scopes';
 
+// T04 (issue #4): tenancy role matrix + requireRole.
+export {
+  ROLE_MINIMUM_FOR,
+  ROLE_RANK,
+  requireRole,
+  requireRoleFor,
+  roleSatisfies,
+} from './roles';
+export type { TenancyCapability } from './roles';
+
 export {
   TOKEN_NAME_MAX,
   TOKEN_NAME_MIN,
