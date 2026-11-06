@@ -4,7 +4,7 @@
 import { AiWorkbench } from "../../../../../components/ai";
 
 export const metadata = {
-  title: "AI — FormForge",
+  title: "AI assist — FormForge",
 };
 
 export default async function DocumentAiPage({

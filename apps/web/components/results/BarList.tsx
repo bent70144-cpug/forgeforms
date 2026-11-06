@@ -23,16 +23,16 @@ export function BarList({ items, ariaLabel }: { items: BarItem[]; ariaLabel: str
         const share = total > 0 ? Math.round((item.value / total) * 100) : 0;
         return (
           <li key={item.label} className="grid grid-cols-[minmax(6rem,11rem)_1fr_auto] items-center gap-3">
-            <span className="truncate text-sm text-slate-700" title={item.label}>
+            <span className="truncate text-sm text-[var(--ff-fg)]" title={item.label}>
               {item.label}
             </span>
-            <span className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+            <span className="h-2.5 overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)]">
               <span
-                className="block h-full rounded-full bg-indigo-500 transition-[width] duration-300"
+                className="block h-full rounded-full bg-[var(--ff-primary)]"
                 style={{ width: `${pct}%` }}
               />
             </span>
-            <span className="text-right text-sm tabular-nums text-slate-600">
+            <span className="text-right text-sm tabular-nums text-[var(--ff-muted)]">
               {item.display ?? (share > 0 ? `${item.value} (${formatPercent(share)})` : "0")}
             </span>
           </li>

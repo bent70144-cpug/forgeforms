@@ -75,7 +75,11 @@ describe("POST /api/public/abuse-report", () => {
         body: form,
       }),
     );
-    expect(res.status).toBe(202);
+    // No-JS form posts use Post/Redirect/Get: 303 back to /report-abuse with
+    // a success flag (the route's documented behavior) — only JSON callers
+    // get the structured 202.
+    expect(res.status).toBe(303);
+    expect(res.headers.get("location")).toBe("http://localhost/report-abuse?submitted=1");
   });
 
   it("422s a report without a document reference", async () => {

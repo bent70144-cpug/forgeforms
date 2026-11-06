@@ -11,7 +11,7 @@ export function GoogleSignInButton({ origin }: { origin?: string }) {
     <>
       <a
         href="/api/auth/signin/google"
-        className="ff-button ff-button-ghost"
+        className="ff-btn ff-btn-secondary transition-colors"
         data-testid="google-sign-in"
         aria-label="Continue with Google"
       >

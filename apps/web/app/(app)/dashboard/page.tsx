@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { AppShell } from "@/components/dashboard/app-shell";
 import { DocumentsView } from "@/components/dashboard/documents-view";
-import { getCurrentSession } from "@/lib/auth/session";
 import { listTemplates } from "@formforge/core/templates";
 
 export const dynamic = "force-dynamic";
@@ -10,8 +7,8 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const session = await getCurrentSession();
-  if (!session) redirect("/login");
+  // The (app) layout resolves the session and renders the app shell;
+  // this page only supplies the document list and template catalog.
 
   // Template catalog for the §11/§14.1.2 create modal ("Blank | Template |
   // Generate with AI"). listTemplates() is a pure in-memory registry read —
@@ -30,9 +27,5 @@ export default async function DashboardPage() {
     gradient: t.gradient,
   }));
 
-  return (
-    <AppShell user={session.user} workspace={session.workspace}>
-      <DocumentsView templates={templates} />
-    </AppShell>
-  );
+  return <DocumentsView templates={templates} />;
 }

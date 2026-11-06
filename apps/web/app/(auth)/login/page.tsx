@@ -24,7 +24,7 @@ export default async function LoginPage({
 
   return (
     <>
-      <h1>Log in</h1>
+      <h1 className="text-balance">Log in</h1>
       <p className="ff-subtle">Welcome back. Enter your details to continue.</p>
 
       {reset === "1" && (

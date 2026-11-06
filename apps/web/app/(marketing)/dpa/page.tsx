@@ -52,17 +52,25 @@ const SECTIONS: ReadonlyArray<{ heading: string; body: readonly string[] }> = [
 
 export default function DpaPage() {
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "3rem 1.25rem", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Data Processing Addendum</h1>
-      <p style={{ color: "#555" }}>Version 1.0 — effective with the FormForge launch build.</p>
-      {SECTIONS.map((section) => (
-        <section key={section.heading} style={{ marginTop: "1.75rem" }}>
-          <h2 style={{ fontSize: "1.15rem" }}>{section.heading}</h2>
-          {section.body.map((paragraph, i) => (
-            <p key={i}>{paragraph}</p>
-          ))}
-        </section>
-      ))}
+    <main className="mx-auto w-full max-w-3xl px-6 py-16">
+      <article className="space-y-8">
+        <header className="space-y-3">
+          <h1 className="text-3xl font-semibold tracking-tight text-balance text-[var(--ff-fg)] sm:text-4xl">
+            Data Processing Addendum
+          </h1>
+          <p className="text-sm text-[var(--ff-muted)]">Version 1.0 — effective with the FormForge launch build.</p>
+        </header>
+        {SECTIONS.map((section) => (
+          <section key={section.heading} className="space-y-4">
+            <h2 className="text-lg font-semibold text-[var(--ff-fg)] sm:text-xl">{section.heading}</h2>
+            {section.body.map((paragraph, i) => (
+              <p key={i} className="text-base leading-relaxed text-[var(--ff-fg)]">
+                {paragraph}
+              </p>
+            ))}
+          </section>
+        ))}
+      </article>
     </main>
   );
 }

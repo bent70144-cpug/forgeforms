@@ -37,7 +37,11 @@ export function ForgotPasswordForm() {
         />
       </div>
 
-      <button type="submit" className="ff-button ff-button-primary" disabled={pending}>
+      <button
+        type="submit"
+        className="ff-btn ff-btn-primary transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={pending}
+      >
         {pending ? "Sending…" : "Send reset link"}
       </button>
     </form>

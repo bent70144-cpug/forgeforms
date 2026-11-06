@@ -33,8 +33,8 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
   const labelEvery = Math.max(1, Math.ceil(series.length / 6));
 
   return (
-    <figure className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <figcaption className="mb-2 flex flex-wrap items-center gap-4 text-xs text-neutral-500 dark:text-neutral-400">
+    <figure className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4">
+      <figcaption className="mb-2 flex flex-wrap items-center gap-4 text-xs text-[var(--ff-muted)]">
         {SERIES.map((s) => (
           <span key={s.key} className="inline-flex items-center gap-1.5">
             <span aria-hidden="true" className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
@@ -61,7 +61,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
               y2={y}
               stroke="currentColor"
               strokeWidth={fraction === 1 ? 1 : 0.5}
-              className="text-neutral-200 dark:text-neutral-800"
+              className="text-[color-mix(in_srgb,var(--ff-fg)_10%,transparent)]"
             />
           );
         })}
@@ -72,7 +72,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
           y2={baseline}
           stroke="currentColor"
           strokeWidth="1"
-          className="text-neutral-300 dark:text-neutral-700"
+          className="text-[color-mix(in_srgb,var(--ff-fg)_18%,transparent)]"
         />
         {series.map((point, i) => (
           <text
@@ -81,7 +81,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
             y={HEIGHT - 8}
             textAnchor="middle"
             fontSize="10"
-            className="fill-neutral-400 dark:fill-neutral-500"
+            className="fill-[var(--ff-muted)]"
           >
             {i % labelEvery === 0 ? shortDayLabel(point.day) : ""}
           </text>

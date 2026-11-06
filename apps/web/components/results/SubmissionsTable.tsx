@@ -23,7 +23,7 @@ import {
   type SortDir,
   type StatusFilter,
 } from "../../lib/results";
-import { EmptyState, ErrorState, TableSkeleton } from "./Feedback";
+import { EmptyState, ErrorState, TableSkeleton, errorCodeOf } from "./Feedback";
 import { StatusPill } from "./StatusPill";
 import { SubmissionDrawer } from "./SubmissionDrawer";
 
@@ -37,9 +37,9 @@ const FILTERS: Array<{ value: StatusFilter; label: string }> = [
 const POLL_MS = 5000;
 
 const FILTER_BUTTON_ACTIVE =
-  "rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm";
+  "rounded-md bg-[var(--ff-primary)] px-3 py-1.5 text-sm font-medium text-[var(--ff-primary-fg)]";
 const FILTER_BUTTON_IDLE =
-  "rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:text-slate-900";
+  "rounded-md px-3 py-1.5 text-sm font-medium text-[var(--ff-muted)] transition-colors hover:text-[var(--ff-fg)]";
 
 export interface SubmissionsTableProps {
   docId: string;
@@ -59,6 +59,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
   );
   const [openId, setOpenId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   const querySeq = useRef(0);
   const stateRef = useRef(state);
@@ -70,11 +71,15 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
   const load = useCallback(
     (nextStatus: StatusFilter, nextSort: SortDir) => {
       const qid = ++querySeq.current;
+      setErrorCode(null);
       dispatch({ type: "reset", queryId: qid, status: nextStatus, sort: nextSort });
       client
         .listSubmissions(docId, { limit: DEFAULT_PAGE_SIZE, status: nextStatus, sort: nextSort })
         .then((page) => dispatch({ type: "firstPage", queryId: qid, page }))
-        .catch((err) => dispatch({ type: "error", message: describeError(err) }));
+        .catch((err) => {
+          setErrorCode(errorCodeOf(err));
+          dispatch({ type: "error", message: describeError(err) });
+        });
     },
     [client, docId],
   );
@@ -116,7 +121,10 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
         sort: s.sort,
       })
       .then((page) => dispatch({ type: "nextPage", queryId: s.queryId, page }))
-      .catch((err) => dispatch({ type: "error", message: describeError(err) }));
+      .catch((err) => {
+        setErrorCode(errorCodeOf(err));
+        dispatch({ type: "error", message: describeError(err) });
+      });
   }, [client, docId]);
 
   const shareUrl =
@@ -141,7 +149,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
         <div
           role="group"
           aria-label="Filter by status"
-          className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm"
+          className="inline-flex rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-0.5"
         >
           {FILTERS.map((f) => (
             <button
@@ -155,12 +163,12 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-3 text-xs text-slate-500">
-          <span>Auto-refreshes every {POLL_MS / 1000}s</span>
+        <div className="flex items-center gap-3 text-xs text-[var(--ff-muted)]">
+          <span className="tabular-nums">Auto-refreshes every {POLL_MS / 1000}s</span>
           <button
             type="button"
             onClick={() => load(status, sort)}
-            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-2.5 py-1.5 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
           >
             Refresh
           </button>
@@ -169,26 +177,26 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
 
       {/* New-responses badge (oldest sort keeps table order stable) */}
       {state.newCount > 0 ? (
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-800">
-          <span>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-[var(--ff-radius)] border border-[color-mix(in_srgb,var(--ff-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_8%,transparent)] px-4 py-2 text-sm text-[var(--ff-fg)]">
+          <span className="tabular-nums">
             {state.newCount} new {state.newCount === 1 ? "response" : "responses"} arrived
           </span>
           <button
             type="button"
             onClick={() => load(state.status, state.sort)}
-            className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+            className="rounded-md bg-[var(--ff-primary)] px-2.5 py-1 text-xs font-semibold text-[var(--ff-primary-fg)] transition-opacity hover:opacity-90"
           >
             Refresh now
           </button>
         </div>
       ) : null}
 
-      <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="mt-3 overflow-hidden rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)]">
         {state.loading ? (
           <TableSkeleton />
         ) : state.error ? (
           <div className="p-6">
-            <ErrorState message={state.error} onRetry={() => load(status, sort)} />
+            <ErrorState message={state.error} code={errorCode} onRetry={() => load(status, sort)} />
           </div>
         ) : state.rows.length === 0 && status === "all" ? (
           // spec §14.2 — empty states are actionable
@@ -200,7 +208,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                 <button
                   type="button"
                   onClick={() => void copyShareLink()}
-                  className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+                  className="ff-button ff-button-primary text-sm"
                 >
                   {copied ? "Link copied ✓" : "Copy share link"}
                 </button>
@@ -216,29 +224,29 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <table className="min-w-full divide-y divide-[var(--ff-border)] text-sm">
               <caption className="sr-only">
                 Submissions, sorted by submitted time ({sort === "newest" ? "newest first" : "oldest first"})
               </caption>
-              <thead className="bg-slate-50">
+              <thead className="sticky top-0 z-10 bg-[var(--ff-card)]">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-600">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-[var(--ff-muted)]">
                     <button
                       type="button"
                       onClick={toggleSort}
                       aria-label={`Sort by submitted time, currently ${sort === "newest" ? "newest first" : "oldest first"}`}
-                      className="inline-flex items-center gap-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      className="inline-flex items-center gap-1 rounded"
                     >
                       Submitted
-                      <span aria-hidden="true" className="text-slate-400">
+                      <span aria-hidden="true" className="text-[var(--ff-muted)]">
                         {sort === "newest" ? "↓" : "↑"}
                       </span>
                     </button>
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-600">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-[var(--ff-muted)]">
                     Status
                   </th>
-                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-600">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-[var(--ff-muted)]">
                     Token
                   </th>
                   {questionBlocks.map((block) => {
@@ -248,7 +256,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                         key={block.id}
                         scope="col"
                         title={label}
-                        className="max-w-[12rem] truncate px-4 py-3 text-left font-semibold text-slate-600"
+                        className="max-w-[12rem] truncate px-4 py-3 text-left text-xs font-semibold text-[var(--ff-muted)]"
                       >
                         {truncateLabel(label, 24)}
                       </th>
@@ -259,7 +267,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--ff-border)]">
                 {state.rows.map((row) => (
                   <tr
                     key={row.id}
@@ -272,15 +280,15 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                       }
                     }}
                     aria-label={`Open submission ${row.id}`}
-                    className="cursor-pointer transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                    className="cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ff-primary)]"
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-[var(--ff-muted)]">
                       {formatDateTimeShort(sortKeyOf(row))}
                     </td>
                     <td className="px-4 py-3">
                       <StatusPill status={row.status} />
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-500">
+                    <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-[var(--ff-muted)]">
                       {displayCell(row.publicToken, 16)}
                     </td>
                     {questionBlocks.map((block) => {
@@ -290,7 +298,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                           key={block.id}
                           title={text === "—" ? undefined : text}
                           className={`max-w-[14rem] truncate px-4 py-3 ${
-                            text === "—" ? "text-slate-500" : "text-slate-700"
+                            text === "—" ? "text-[var(--ff-muted)]" : "text-[var(--ff-fg)]"
                           }`}
                         >
                           {text}
@@ -304,7 +312,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                           e.stopPropagation();
                           setOpenId(row.id);
                         }}
-                        className="rounded text-xs font-semibold text-indigo-600 transition hover:text-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        className="rounded text-xs font-semibold text-[var(--ff-primary)] transition-colors hover:underline"
                       >
                         View
                       </button>
@@ -318,8 +326,8 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
 
         {/* Footer: cursor pagination controls (spec §4) */}
         {!state.loading && !state.error && state.rows.length > 0 ? (
-          <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/60 px-4 py-3 text-xs text-slate-500">
-            <span>
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,transparent)] px-4 py-3 text-xs text-[var(--ff-muted)]">
+            <span className="tabular-nums">
               Showing {state.rows.length} loaded
               {state.pagesLoaded > 1 ? ` · ${state.pagesLoaded} pages` : ""}
             </span>
@@ -328,7 +336,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                 type="button"
                 onClick={loadMore}
                 disabled={state.loadingMore}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-3 py-1.5 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {state.loadingMore ? "Loading…" : "Load more"}
               </button>

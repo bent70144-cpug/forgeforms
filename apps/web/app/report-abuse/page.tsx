@@ -5,56 +5,86 @@
 // POSTs to /api/public/abuse-report (no PII requested beyond the form's own
 // reference; the report is written to the server log for staff review).
 // form-action is covered by the public-page CSP ('self').
-type ReportAbuseProps = { searchParams: Promise<{ document?: string }> };
+type ReportAbuseProps = {
+  searchParams: Promise<{ document?: string; submitted?: string; error?: string }>;
+};
 
 export default async function ReportAbusePage({ searchParams }: ReportAbuseProps) {
   const params = await searchParams;
   const documentRef = typeof params.document === "string" ? params.document : "";
+  const submitted = params.submitted === "1";
+  const rateLimited = params.error === "ratelimited";
+  const errored = params.error === "1";
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "3rem 1.25rem", fontFamily: "system-ui, sans-serif" }}>
-      <h1>Report abuse</h1>
-      <p>
+    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+      <h1 className="text-3xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">Report abuse</h1>
+      <p className="mt-4 text-base leading-relaxed text-[var(--ff-fg)]">
         If a form or page hosted on FormForge collects prohibited content (for example
         card numbers, passwords or government identifiers), impersonates you, or is used
         for spam or phishing, tell us and our team will take it down.
       </p>
       {documentRef ? (
-        <p>
+        <p className="mt-3 text-sm text-[var(--ff-muted)]">
           Reporting document:{" "}
-          <code data-testid="report-document-ref">{documentRef}</code>
+          <code
+            data-testid="report-document-ref"
+            className="break-all rounded-[calc(var(--ff-radius)*0.5)] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-1.5 py-0.5 font-mono text-[0.8125rem] text-[var(--ff-fg)]"
+          >
+            {documentRef}
+          </code>
         </p>
       ) : (
-        <p>
+        <p className="mt-3 text-sm leading-relaxed text-[var(--ff-muted)]">
           Tip: every public FormForge page carries a “Report abuse” link that prefills
           the document reference automatically.
         </p>
       )}
 
-      <form action="/api/public/abuse-report" method="post" style={{ display: "grid", gap: "0.75rem", marginTop: "1.5rem" }}>
-        <label>
-          Document link or reference (required)
-          <input
-            name="documentRef"
-            required
-            defaultValue={documentRef}
-            style={{ width: "100%", padding: "0.5rem" }}
+      {submitted ? (
+        <p className="ff-banner ff-banner-success mt-6" role="status">
+          Thank you — your report was received and will be reviewed by the FormForge team.
+        </p>
+      ) : null}
+      {rateLimited ? (
+        <p className="ff-banner ff-banner-error mt-6" role="alert">
+          Too many reports sent from your network just now — please wait a minute and try again.
+        </p>
+      ) : null}
+      {errored ? (
+        <p className="ff-banner ff-banner-error mt-6" role="alert">
+          That report couldn’t be accepted — check the document reference and try again.
+        </p>
+      ) : null}
+
+      <form action="/api/public/abuse-report" method="post" className="ff-form mt-8">
+        <div className="ff-field">
+          <label htmlFor="abuse-document-ref">Document link or reference (required)</label>
+          <input id="abuse-document-ref" name="documentRef" required defaultValue={documentRef} />
+        </div>
+        <div className="ff-field">
+          <label htmlFor="abuse-reason">What is wrong? (optional)</label>
+          <textarea
+            id="abuse-reason"
+            name="reason"
+            rows={4}
+            className="w-full rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-3 py-2 text-[var(--ff-fg)] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--ff-primary)]"
           />
-        </label>
-        <label>
-          What is wrong? (optional)
-          <textarea name="reason" rows={4} style={{ width: "100%", padding: "0.5rem" }} />
-        </label>
-        <label>
-          Your email (optional — only so we can follow up)
-          <input name="contact" type="email" style={{ width: "100%", padding: "0.5rem" }} />
-        </label>
-        <button type="submit" style={{ padding: "0.5rem 1rem", width: "fit-content" }}>
-          Send report
-        </button>
+        </div>
+        <div className="ff-field">
+          <label htmlFor="abuse-contact">Your email (optional — only so we can follow up)</label>
+          <input id="abuse-contact" name="contact" type="email" />
+        </div>
+
+        <div className="mt-2 flex flex-col items-start gap-2">
+          <button type="submit" className="ff-btn ff-btn-primary transition-colors">
+            Send report
+          </button>
+          <p className="text-xs text-[var(--ff-muted)]">Your report goes to the FormForge team for review.</p>
+        </div>
       </form>
 
-      <p style={{ marginTop: "2rem", fontSize: "0.9rem", color: "#555" }}>
+      <p className="mt-10 text-sm leading-relaxed text-[var(--ff-muted)]">
         Abuse reports are reviewed by the FormForge team; violating documents are archived
         and removed from caches and search indexes. See our Data Processing Addendum
         (“/dpa”) for how personal data on the platform is handled.

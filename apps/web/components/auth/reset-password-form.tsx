@@ -59,7 +59,11 @@ export function ResetPasswordForm({ token }: { token: string }) {
         )}
       </div>
 
-      <button type="submit" className="ff-button ff-button-primary" disabled={pending}>
+      <button
+        type="submit"
+        className="ff-btn ff-btn-primary transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={pending}
+      >
         {pending ? "Saving…" : "Set new password"}
       </button>
     </form>

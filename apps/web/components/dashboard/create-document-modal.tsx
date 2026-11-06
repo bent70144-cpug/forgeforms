@@ -67,6 +67,12 @@ export function createSubmitLabel(state: { submitting: boolean; hasTemplate: boo
   return state.hasTemplate ? 'Use template' : 'Create document';
 }
 
+// Shared button recipes — token-driven so they flip with dark mode.
+const BTN_PRIMARY =
+  'inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-transparent bg-[var(--ff-primary)] px-4 text-sm font-medium text-[var(--ff-primary-fg)] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50';
+const BTN_SECONDARY =
+  'inline-flex h-10 cursor-pointer items-center justify-center rounded-[calc(var(--ff-radius)*0.66)] border border-[var(--ff-border)] bg-[var(--ff-card)] px-4 text-sm font-medium text-[var(--ff-fg)] transition-colors hover:border-[var(--ff-muted)] hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-card))] disabled:cursor-not-allowed disabled:opacity-50';
+
 export function CreateDocumentModal({
   templates,
   onClose,
@@ -157,7 +163,7 @@ export function CreateDocumentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 dark:bg-black/60"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -169,25 +175,24 @@ export function CreateDocumentModal({
         aria-modal="true"
         aria-labelledby="create-document-title"
         onSubmit={(e) => void submit(e)}
-        className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
+        className="w-full max-w-lg rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-6 shadow-xl"
       >
-        <h2 id="create-document-title" className="text-base font-semibold text-slate-900">
+        <h2 id="create-document-title" className="text-base font-semibold text-[var(--ff-fg)] text-balance">
           New document
         </h2>
 
         <fieldset className="mt-4">
-          <legend className="text-sm font-medium text-slate-700">Type</legend>
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <legend className="text-sm font-medium text-[var(--ff-fg)]">Type</legend>
+          <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {TYPES.map((t, i) => (
               <label
                 key={t.value}
                 title={t.hint}
-                className="flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium focus-within:ring-2 focus-within:ring-slate-900/60"
-                style={
+                className={`flex cursor-pointer flex-col gap-0.5 rounded-[calc(var(--ff-radius)*0.66)] border px-3 py-2.5 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--ff-primary)] ${
                   type === t.value
-                    ? { borderColor: 'var(--ff-primary)', color: 'var(--ff-primary)' }
-                    : { borderColor: 'var(--ff-border)' }
-                }
+                    ? 'border-transparent bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-card))] ring-2 ring-[var(--ff-primary)]'
+                    : 'border-[var(--ff-border)] hover:border-[var(--ff-muted)]'
+                }`}
               >
                 <input
                   ref={i === 0 ? firstControlRef : undefined}
@@ -201,37 +206,33 @@ export function CreateDocumentModal({
                   }}
                   className="sr-only"
                 />
-                {t.label}
+                <span className="text-sm font-medium text-[var(--ff-fg)]">{t.label}</span>
+                <span className="text-xs text-[var(--ff-muted)]">{t.hint}</span>
               </label>
             ))}
           </div>
         </fieldset>
 
-        <label htmlFor="doc-title" className="mt-4 block text-sm font-medium text-slate-700">
-          Name
-        </label>
-        <input
-          id="doc-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={300}
-          required
-          placeholder="e.g. Contact form"
-          aria-invalid={error?.details?.some((d) => d.path === 'title') ?? undefined}
-          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-        />
+        <div className="ff-field mt-4">
+          <label htmlFor="doc-title">Name</label>
+          <input
+            id="doc-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={300}
+            required
+            placeholder="e.g. Contact form"
+            aria-invalid={error?.details?.some((d) => d.path === 'title') ?? undefined}
+          />
+        </div>
 
         <fieldset className="mt-4">
-          <legend className="text-sm font-medium text-slate-700">Start from</legend>
+          <legend className="text-sm font-medium text-[var(--ff-fg)]">Start from</legend>
           {/* §11 segmented choice: Blank | Template | Generate with AI. The
               AI segment is the §24 gated control: disabled + inline Pro badge
               (never a modal), its flow lives in the AI workbench. */}
           <div className="ff-seg mt-2" role="group" aria-label="Start from">
-            <button
-              type="button"
-              aria-pressed={start === 'blank'}
-              onClick={() => setStart('blank')}
-            >
+            <button type="button" aria-pressed={start === 'blank'} onClick={() => setStart('blank')}>
               Blank
             </button>
             <button
@@ -312,17 +313,13 @@ export function CreateDocumentModal({
         )}
 
         <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
+          <button type="button" onClick={onClose} className={BTN_SECONDARY}>
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting || title.trim().length === 0 || (start === 'template' && !effectiveTemplateId)}
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-50"
+            className={BTN_PRIMARY}
           >
             {createSubmitLabel({ submitting, hasTemplate })}
           </button>

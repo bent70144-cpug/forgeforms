@@ -23,15 +23,13 @@ export function KpiCards({ views, uniques, starts, submissions, completionRate }
       {cards.map((card) => (
         <div
           key={card.label}
-          className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+          className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4"
         >
-          <dt className="text-xs font-medium uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-            {card.label}
-          </dt>
-          <dd className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-50">
+          <dt className="text-sm font-medium text-[var(--ff-muted)]">{card.label}</dt>
+          <dd className="mt-1 text-2xl font-semibold tabular-nums text-[var(--ff-fg)]">
             {card.value}
           </dd>
-          <p className="mt-0.5 text-xs text-neutral-400 dark:text-neutral-500">{card.hint}</p>
+          <p className="mt-0.5 text-xs text-[var(--ff-muted)]">{card.hint}</p>
         </div>
       ))}
     </dl>

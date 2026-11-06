@@ -13,7 +13,7 @@ import {
   type SummaryResponse,
 } from "../../lib/results";
 import { BarList } from "./BarList";
-import { CardsSkeleton, EmptyState, ErrorState, Skeleton } from "./Feedback";
+import { CardsSkeleton, EmptyState, ErrorState, Skeleton, errorCodeOf } from "./Feedback";
 import { NpsBar } from "./NpsBar";
 import { StatCards } from "./StatCards";
 
@@ -33,17 +33,17 @@ function formatAverage(n: number): string {
 
 function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-5">
       <header className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold text-slate-900" title={aggregate.label}>
+          <h3 className="truncate text-sm font-semibold text-[var(--ff-fg)]" title={aggregate.label}>
             {truncateLabel(aggregate.label, 80)}
           </h3>
-          <span className="mt-1 inline-block rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-slate-500">
+          <span className="mt-1 inline-block rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--ff-muted)]">
             {KIND_LABELS[aggregate.kind]}
           </span>
         </div>
-        <p className="shrink-0 text-xs text-slate-500">
+        <p className="shrink-0 text-xs tabular-nums text-[var(--ff-muted)]">
           {aggregate.totalResponses} {aggregate.totalResponses === 1 ? "response" : "responses"}
         </p>
       </header>
@@ -55,12 +55,12 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         />
       ) : aggregate.kind === "rating" ? (
         <div>
-          <p className="mb-3 text-sm text-slate-600">
+          <p className="mb-3 text-sm text-[var(--ff-muted)]">
             Average{" "}
-            <span className="text-lg font-semibold tabular-nums text-slate-900">
+            <span className="text-lg font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.average)}
             </span>{" "}
-            <span className="text-slate-500">/ {aggregate.scale}</span>
+            <span className="tabular-nums">/ {aggregate.scale}</span>
           </p>
           <BarList
             ariaLabel={`Rating distribution for ${aggregate.label}`}
@@ -75,36 +75,36 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
       ) : aggregate.kind === "number" ? (
         <dl className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Average</dt>
-            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">
+            <dt className="text-xs font-medium text-[var(--ff-muted)]">Average</dt>
+            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.average)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Min</dt>
-            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">
+            <dt className="text-xs font-medium text-[var(--ff-muted)]">Min</dt>
+            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.min)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wide text-slate-500">Max</dt>
-            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-slate-900">
+            <dt className="text-xs font-medium text-[var(--ff-muted)]">Max</dt>
+            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.max)}
             </dd>
           </div>
         </dl>
       ) : aggregate.kind === "text" ? (
         aggregate.recent.length === 0 ? (
-          <p className="text-sm text-slate-500">No written answers yet.</p>
+          <p className="text-sm text-[var(--ff-muted)]">No written answers yet.</p>
         ) : (
           <ul className="space-y-2.5">
             {aggregate.recent.map((text, i) => (
-              <li key={i} className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                <span aria-hidden="true" className="mr-1 text-slate-400">
+              <li key={i} className="rounded-lg bg-[var(--ff-bg)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)]">
+                <span aria-hidden="true" className="mr-1 text-[var(--ff-muted)]">
                   “
                 </span>
                 {text}
-                <span aria-hidden="true" className="ml-1 text-slate-400">
+                <span aria-hidden="true" className="ml-1 text-[var(--ff-muted)]">
                   ”
                 </span>
               </li>
@@ -112,13 +112,16 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
           </ul>
         )
       ) : aggregate.kind === "file" ? (
-        <p className="text-sm text-slate-600">
-          {aggregate.fileCount} {aggregate.fileCount === 1 ? "file" : "files"} uploaded across{" "}
-          {aggregate.totalResponses} {aggregate.totalResponses === 1 ? "response" : "responses"}.
+        <p className="text-sm text-[var(--ff-muted)]">
+          <span className="tabular-nums">{aggregate.fileCount}</span>{" "}
+          {aggregate.fileCount === 1 ? "file" : "files"} uploaded across{" "}
+          <span className="tabular-nums">{aggregate.totalResponses}</span>{" "}
+          {aggregate.totalResponses === 1 ? "response" : "responses"}.
         </p>
       ) : (
-        <p className="text-sm text-slate-500">
-          No chart for this block kind yet — {aggregate.totalResponses} responses recorded.
+        <p className="text-sm text-[var(--ff-muted)]">
+          No chart for this block kind yet — <span className="tabular-nums">{aggregate.totalResponses}</span>{" "}
+          responses recorded.
         </p>
       )}
     </section>
@@ -135,6 +138,7 @@ export interface SummaryTabProps {
 export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -143,13 +147,17 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setErrorCode(null);
     client
       .getSummary(docId)
       .then((s) => {
         if (!cancelled) setSummary(s);
       })
       .catch((err) => {
-        if (!cancelled) setError(describeError(err));
+        if (!cancelled) {
+          setError(describeError(err));
+          setErrorCode(errorCodeOf(err));
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -185,7 +193,11 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
 
   if (error || !summary) {
     return (
-      <ErrorState message={error ?? "Summary unavailable"} onRetry={() => setNonce((n) => n + 1)} />
+      <ErrorState
+        message={error ?? "Summary unavailable"}
+        code={errorCode}
+        onRetry={() => setNonce((n) => n + 1)}
+      />
     );
   }
 
@@ -199,7 +211,7 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
           <button
             type="button"
             onClick={() => void copyShareLink()}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+            className="ff-button ff-button-primary text-sm"
           >
             {copied ? "Link copied ✓" : "Copy share link"}
           </button>
@@ -212,7 +224,7 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
     <div className="space-y-6">
       <StatCards counts={summary.counts} />
       {summary.blocks.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center text-sm text-slate-500">
+        <p className="rounded-[var(--ff-radius)] border border-dashed border-[var(--ff-border)] bg-[var(--ff-card)] px-6 py-10 text-center text-sm text-[var(--ff-muted)]">
           This document has no question blocks to summarize.
         </p>
       ) : (

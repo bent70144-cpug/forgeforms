@@ -77,7 +77,7 @@ function QuestionPreview({ b }: { b: Block }) {
     case "number":
       control = (
         <div
-          className="flex h-10 items-center px-3 text-sm text-slate-500"
+          className="flex h-10 items-center px-3 text-sm text-[var(--ff-muted)]"
           style={{ border: "1px solid var(--ff-border)", borderRadius: radius, background: "var(--ff-bg)" }}
         >
           {placeholderFor(b)}
@@ -87,7 +87,7 @@ function QuestionPreview({ b }: { b: Block }) {
     case "long-text":
       control = (
         <div
-          className="min-h-20 px-3 py-2 text-sm text-slate-500"
+          className="min-h-20 px-3 py-2 text-sm text-[var(--ff-muted)]"
           style={{ border: "1px solid var(--ff-border)", borderRadius: radius, background: "var(--ff-bg)" }}
         >
           {placeholderFor(b)}
@@ -104,7 +104,7 @@ function QuestionPreview({ b }: { b: Block }) {
             </div>
           ))}
           {b.props["allowOther"] === true && (
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-[var(--ff-muted)]">
               <span className="inline-block h-4 w-4 rounded-full" style={{ border: "2px solid var(--ff-border)" }} />
               Other…
             </div>
@@ -131,8 +131,8 @@ function QuestionPreview({ b }: { b: Block }) {
     case "dropdown":
       control = (
         <div className="flex h-10 items-center justify-between px-3 text-sm" style={{ border: "1px solid var(--ff-border)", borderRadius: radius }}>
-          <span className="text-slate-500">{options.length} options</span>
-          <span aria-hidden className="text-slate-400">▾</span>
+          <span className="text-[var(--ff-muted)]">{options.length} options</span>
+          <span aria-hidden className="text-[var(--ff-muted)] opacity-60">▾</span>
         </div>
       );
       break;
@@ -149,7 +149,7 @@ function QuestionPreview({ b }: { b: Block }) {
     }
     case "nps":
       control = (
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--ff-muted)]">
           <span>{str(b, "leftLabel", "Not likely")}</span>
           <div className="flex flex-wrap gap-1">
             {Array.from({ length: 11 }, (_, i) => (
@@ -164,7 +164,7 @@ function QuestionPreview({ b }: { b: Block }) {
       break;
     case "file-upload":
       control = (
-        <div className="flex min-h-16 flex-col items-center justify-center gap-1 border-2 border-dashed px-4 py-4 text-xs text-slate-500" style={{ borderRadius: radius }}>
+        <div className="flex min-h-16 flex-col items-center justify-center gap-1 border-2 border-dashed px-4 py-4 text-xs text-[var(--ff-muted)]" style={{ borderRadius: radius }}>
           <span className="text-lg" aria-hidden>⬆</span>
           <span>
             {strList(b, "accept").join(", ") || "any file"} · max {num(b, "maxSizeMb", 10)} MB
@@ -193,14 +193,19 @@ function ContentPreview({ b }: { b: Block }) {
       return (
         <div
           className="overflow-hidden px-6 py-12 text-center sm:px-10 sm:py-16"
-          style={{ borderRadius: RADIUS_PX["md"], background: "linear-gradient(135deg, var(--ff-primary), color-mix(in srgb, var(--ff-primary) 55%, #0f172a))" }}
+          style={{ borderRadius: RADIUS_PX["md"], background: "linear-gradient(135deg, var(--ff-primary), color-mix(in srgb, var(--ff-primary) 55%, var(--ff-fg)))" }}
         >
-          <h1 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="mx-auto max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--ff-primary-fg)" }}>
             {str(b, "title", "Hero title")}
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-white/80 sm:text-base">{str(b, "subtitle")}</p>
+          <p className="mx-auto mt-3 max-w-xl text-sm sm:text-base" style={{ color: "color-mix(in srgb, var(--ff-primary-fg) 82%, transparent)" }}>
+            {str(b, "subtitle")}
+          </p>
           {typeof cta["label"] === "string" && (
-            <span className="mt-6 inline-block bg-white px-5 py-2.5 text-sm font-semibold text-slate-900" style={{ borderRadius: radius }}>
+            <span
+              className="mt-6 inline-block px-5 py-2.5 text-sm font-semibold"
+              style={{ borderRadius: radius, background: "var(--ff-primary-fg)", color: "var(--ff-primary)" }}
+            >
               {cta["label"]}
             </span>
           )}
@@ -245,7 +250,12 @@ function ContentPreview({ b }: { b: Block }) {
     }
     case "video":
       return (
-        <div className="flex aspect-video items-center justify-center bg-slate-900/90 text-white/80" style={{ borderRadius: radius }} role="img" aria-label="Video placeholder">
+        <div
+          className="flex aspect-video items-center justify-center"
+          style={{ borderRadius: radius, background: "color-mix(in srgb, var(--ff-fg) 90%, transparent)", color: "color-mix(in srgb, var(--ff-bg) 82%, transparent)" }}
+          role="img"
+          aria-label="Video placeholder"
+        >
           <span className="text-3xl" aria-hidden>▶</span>
         </div>
       );
@@ -425,7 +435,7 @@ export default function TemplatePreview({ body }: { body: DocumentBody }) {
     fontFamily: `'${body.theme.fontBody}', system-ui, sans-serif`,
     background: tokens["color.bg"] ?? "#ffffff",
     borderRadius: RADIUS_PX["lg"],
-    border: "1px solid rgba(15, 23, 42, 0.08)",
+    border: "1px solid color-mix(in srgb, var(--ff-fg) 10%, transparent)",
   } as CSSProperties;
 
   return (
@@ -436,7 +446,7 @@ export default function TemplatePreview({ body }: { body: DocumentBody }) {
 
       {body.endings.length > 0 && (
         <div className="space-y-2 pt-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--ff-muted)" }}>
+          <p className="text-xs font-semibold" style={{ color: "var(--ff-muted)", marginBottom: "0.5rem" }}>
             Ending screens
           </p>
           {body.endings.map((e) => (
