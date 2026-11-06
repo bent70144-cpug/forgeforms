@@ -56,3 +56,103 @@ jobs:
             echo "docs/security-checklist.md has only $count s17 rows (expected ≥ 11)"; exit 1
           fi
           echo "security-checklist.md: $count s17 rows present"
+
+  # T29 (spec §17 "Backups with tested restore") — the restore runbook EXECUTED,
+  # continuously: a fixture database is built from the repo's drizzle migrations,
+  # seeded, dumped with pg_dump -Fc, restored through scripts/restore-backup.sh
+  # (which refuses to overwrite, restores and re-checks row counts + RLS
+  # policies), and the restored row counts are asserted. This is the recorded
+  # drill evidence for docs/security-checklist.md row s17-12.
+  restore-drill:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: postgres
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build fixture database from drizzle migrations
+        run: |
+          psql -v ON_ERROR_STOP=1 -c "create database formforge_drill;"
+          for f in packages/db/drizzle/*.sql; do
+            echo "applying $f"
+            psql -v ON_ERROR_STOP=1 -d formforge_drill -q -f "$f"
+          done
+
+      - name: Seed fixture rows (workspace → document → submission → answer)
+        run: |
+          psql -v ON_ERROR_STOP=1 -d formforge_drill -q <<'SQL'
+          insert into workspaces (id, name, slug, plan)
+          values ('11111111-1111-4111-8111-111111111111', 'Drill WS', 'drill-ws', 'free');
+          insert into documents (id, workspace_id, type, title, slug, status, rev, draft)
+          values ('22222222-2222-4222-8222-222222222222',
+                  '11111111-1111-4111-8111-111111111111',
+                  'form', 'Drill doc', 'drill-doc', 'published', 0,
+                  '{"type":"form","blocks":[]}'::jsonb);
+          insert into submissions (id, workspace_id, document_id, version_id, status, public_token)
+          values ('33333333-3333-4333-8333-333333333333',
+                  '11111111-1111-4111-8111-111111111111',
+                  '22222222-2222-4222-8222-222222222222',
+                  '44444444-4444-4444-8444-444444444444',
+                  'completed', 'sub_drilltoken');
+          insert into answers (submission_id, block_id, value)
+          values ('33333333-3333-4333-8333-333333333333', 'b1', '"Drill answer"'::jsonb);
+          SQL
+
+      - name: Backup (pg_dump -Fc, the nightly base-snapshot flavor)
+        run: pg_dump -Fc -f /tmp/drill.dump formforge_drill
+
+      - name: Restore via the runbook script (creates + verifies formforge_restore_*)
+        run: |
+          # Refuses existing targets, restores, prints row counts, asserts RLS
+          # policies survived (exits nonzero on any failure).
+          bash scripts/restore-backup.sh \
+            --backup /tmp/drill.dump \
+            --host localhost --port 5432 --user postgres
+
+      - name: Assert restored row counts match the pre-restore snapshot
+        run: |
+          TARGET=$(psql -t -A -c \
+            "select datname from pg_database where datname like 'formforge_restore_%' order by datname desc limit 1")
+          echo "restored database: $TARGET"
+          check() { # table expected
+            got=$(psql -d "$TARGET" -t -A -c "select count(*) from $1;")
+            echo "$1: $got (expect $2)"
+            test "$got" = "$2"
+          }
+          check workspaces 1
+          check documents 1
+          check submissions 1
+          check answers 1
+          policies=$(psql -d "$TARGET" -t -A -c \
+            "select count(*) from pg_policies where schemaname='public';")
+          echo "RLS policies restored: $policies"
+          test "$policies" -gt 0
+
+      - name: Record drill result (job summary)
+        if: always()
+        run: |
+          {
+            echo "## Restore drill (T29, runbook §3.1/§4)"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Flavor | logical \`pg_dump -Fc\` |"
+            echo "| Script | \`scripts/restore-backup.sh\` (target refused-overwrite, verification queries, RLS check) |"
+            echo "| Result | counts + RLS policies asserted post-restore |"
+          } >> "$GITHUB_STEP_SUMMARY"

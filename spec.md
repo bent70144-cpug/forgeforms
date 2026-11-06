@@ -204,7 +204,10 @@ create table workspaces (
   plan text not null default 'free',            -- free | pro | business
   stripe_customer_id text,
   stripe_subscription_id text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  -- T29 (spec §17 GDPR): set when workspace deletion is requested; hard purge
+  -- by the maintenance job after the grace window (GDPR_WORKSPACE_GRACE_DAYS).
+  deleted_at timestamptz
 );
 
 create table memberships (
