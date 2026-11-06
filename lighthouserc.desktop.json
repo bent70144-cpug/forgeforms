@@ -1,6 +1,6 @@
 {
   "$schema": "https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/schema.md",
-  "comment": "T28 (issue #28) — Lighthouse CI budgets for the published surfaces (spec §15 M3: Performance ≥90 desktop / ≥85 mobile, Accessibility ≥90; §16: public form + portfolio). Desktop run; see lighthouserc.mobile.json for the mobile run. The published portfolio URL is appended at runtime by scripts/lhci-seed.mjs (registers a user, publishes the designer-portfolio template, writes lighthouserc.desktop.runtime.json). The public FORM plane is the /dev/form-plane-harness page — KNOWN GAP: the /p form route is not landed yet (see apps/web/app/p/[slug]/page.tsx).",
+  "comment": "T28 (issue #28) — Lighthouse CI budgets for the published surfaces (spec §15 M3: Performance ≥90 desktop / ≥85 mobile, Accessibility ≥90; §16: public form + portfolio). Desktop run; see lighthouserc.mobile.json for the mobile run. The published portfolio URL is appended at runtime by apps/web/e2e/lhci-seed.mjs (registers a user, publishes the designer-portfolio template, writes lighthouserc.desktop.runtime.json). The public FORM plane is the /dev/form-plane-harness page — KNOWN GAP: the /p form route is not landed yet (see apps/web/app/p/[slug]/page.tsx).",
   "ci": {
     "collect": {
       "comment": "The workflow starts `pnpm --filter @formforge/web start` itself and seeds a published document before collecting, so no startServerCommand here (port already bound).",

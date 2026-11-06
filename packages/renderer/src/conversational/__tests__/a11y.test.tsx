@@ -17,10 +17,13 @@ import { createMockIngestClient } from '../ingest/mockIngestClient';
 import type { IngestClient } from '../ingest/types';
 import { CONVERSATIONAL_STYLES } from '../styles';
 import { basicDoc, formDoc, q } from '../machine/__tests__/fixtures';
-import type { DocumentBody } from '../../../bridge';
+import type { DocumentBody } from '../../bridge';
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+// React 19: act() requires the test environment to opt in explicitly.
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 /**
  * React tracks controlled inputs by intercepting the value setter — dispatching
@@ -51,8 +54,9 @@ async function axeCritical(): Promise<unknown[]> {
   const axe = mod.default ?? mod;
   if (typeof axe.run !== 'function') throw new Error('axe-core failed to load');
   // Run axe over the whole document (page-level rules matter too); the harness
-  // is the only meaningful content of the jsdom page.
-  const results = await axe.run(document, {});
+  // is the only meaningful content of the jsdom page. axe's API types take an
+  // Element, so hand it documentElement (page-level rules still evaluate).
+  const results = await axe.run(document.documentElement, {});
   return results.violations.filter((v) => v.impact === 'critical');
 }
 

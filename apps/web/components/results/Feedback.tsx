@@ -52,7 +52,6 @@ export function EmptyState({
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
       <svg
         className="mb-3 h-10 w-10 text-slate-400"
-        aria-hidden="true"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

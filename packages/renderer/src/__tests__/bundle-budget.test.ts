@@ -39,7 +39,6 @@ describe('renderer bundle budget (≤120 KB gzipped, spec §15 M3)', () => {
     const raw = Buffer.from(js!.contents);
     const gzipped = gzipSync(raw, { level: 9 });
     const kb = gzipped.byteLength / 1024;
-    // eslint-disable-next-line no-console
     console.log(
       `[bundle-budget] renderer conversational payload: ${raw.byteLength} bytes raw, ${gzipped.byteLength} bytes gzipped (${kb.toFixed(1)} KB) — budget ${BUDGET_BYTES / 1024} KB`,
     );

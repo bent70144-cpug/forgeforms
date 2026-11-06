@@ -123,3 +123,90 @@ jobs:
           name: playwright-a11y-failures
           path: apps/web/test-results/
           retention-days: 7
+
+  # T28 (issue #28) — Lighthouse CI budgets (spec §15 M3 / §16 perf row /
+  # §18): performance ≥ 90 desktop / ≥ 85 mobile, accessibility ≥ 90 on the
+  # published surfaces (published portfolio /p/:slug + form-plane harness).
+  # WRITTEN, NOT RUN locally (sandbox has no browsers) — this job runs it in CI.
+  lhci:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: formforge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/formforge
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database migrations
+        run: pnpm --filter @formforge/db db:migrate
+
+      - name: Build production bundle
+        run: pnpm build
+
+      - name: Install Playwright chromium (seed script drives the register UI)
+        run: pnpm --filter @formforge/web exec playwright install --with-deps chromium
+
+      - name: Start production server
+        run: pnpm --filter @formforge/web start &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/ > /dev/null; then
+              echo "server is up"; exit 0
+            fi
+            sleep 2
+          done
+          echo "server did not come up in 120s"; exit 1
+
+      # Registers a fresh user, publishes the designer-portfolio template and
+      # writes lighthouserc.{desktop,mobile}.runtime.json with the live /p/:slug URL.
+      - name: Seed published documents + runtime LHCI configs
+        run: pnpm --filter @formforge/web exec node e2e/lhci-seed.mjs
+
+      - name: Lighthouse CI (desktop budgets)
+        run: pnpm dlx @lhci/cli@0.15 autorun --config=lighthouserc.desktop.runtime.json
+
+      - name: Lighthouse CI (mobile budgets)
+        run: pnpm dlx @lhci/cli@0.15 autorun --config=lighthouserc.mobile.runtime.json
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: |
+            .lighthouseci/
+          retention-days: 7

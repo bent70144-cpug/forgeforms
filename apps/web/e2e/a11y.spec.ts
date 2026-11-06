@@ -138,7 +138,9 @@ test.describe('T28 reduced-motion emulation (spec §14.4)', () => {
       .first()
       .evaluate((el) => getComputedStyle(el).animationDuration)
       .catch(() => 'none'); // skeletons may already be replaced by real cards
-    expect(['0.00001s', '0.000001s', '0s', 'none']).toContain(skeleton);
+    // '0.01ms' is the global reduced-motion collapse (globals.css, !important);
+    // '0s'/'none' cover per-component `animation: none` overrides.
+    expect(['0.01ms', '0.00001s', '0s', 'none']).toContain(skeleton);
 
     await context.close();
   });

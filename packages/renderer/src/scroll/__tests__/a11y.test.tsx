@@ -31,7 +31,9 @@ async function axeCritical(): Promise<unknown[]> {
   };
   const axe = mod.default ?? mod;
   if (typeof axe.run !== 'function') throw new Error('axe-core failed to load');
-  const results = await axe.run(document, {});
+  // documentElement (not `document`) — axe's API types take an Element;
+  // page-level rules (lang, title) still evaluate from the live document.
+  const results = await axe.run(document.documentElement, {});
   return results.violations.filter((v) => v.impact === 'critical');
 }
 
