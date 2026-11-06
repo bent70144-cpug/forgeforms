@@ -32,6 +32,13 @@ import {
   ListTokensResponseSchema,
   TokenSchema,
 } from './tokens';
+import {
+  CreateDomainRequestSchema,
+  CreateDomainResponseSchema,
+  CustomDomainSchema,
+  ListDomainsResponseSchema,
+  VerifyDomainResponseSchema,
+} from './domains';
 import { ErrorBodySchema } from './errors';
 
 /** All named component schemas — the single source registry. */
@@ -49,6 +56,11 @@ export const FORMFORGE_API_SCHEMAS = {
   CreateTokenRequest: CreateTokenRequestSchema,
   CreateTokenResponse: CreateTokenResponseSchema,
   ListTokensResponse: ListTokensResponseSchema,
+  CustomDomain: CustomDomainSchema,
+  CreateDomainRequest: CreateDomainRequestSchema,
+  CreateDomainResponse: CreateDomainResponseSchema,
+  ListDomainsResponse: ListDomainsResponseSchema,
+  VerifyDomainResponse: VerifyDomainResponseSchema,
 } as const;
 
 const BEARER: OpenApiSecurityScheme = {
@@ -262,6 +274,79 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
     },
   };
 
+  const domainsItem: OpenApiPathItem = {
+    get: {
+      operationId: 'listDomains',
+      summary: 'List custom domains',
+      description:
+        'Workspace custom hostnames with their verification state (spec §13: Free 0 / Pro 1 / Business 5).',
+      tags: ['domains'],
+      'x-required-scope': 'docs:write',
+      security: BEARER_OR_SESSION,
+      responses: {
+        '200': jsonResponse('Domain list with verification state', 'ListDomainsResponse'),
+        '403': err('Credential missing the docs:write scope'),
+      },
+    },
+    post: {
+      operationId: 'createDomain',
+      summary: 'Add a custom domain (pending)',
+      description:
+        'Attach a hostname to a published document. Returns the DNS records to publish (manual TXT/CNAME flow; Cloudflare for SaaS when the deployment configures CLOUDFLARE_API_TOKEN). Exceeding the plan quota returns 402 PLAN_LIMIT.',
+      tags: ['domains'],
+      'x-required-scope': 'docs:write',
+      security: BEARER_OR_SESSION,
+      requestBody: jsonBody('CreateDomainRequest', {
+        hostname: 'docs.example.com',
+        documentId: '018f1c2e-7c1a-7cc2-9d3b-2f8a4d5e6f70',
+      }),
+      responses: {
+        '201': jsonResponse('Pending domain + DNS instructions', 'CreateDomainResponse'),
+        '402': err('Plan limit reached (spec §13 custom-domain quota)'),
+        '404': err('Document not found in this workspace'),
+        '409': err('Hostname already attached'),
+        '422': err('Invalid hostname'),
+      },
+    },
+    delete: {
+      operationId: 'removeDomain',
+      summary: 'Remove a custom domain',
+      description:
+        'Deletes the hostname, drops its routing entry and purges the CDN cache (spec §8 step 5 path).',
+      tags: ['domains'],
+      'x-required-scope': 'docs:write',
+      security: BEARER_OR_SESSION,
+      parameters: [
+        { name: 'id', in: 'query', required: true, description: 'Domain id to remove', schema: { type: 'string', format: 'uuid' } },
+      ],
+      responses: {
+        '204': { description: 'Removed' },
+        '403': err('Credential missing the docs:write scope'),
+        '404': err('Domain not found in this workspace'),
+      },
+    },
+  };
+
+  const domainVerifyItem: OpenApiPathItem = {
+    parameters: [
+      { name: 'id', in: 'path', required: true, description: 'Domain id (uuid)', schema: { type: 'string', format: 'uuid' } },
+    ],
+    post: {
+      operationId: 'verifyDomain',
+      summary: 'Verify ownership of a custom domain',
+      description:
+        'Checks the TXT verification record (fallback: CNAME to the routing target). On success the domain flips pending → verified and the Host → documentId routing entry is registered (spec §10.1). Unverified domains never route.',
+      tags: ['domains'],
+      'x-required-scope': 'docs:write',
+      security: BEARER_OR_SESSION,
+      responses: {
+        '200': jsonResponse('Verification result (verified may be false — check DNS and retry)', 'VerifyDomainResponse'),
+        '403': err('Credential missing the docs:write scope'),
+        '404': err('Domain not found in this workspace'),
+      },
+    },
+  };
+
   return buildOpenApiDocument({
     title: 'FormForge API',
     version: '1.0.0',
@@ -273,6 +358,7 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
     tags: [
       { name: 'documents', description: 'Forms, pages and portfolios (docs:read / docs:write / docs:publish)' },
       { name: 'tokens', description: 'API token management (session only)' },
+      { name: 'domains', description: 'Custom hostnames (docs:write; §13 quota no | 1 | 5)' },
     ],
     schemas: FORMFORGE_API_SCHEMAS,
     paths: {
@@ -281,6 +367,8 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
       '/api/v1/documents/{id}/publish': publishItem,
       '/api/v1/documents/{id}/unpublish': unpublishItem,
       '/api/v1/tokens': tokensItem,
+      '/api/v1/domains': domainsItem,
+      '/api/v1/domains/{id}/verify': domainVerifyItem,
     },
     securitySchemes: {
       bearerAuth: BEARER,

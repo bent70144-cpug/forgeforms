@@ -61,3 +61,12 @@ export {
   type TenantRepositories,
   type TenantSubmissionsRepo,
 } from "./tenant.ts";
+
+// T24 (issue #24): custom domains — Drizzle DomainsStore + routing table over
+// the §8 KV entry. Typed against the core ports (structural check at wiring).
+export {
+  createDomainsStore,
+  createDomainsRoutingTable,
+  getDomainsStoresFromEnv,
+  type DomainsDb,
+} from "./domains.ts";

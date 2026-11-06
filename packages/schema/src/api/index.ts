@@ -6,5 +6,6 @@ export * from './errors';
 export * from './pagination';
 export * from './tokens';
 export * from './documents';
+export * from './domains';
 export * from './openapi';
 export * from './spec';

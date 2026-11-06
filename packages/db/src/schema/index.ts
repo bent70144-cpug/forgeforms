@@ -5,3 +5,5 @@ export * from "./identity.ts";
 export * from "./tenancy.ts";
 // T07 (issue #7): documents, document_versions, snapshots.
 export * from "./documents.ts";
+// T24 (issue #24): custom_domains + domain_routes.
+export * from "./domains.ts";
