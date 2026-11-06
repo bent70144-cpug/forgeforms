@@ -13,7 +13,7 @@ vi.mock('@/lib/auth/session', () => ({
 }));
 
 import { getCurrentSession } from '@/lib/auth/session';
-import { configureCrudDocuments, schemaDraftValidator } from '@/lib/api/documents';
+import { configureCrudDocuments } from '@/lib/api/documents';
 import { GET as listDocuments, POST as createDocument } from './route';
 
 const OWNER_SESSION = {
