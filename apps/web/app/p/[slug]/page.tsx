@@ -7,9 +7,9 @@ import {
   buildPageMetadata,
   buildUnavailableMetadata,
   classifySnapshotError,
-  getPublishedSnapshot,
 } from "@formforge/renderer";
 import { ReportAbuseLink } from "@/components/public/report-abuse-link";
+import { documentsApi } from "@/lib/api/documents";
 
 /**
  * Public scroll plane (spec §10.1 `GET /p/:slug`): server components that read
@@ -22,7 +22,9 @@ export const revalidate = 60;
 type PublicPageProps = { params: Promise<{ slug: string }> };
 
 // Deduplicate the reader call between generateMetadata and the page (per request).
-const loadSnapshot = cache(async (slug: string) => getPublishedSnapshot(slug));
+// The REAL reader (T10 makeGetPublishedSnapshot over the SQL/in-memory deps)
+// wired by the documents API module — replaces the renderer bridge placeholder.
+const loadSnapshot = cache(async (slug: string) => documentsApi.getPublishedSnapshot(slug));
 
 export async function generateMetadata({ params }: PublicPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -54,10 +56,13 @@ export default async function PublicPage({ params }: PublicPageProps) {
     notFound();
   }
 
-  const snapshot = result.value;
+  // Core reader returns { documentId, versionId, etag, snapshot } — unwrap the
+  // rendered snapshot for the scroll renderer (bridge returned the bare shape).
+  const snapshot = result.value.snapshot;
+  const documentId = result.value.documentId ?? slug;
   // Forms render through the conversational plane (T12), not the scroll renderer.
   if (snapshot.type === "form") {
-    console.warn(`[p/${slug}] form document requested on scroll plane (doc: ${snapshot.documentId ?? "?"})`);
+    console.warn(`[p/${slug}] form document requested on scroll plane (doc: ${documentId})`);
     notFound();
   }
 
@@ -66,7 +71,7 @@ export default async function PublicPage({ params }: PublicPageProps) {
       <ScrollRenderer snapshot={snapshot} />
       {/* T29 (spec §17): "Report abuse" link on every public page. */}
       <footer style={{ textAlign: "center", padding: "0 1.25rem 2rem", fontSize: "0.8rem" }}>
-        <ReportAbuseLink documentRef={snapshot.documentId ?? slug} />
+        <ReportAbuseLink documentRef={documentId} />
       </footer>
     </>
   );

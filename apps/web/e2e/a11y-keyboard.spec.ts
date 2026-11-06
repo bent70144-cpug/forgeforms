@@ -49,6 +49,7 @@ async function interactiveKeys(page: Page): Promise<string[]> {
     const keys = new Set<string>();
     for (const el of document.querySelectorAll<HTMLElement>(selector)) {
       if (el.closest('[aria-hidden="true"]')) continue; // honeypot, decorative
+      if (el.tagName === 'NEXTJS-PORTAL' || el.closest('nextjs-portal')) continue; // Next dev error overlay (not product UI)
       if (el.getClientRects().length === 0) continue; // display:none trees
       keys.add(`${el.tagName}[${el.getAttribute('aria-label') ?? el.textContent?.trim().slice(0, 40) ?? ''}]`);
     }
@@ -65,6 +66,7 @@ async function tabWalk(page: Page, maxSteps = 150): Promise<TabStop[]> {
     const stop = await page.evaluate(() => {
       const el = document.activeElement as HTMLElement | null;
       if (!el || el === document.body) return null;
+      if (el.tagName === 'NEXTJS-PORTAL' || el.closest('nextjs-portal')) return null; // dev overlay
       const style = getComputedStyle(el);
       const ariaLabel = el.getAttribute('aria-label');
       return {
