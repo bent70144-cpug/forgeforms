@@ -15,6 +15,13 @@
       "when": 1793912485196,
       "tag": "0001_needy_dagger",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793923231821,
+      "tag": "0002_misty_cammi",
+      "breakpoints": true
     }
   ]
 }
