@@ -16,20 +16,36 @@ export function TopBar({
   onToggleSettings,
   settingsOpen = false,
   settingsToggleRef,
+  previewOpen: previewOpenProp,
+  onPreviewOpenChange,
 }: {
   saveStatusStore: SaveStatusStore;
   /** Tablet zone only: BuilderShell passes this to mount the drawer toggle. */
   onToggleSettings?: () => void;
   settingsOpen?: boolean;
   settingsToggleRef?: RefObject<HTMLButtonElement | null>;
+  /**
+   * Wave-3 lift: when provided, the §8.4 preview modal is CONTROLLED from the
+   * page level so "ff:open-preview" (⌘/Ctrl+Shift+P) can open it too.
+   * Omitted → the bar keeps its own state (pre-existing behavior/tests).
+   */
+  previewOpen?: boolean;
+  onPreviewOpenChange?: (open: boolean) => void;
 }) {
   const { state, dispatch } = useBuilder();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewOpenState, setPreviewOpenState] = useState(false);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const title = state.meta.title;
+
+  // Controlled when the page passes previewOpen, self-managed otherwise.
+  const previewOpen = previewOpenProp ?? previewOpenState;
+  const setPreviewOpen = (open: boolean): void => {
+    setPreviewOpenState(open);
+    onPreviewOpenChange?.(open);
+  };
 
   const lastUndo = state.history.past[state.history.past.length - 1];
   const lastRedo = state.history.future[state.history.future.length - 1];
@@ -136,7 +152,6 @@ export function TopBar({
         <button type="button" className="ff-icon-btn" onClick={() => setPreviewOpen(true)}>
           Preview
         </button>
-
         <button
           type="button"
           className="ff-icon-btn"
@@ -167,3 +182,4 @@ export function TopBar({
     </div>
   );
 }
+

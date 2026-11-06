@@ -6,7 +6,8 @@
 // - On creation the channel announces itself with `TAB_OPENED`.
 // - Receiving `TAB_OPENED` or `REV_ACKED` notifies subscribers — that is the
 //   signal for the "Open in another tab — edits there may conflict" banner
-//   (§7.4; wave 3 wires the banner). Receiving `TAB_OPENED` also triggers a
+//   (§7.4; BuilderPage's channel subscription drives the banner). Receiving
+//   `TAB_OPENED` also triggers a
 //   single loop-free `REV_ACKED` reply so the *newcomer* tab learns it has
 //   company too (BroadcastChannel never echoes to the sender).
 // - `LOCK_TAKEN` is posted for Phase 2 (read-only takeover) but does not

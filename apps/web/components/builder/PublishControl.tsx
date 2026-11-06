@@ -25,6 +25,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useBuilder } from "./context";
 import { IssuesList } from "./IssuesList";
+import { BUILDER_EVENTS } from "@/lib/builder/canvas-ops";
 import { blockDisplayLabel } from "@/lib/builder/blockMeta";
 import { findBlock } from "@/lib/builder/ops";
 import {
@@ -73,10 +74,9 @@ export function PublishControl() {
     (blockId: string) => {
       dispatch({ type: "select", id: blockId });
       dispatch({ type: "setPanel", panel: "block" });
-      // WAVE-3 CONTRACT: the canvas listens for `ff:goto-block` CustomEvent
-      // (detail: { id }) to scroll the block into view + flash it. Safe no-op
-      // until wired — selection works through the store regardless.
-      window.dispatchEvent(new CustomEvent("ff:goto-block", { detail: { id: blockId } }));
+      // WAVE-3 CONTRACT (now wired): the canvas listens for `ff:goto-block`
+      // (detail: { id }) to scroll the block into view + flash it.
+      window.dispatchEvent(new CustomEvent(BUILDER_EVENTS.gotoBlock, { detail: { id: blockId } }));
     },
     [dispatch],
   );

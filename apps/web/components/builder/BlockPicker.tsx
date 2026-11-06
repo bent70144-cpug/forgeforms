@@ -38,7 +38,8 @@ export type BlockPickerProps = {
   onClose: () => void;
   /** Where block.insert places the new block (null parentId = root). */
   insertAt: { index: number; parentId: string | null };
-  /** Called after a successful insert with the inserted kind (wave-3 seam, e.g. focus first field). */
+  /** Called after a successful insert with the inserted kind (wired in wave 3:
+   *  BuilderPage focuses the new card's [data-block-id] element in a rAF). */
   onInsert?: (kind: string) => void;
 };
 

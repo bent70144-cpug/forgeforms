@@ -2448,3 +2448,52 @@ fieldset:disabled .ff-th-input {
   font-size: 1rem;
   line-height: 1;
 }
+
+/* ---------------------------------------------------------------------------
+ * Builder integration (wave 3): ff-int- prefixed classes. Kept in globals.css
+ * because the goto-block flash is applied imperatively (classList.add) from
+ * the canvas "ff:goto-block" listener — a class swap, not a render-driven
+ * style, so a Tailwind utility would not fit.
+ * ------------------------------------------------------------------------- */
+
+.ff-int-flash {
+  animation: ff-int-flash-keyframes 1.2s ease-out 1;
+  outline: 2px solid var(--ff-primary);
+  outline-offset: 2px;
+  border-radius: var(--ff-radius, 8px);
+}
+
+@keyframes ff-int-flash-keyframes {
+  0% {
+    background-color: color-mix(in srgb, var(--ff-primary) 18%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-int-flash {
+    /* WCAG 2.2.2: no animation — keep a static high-visibility outline only. */
+    animation: none;
+  }
+}
+
+/* Builder right-pane tab strip (BuilderShell PaneTabs) — wave 3 integration. */
+.ff-pane-tab {
+  border: 1px solid transparent;
+  color: var(--ff-muted);
+  background: transparent;
+  cursor: pointer;
+}
+.ff-pane-tab:hover {
+  color: var(--ff-fg);
+}
+.ff-pane-tab--active {
+  color: var(--ff-primary);
+  border-color: var(--ff-border);
+  background: color-mix(in srgb, var(--ff-primary) 8%, transparent);
+}
+.ff-pane-tab--active:hover {
+  color: var(--ff-primary);
+}

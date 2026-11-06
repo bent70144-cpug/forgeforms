@@ -1,9 +1,9 @@
 'use client';
 
 // Contextual banner slot (spec §7.4 multi-tab, §14 archived document).
-// Prop-driven: BuilderPage computes `kind` from the loaded envelope. Multi-tab
-// detection itself (BroadcastChannel "ff-doc-<id>") lands in wave 3 — it only
-// needs to pass kind="multitab" to render the required banner.
+// Prop-driven: BuilderPage computes `kind` — "archived" from the loaded
+// envelope, upgraded to "multitab" by the §7.4 BroadcastChannel wiring
+// (createMultitabChannel in BuilderPage; archived always wins).
 
 export type BannerKind = "archived" | "multitab" | "none";
 

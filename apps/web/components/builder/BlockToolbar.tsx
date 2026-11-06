@@ -59,7 +59,8 @@ export function BlockToolbar({
       onClick={(event) => event.stopPropagation()}
       className="absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white/95 p-0.5 shadow-lg backdrop-blur"
     >
-      {/* Drag handle — rendered now, wired to dnd-kit in wave 3 (§6.2). */}
+      {/* Drag handle — rendered now; dnd wiring (§6.2) is a tracked follow-up
+          (not part of the wave-3 integration milestone). */}
       <span
         aria-hidden="true"
         title="Drag to move (coming soon)"

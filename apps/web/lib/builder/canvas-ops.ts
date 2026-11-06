@@ -155,11 +155,25 @@ export function clipboardEnvelope(block: Block): string {
 }
 
 // ---------------------------------------------------------------------------
-// Window-event contracts (implemented here, SSR-safe, consumed in wave 3)
+// Window-event contracts (emitted here, SSR-safe; consumers: useBlockPicker
+// for the picker event, UndoToast for deletes, Canvas for goto/edit — all
+// wired since the wave-3 integration).
 // ---------------------------------------------------------------------------
 
 export type OpenPickerDetail = { index: number; parentId: string | null };
 export type BlockDeletedDetail = { id: string; label: string; hadLogic: boolean };
+/** ff:edit-selected detail (emitter: useShortcuts Enter; consumer: Canvas). */
+export type EditSelectedDetail = { id: string };
+/** ff:goto-block detail (emitter: IssuesList/PublishControl; consumer: Canvas). */
+export type GotoBlockDetail = { id: string };
+
+/** Event names — keep in sync with useShortcuts / PublishControl / UndoToast. */
+export const BUILDER_EVENTS = {
+  openPicker: "ff:open-picker",
+  blockDeleted: "ff:block-deleted",
+  editSelected: "ff:edit-selected",
+  gotoBlock: "ff:goto-block",
+} as const;
 
 export function emitOpenPicker(detail: OpenPickerDetail): void {
   if (typeof window === "undefined") return; // SSR/static-render safety

@@ -25,7 +25,6 @@ import { Canvas } from "./Canvas";
 import { EndingsPanel } from "./EndingsPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ThemePanel } from "./ThemePanel";
-import { UndoToast } from "./UndoToast";
 import type { SaveStatusStore } from "./save-indicator";
 
 type Zone = "mobile" | "tablet" | "desktop";
@@ -54,10 +53,20 @@ export function BuilderShell({
   saveStatusStore,
   bannerKind = "none",
   onRestore,
+  notice = null,
+  onNoticeDismiss,
+  previewOpen,
+  onPreviewOpenChange,
 }: {
   saveStatusStore: SaveStatusStore;
   bannerKind?: BannerKind;
   onRestore?: () => void;
+  /** §14 422-style shell-top notice (e.g. "One change was rejected: …"). */
+  notice?: string | null;
+  onNoticeDismiss?: () => void;
+  /** Controlled preview modal (wave-3 lift — "ff:open-preview" opens it). */
+  previewOpen?: boolean;
+  onPreviewOpenChange?: (open: boolean) => void;
 }) {
   const { state } = useBuilder();
   const zone = useViewportZone();
@@ -82,6 +91,10 @@ export function BuilderShell({
     ) : (
       <SettingsPanel />
     );
+
+  // Right-pane tab strip (spec §4: settings / theme / endings). The "Settings"
+  // tab is active for both the "block" and "document" panels.
+  const paneTabs = <PaneTabs />;
 
   const closeOverlays = useCallback(() => {
     if (railExpanded) {
@@ -133,8 +146,23 @@ export function BuilderShell({
           onToggleSettings={zone === "tablet" ? () => setSettingsOpen(true) : undefined}
           settingsOpen={settingsOpen}
           settingsToggleRef={settingsToggleRef}
+          previewOpen={previewOpen}
+          onPreviewOpenChange={onPreviewOpenChange}
         />
       </header>
+
+      {notice ? (
+        <div
+          role="status"
+          data-testid="builder-notice"
+          className="ff-pane--bottom flex items-center gap-2 border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
+        >
+          <span className="min-w-0 flex-1">{notice}</span>
+          <button type="button" className="ff-icon-btn" aria-label="Dismiss notice" onClick={onNoticeDismiss}>
+            <span aria-hidden="true">✕</span>
+          </button>
+        </div>
+      ) : null}
 
       <ContextualBanner kind={bannerKind} onRestore={onRestore} />
 
@@ -180,6 +208,7 @@ export function BuilderShell({
         {/* --- right: settings --------------------------------------------------- */}
         {zone === "desktop" && (
           <aside aria-label="Settings" className="ff-pane ff-pane--right w-[320px] shrink-0 overflow-y-auto">
+            {paneTabs}
             {rightPane}
           </aside>
         )}
@@ -214,7 +243,10 @@ export function BuilderShell({
             className="ff-pane ff-pane--right absolute inset-y-0 right-0 flex w-[320px] max-w-[90vw] flex-col shadow-xl"
           >
             {overlayHeader("Settings", "Close settings panel")}
-            <div className="min-h-0 flex-1 overflow-y-auto">{rightPane}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {paneTabs}
+              {rightPane}
+            </div>
           </div>
         </div>
       )}
@@ -260,13 +292,62 @@ export function BuilderShell({
           >
             {overlayHeader(sheet === "blocks" ? "Blocks" : "Settings", sheet === "blocks" ? "Close blocks panel" : "Close settings panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
-              {sheet === "blocks" ? <LeftPane /> : rightPane}
+              {sheet === "blocks" ? <LeftPane /> : (
+                <>
+                  {paneTabs}
+                  {rightPane}
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      <UndoToast />
+    </div>
+  );
+}
+
+/**
+ * Right-pane tab strip (spec §4: Settings / Theme / Endings). "Settings" is
+ * active for both the "block" and "document" panels; selecting a tab only
+ * switches the panel — block selection is left intact so returning to
+ * Settings restores the block editor.
+ */
+function PaneTabs() {
+  const { state, dispatch } = useBuilder();
+  const active: "settings" | "theme" | "endings" =
+    state.panel === "theme" ? "theme" : state.panel === "endings" ? "endings" : "settings";
+
+  const tabs = [
+    { id: "settings" as const, label: "Settings", panel: "document" as const },
+    { id: "theme" as const, label: "Theme", panel: "theme" as const },
+    { id: "endings" as const, label: "Endings", panel: "endings" as const },
+  ];
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Right panel"
+      data-testid="right-pane-tabs"
+      className="ff-pane--bottom flex shrink-0 gap-1 px-3 py-2"
+    >
+      {tabs.map((tab) => {
+        const selected = active === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            tabIndex={selected ? 0 : -1}
+            data-testid={`${tab.id}-tab`}
+            className={`ff-pane-tab min-h-8 rounded-md px-2.5 text-sm font-medium ${selected ? "ff-pane-tab--active" : ""}`}
+            onClick={() => dispatch({ type: "setPanel", panel: tab.panel })}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

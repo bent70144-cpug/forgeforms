@@ -5,17 +5,26 @@
 //
 // This is the only builder surface that subscribes to the whole store; every
 // child receives stable props (see §13 memoization notes in BlockCard).
-import { Fragment, useCallback, useMemo, useRef, type CSSProperties, type MouseEvent } from "react";
+//
+// WAVE-3 window-event contracts consumed here (emitters: useShortcuts /
+// PublishControl / IssuesList — see lib/builder/canvas-ops.ts):
+// - "ff:edit-selected" { id }  → opens that block's primary-text inline edit.
+// - "ff:goto-block"    { id }  → scrolls the card into view + a brief
+//   ff-int-flash highlight (animation guarded by prefers-reduced-motion).
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { DocumentType, Theme } from "@formforge/schema";
 import { DEFAULT_THEME_TOKENS, THEME_TOKEN_VARS } from "@/lib/bridge";
 import type { CanvasActions } from "@/lib/builder/canvas-ops";
 import {
+  BUILDER_EVENTS,
   convertKindBlock,
   emitBlockDeleted,
   logicReferencedIds,
   moveByOffset,
   nextSelectionAfterRemove,
   quickInsertOp,
+  type GotoBlockDetail,
+  type EditSelectedDetail,
 } from "@/lib/builder/canvas-ops";
 import { blockDisplayLabel } from "@/lib/builder/blockMeta";
 import { duplicateBlockOp, findBlock, setDeep } from "@/lib/builder/ops";
@@ -44,6 +53,15 @@ function canvasThemeVars(theme: Theme): CSSProperties {
     vars[THEME_TOKEN_VARS[token]] = theme.tokens[token] ?? DEFAULT_THEME_TOKENS[token] ?? "transparent";
   }
   return vars as CSSProperties;
+}
+
+/** How long the §6.4 goto-block flash stays on the target card. */
+const FLASH_MS = 1200;
+
+/** Attribute-selector-safe id (ids are nanoid alphabet, but stay defensive). */
+function blockSelector(id: string): string {
+  const safe = typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape(id) : id;
+  return `[data-block-id="${safe}"]`;
 }
 
 function deselectAtRoot(event: MouseEvent<HTMLElement>, select: (id: string | null) => void): void {
@@ -81,7 +99,12 @@ function StartScreenCard({ type, onOpen }: { type: DocumentType; onOpen: () => v
   );
 }
 
-export function Canvas() {
+export type CanvasProps = {
+  /** Test seam (wave 3): start with a block's inline edit already requested. */
+  initialEditingBlockId?: string | null;
+};
+
+export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
   const { state, dispatch } = useBuilder();
   const { body, selection } = state;
 
@@ -89,6 +112,50 @@ export function Canvas() {
   // is what makes per-card React.memo effective (spec §13).
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  // §6.5 "ff:edit-selected": the id whose primary text should be editing.
+  // Cleared from the cards via onEditSettled on commit/cancel.
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(initialEditingBlockId);
+
+  const rootRef = useRef<HTMLElement | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+
+  // --- "ff:goto-block": scroll into view + brief flash highlight (§6.4) ----
+  useEffect(() => {
+    function onGotoBlock(event: Event) {
+      const id = (event as CustomEvent<GotoBlockDetail>).detail?.id;
+      if (typeof id !== "string") return;
+      const root = rootRef.current;
+      if (!root) return;
+      const el = root.querySelector<HTMLElement>(blockSelector(id));
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.classList.add("ff-int-flash");
+      if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+      flashTimerRef.current = window.setTimeout(() => {
+        flashTimerRef.current = null;
+        el.classList.remove("ff-int-flash");
+      }, FLASH_MS);
+    }
+    window.addEventListener(BUILDER_EVENTS.gotoBlock, onGotoBlock);
+    return () => {
+      window.removeEventListener(BUILDER_EVENTS.gotoBlock, onGotoBlock);
+      if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+    };
+  }, []);
+
+  // --- "ff:edit-selected": open the requested block's inline edit ----------
+  useEffect(() => {
+    function onEditSelected(event: Event) {
+      const id = (event as CustomEvent<EditSelectedDetail>).detail?.id;
+      if (typeof id !== "string") return;
+      setEditingBlockId(id);
+    }
+    window.addEventListener(BUILDER_EVENTS.editSelected, onEditSelected);
+    return () => window.removeEventListener(BUILDER_EVENTS.editSelected, onEditSelected);
+  }, []);
+
+  const clearEditing = useCallback(() => setEditingBlockId(null), []);
 
   const select = useCallback(
     (id: string | null) => dispatch({ type: "select", id }),
@@ -131,7 +198,7 @@ export function Canvas() {
       const hadLogic = logicReferencedIds(current.body.logic.rules).has(id);
       dispatch({ type: "apply", ops: [{ op: "block.remove", id }], label: "Delete block" });
       dispatch({ type: "select", id: nextSelectionAfterRemove(current.body.blocks, id) });
-      // UndoToast contract (wave 3): offers an 8 s undo; §6.4 adds the
+      // UndoToast contract: offers an 8 s undo; §6.4 adds the
       // "used by logic" warning when hadLogic is true.
       emitBlockDeleted({ id, label, hadLogic });
     },
@@ -194,6 +261,7 @@ export function Canvas() {
 
   return (
     <section
+      ref={rootRef}
       role="region"
       aria-label="Form editor"
       data-testid="builder-canvas"
@@ -223,6 +291,8 @@ export function Canvas() {
                   selectedId={selection}
                   referencedIds={referencedIds}
                   actions={actions}
+                  editingId={editingBlockId}
+                  onEditSettled={clearEditing}
                 />
                 <InsertionRow index={index + 1} parentId={null} actions={actions} />
               </Fragment>

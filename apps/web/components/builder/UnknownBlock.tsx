@@ -30,6 +30,7 @@ function UnknownBlockImpl({
       role="group"
       aria-label={`Unsupported block (${block.kind})`}
       data-testid="unknown-block"
+      data-block-id={block.id}
       data-block-kind={block.kind}
       tabIndex={0}
       onClick={(event) => {

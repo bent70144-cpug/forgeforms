@@ -12,10 +12,10 @@
 // WINDOW EVENT CONTRACTS (emitted by this hook; consumers in parentheses)
 // ---------------------------------------------------------------------------
 // - "ff:open-picker"   detail {}                       (useBlockPicker)
-// - "ff:force-save"    detail {}                       (autosave flush — wave 3)
+// - "ff:force-save"    detail {}                       (BuilderPage → flushNow)
 // - "ff:block-deleted" detail { label: string; hadLogic: boolean }  (UndoToast)
-// - "ff:edit-selected" detail { id: string }           (canvas inline edit — wave 3)
-// - "ff:open-preview"  detail {}                       (PreviewModal host — wave 3)
+// - "ff:edit-selected" detail { id: string }           (Canvas inline edit)
+// - "ff:open-preview"  detail {}                       (BuilderPage → preview lift)
 // All are `CustomEvent`s dispatched on `window`.
 //
 // Ignore-while-typing rule (§6.5): every shortcut is ignored while an

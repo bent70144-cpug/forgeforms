@@ -565,7 +565,7 @@ export class AutosaveController {
       return true;
     }
 
-    // §7.3.3: blocking-but-non-destructive dialog (wave 3 wires the UI).
+    // §7.3.3: blocking-but-non-destructive dialog (ConflictDialog, wired).
     this.raiseConflict(serverRev, serverDoc, serverBody, replay);
     return false;
   }
