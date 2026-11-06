@@ -200,16 +200,31 @@ describe("blockMeta catalog", () => {
     const formKinds = formGroups.flatMap((g) => g.kinds.map((k) => k.kind));
     expect(formKinds).toContain("short-text");
     expect(formKinds).not.toContain("projects");
+    // T21: page/portfolio content stays out of the form palette.
+    expect(formKinds).not.toContain("gallery");
+    expect(formKinds).not.toContain("video");
+    expect(formKinds).not.toContain("pricing");
 
     const portfolioGroups = paletteForType("portfolio");
     expect(portfolioGroups[0]?.family).toBe("content");
     const portfolioKinds = portfolioGroups.flatMap((g) => g.kinds.map((k) => k.kind));
     expect(portfolioKinds).toContain("projects");
+    expect(portfolioKinds).toContain("contact-links");
     expect(portfolioKinds).not.toContain("short-text");
 
     const pageKinds = paletteForType("page").flatMap((g) => g.kinds.map((k) => k.kind));
     expect(pageKinds).toContain("hero");
     expect(pageKinds).toContain("multi-question-page");
+    // T21: pages get the full content/layout set.
+    expect(pageKinds).toContain("gallery");
+    expect(pageKinds).toContain("video");
+    expect(pageKinds).toContain("testimonials");
+    expect(pageKinds).toContain("faq");
+    expect(pageKinds).toContain("pricing");
+    expect(pageKinds).toContain("section");
+    expect(pageKinds).toContain("columns");
+    expect(pageKinds).toContain("form-embed");
+    expect(pageKinds).not.toContain("projects");
   });
 
   it("display label falls back to the meta label for unnamed blocks", () => {

@@ -1,8 +1,19 @@
 // Shared fixtures for blocks tests. NOT a test file (no *.test.* name).
 import { DocumentBody, type Block } from "@formforge/schema";
 import { buttonDefaultProps } from "./button/schema";
+import { columnsDefaultProps } from "./columns/schema";
+import { contactLinksDefaultProps } from "./contact-links/schema";
+import { faqDefaultProps } from "./faq/schema";
+import { formEmbedDefaultProps } from "./form-embed/schema";
+import { galleryDefaultProps } from "./gallery/schema";
 import { heroDefaultProps } from "./hero/schema";
+import { multiQuestionPageDefaultProps } from "./multi-question-page/schema";
+import { pricingDefaultProps } from "./pricing/schema";
+import { projectsDefaultProps } from "./projects/schema";
+import { sectionDefaultProps } from "./section/schema";
 import { shortTextDefaultProps } from "./short-text/schema";
+import { testimonialsDefaultProps } from "./testimonials/schema";
+import { videoDefaultProps } from "./video/schema";
 
 export const heroId = "blk_hero001";
 export const shortTextId = "blk_text0001";
@@ -46,4 +57,16 @@ export const defaultPropSets = {
   hero: heroDefaultProps,
   "short-text": shortTextDefaultProps,
   button: buttonDefaultProps,
+  // T21 blocks:
+  gallery: galleryDefaultProps,
+  video: videoDefaultProps,
+  testimonials: testimonialsDefaultProps,
+  faq: faqDefaultProps,
+  pricing: pricingDefaultProps,
+  projects: projectsDefaultProps,
+  "contact-links": contactLinksDefaultProps,
+  section: sectionDefaultProps,
+  columns: columnsDefaultProps,
+  "multi-question-page": multiQuestionPageDefaultProps,
+  "form-embed": formEmbedDefaultProps,
 } as const;
