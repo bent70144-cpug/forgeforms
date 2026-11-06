@@ -13,7 +13,6 @@ import type { Op } from "@/lib/builder/ops";
 import {
   CONDITION_OPS,
   OP_LABELS,
-  fallbackTaken,
   draftFromRule,
   emptyConditionDraft,
   emptyGotoDraft,

@@ -12,9 +12,12 @@
 // The reducer is fully synchronous and side-effect free: network calls
 // (ingest start/save/complete) live in the React layer and re-enter the
 // machine through events. This file is the unit under test.
-import { evaluate } from '../../bridge';
+// T20 (issue #20): logic evaluation runs through the T13 engine package
+// (`@formforge/core/logic`) — the same single import surface the ingest
+// server and the publish lint use (spec §15 M5 acceptance).
+import { evaluate } from '@formforge/core/logic';
 import { normalizeAnswer, validateAnswer } from '../validation/validateAnswer';
-import { resolveEnding } from './helpers';
+import { prefillAnswers, resolveEnding } from './helpers';
 import type {
   MachineDoc,
   MachineEvent,
@@ -26,12 +29,16 @@ import type {
 export function createInitialState(
   doc: MachineDoc,
   hidden: Record<string, unknown> = {},
+  urlParams?: Record<string, string>,
 ): MachineState {
   const noQuestions = doc.questions.length === 0;
   return {
     phase: noQuestions ? 'done' : doc.hasWelcome ? 'idle' : 'question',
     index: 0,
-    answers: {},
+    // Per-question prefill (spec §7.2 prefillParam): URL params seed DRAFT
+    // answers — the user still confirms them through the normal validation
+    // gate on NEXT (prefilled ≠ committed).
+    answers: prefillAnswers(doc.document, urlParams),
     committed: {},
     lastCommitted: null,
     variables: {},

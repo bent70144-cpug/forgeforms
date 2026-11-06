@@ -14,7 +14,6 @@ import { AutosaveController, type AutosaveStatus, type StatusInfo } from "../bui
 import {
   editorReducer,
   initialEditorState,
-  type EditorAction,
   type EditorState,
 } from "../builder/store";
 import type { DocumentEnvelope, DocumentStatus } from "../bridge";

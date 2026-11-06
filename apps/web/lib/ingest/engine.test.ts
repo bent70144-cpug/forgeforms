@@ -24,6 +24,7 @@ import {
   type IngestRequestCtx,
 } from "@formforge/core/submissions";
 import type { Snapshot } from "@formforge/core/bridge";
+import { captureHiddenFields } from "../logic/hidden";
 import { npsScenarioRules } from "../logic/rules";
 import { compiledRouting, engineEvaluate } from "./engine";
 
@@ -142,6 +143,27 @@ describe("hidden fields captured end-to-end (UTM → submission row)", () => {
       { utm_source: "twitter", utm_campaign: "launch-week" },
     );
     expect(hidden).toEqual({ utm_source: "twitter", utm_campaign: "launch-week" });
+  });
+
+  // Full capture chain (spec §10.3 + §14.1.4): the public page captures the
+  // UTM set from the URL via captureHiddenFields (lib/logic/hidden.ts) and
+  // hands the record to the renderer's start call — the REAL ingest service
+  // stores it verbatim on the submission row, which the results drawer reads.
+  it("URL-captured UTM params flow through startSubmission to the row", async () => {
+    const params = new URLSearchParams(
+      "utm_source=twitter&utm_medium=social&utm_campaign=launch-week&utm_term=faq&utm_content=banner&noise=ignored",
+    );
+    const captured = captureHiddenFields(params);
+    expect(captured).toEqual({
+      utm_source: "twitter",
+      utm_medium: "social",
+      utm_campaign: "launch-week",
+      utm_term: "faq",
+      utm_content: "banner",
+    });
+    const deps = makeDeps(npsSnapshot());
+    const { hidden } = await startAndSave(deps, [{ blockId: "q_nps", value: 9 }], captured);
+    expect(hidden).toEqual(captured);
   });
 });
 
