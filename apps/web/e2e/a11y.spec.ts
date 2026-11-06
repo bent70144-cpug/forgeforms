@@ -143,9 +143,12 @@ test.describe('T28 reduced-motion emulation (spec §14.4)', () => {
     // '0.01ms' is the global reduced-motion collapse (globals.css, !important);
     // '0s'/'none' cover per-component `animation: none` overrides. Multi-animation
     // elements return a comma-joined list — every duration must be collapsed.
+    // '' = element already detached (loading finished between locate and
+    // evaluate) — no element, no animation. Multi-animation elements return a
+    // comma-joined list — every duration must be collapsed.
     const durations = String(skeleton).split(',').map((d) => d.trim());
     expect(
-      durations.every((d) => ['0.01ms', '0.00001s', '0s', 'none'].includes(d)),
+      durations.every((d) => ['', '0.01ms', '0.00001s', '0s', 'none'].includes(d)),
       `reduced-motion must collapse the skeleton animation (computed: ${skeleton})`,
     ).toBe(true);
 
