@@ -30,7 +30,7 @@ describe('error envelope (spec §4)', () => {
     expect(ErrorBodySchema.parse(body)).toEqual(body);
   });
 
-  it('maps every code to its §4 HTTP status', () => {
+  it('maps every code to its §4 HTTP status (incl. T10/T27 extensions — mirrors packages/core/src/shared/errors.ts)', () => {
     expect(HTTP_STATUS_BY_CODE).toEqual({
       NOT_FOUND: 404,
       FORBIDDEN: 403,
@@ -39,7 +39,19 @@ describe('error envelope (spec §4)', () => {
       RATE_LIMITED: 429,
       PLAN_LIMIT: 402,
       INTERNAL: 500,
+      UNPUBLISHED: 410,
+      UNAUTHENTICATED: 401,
+      UNPROCESSABLE: 422,
+      AI_OUTPUT_INVALID: 502,
+      AI_PROVIDER_ERROR: 502,
+      AI_NOT_CONFIGURED: 503,
+      CONFIRMATION_REQUIRED: 422,
     });
+  });
+
+  it('accepts a real UNPUBLISHED error body (T10 extension)', () => {
+    const body = { error: { code: 'UNPUBLISHED', message: 'This form is not published.' } };
+    expect(ErrorBodySchema.parse(body)).toEqual(body);
   });
 
   it('rejects unknown error codes', () => {
