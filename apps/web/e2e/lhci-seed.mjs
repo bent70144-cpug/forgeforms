@@ -43,13 +43,13 @@ async function main() {
   if (!created.ok()) {
     throw new Error(`[lhci-seed] create failed ${created.status()}: ${await created.text()}`);
   }
-  const doc = (await created.json()) as { id: string };
+  const doc = await created.json();
   const published = await context.request.post(`${BASE}/api/v1/documents/${doc.id}/publish`);
   if (!published.ok()) {
     throw new Error(`[lhci-seed] publish failed ${published.status()}: ${await published.text()}`);
   }
   const detail = (await context.request.get(`${BASE}/api/v1/documents/${doc.id}`)).json();
-  const { slug } = (await detail) as { slug: string };
+  const { slug } = await detail;
   const publishedUrl = `${BASE}/p/${slug}`;
   console.log(`[lhci-seed] published portfolio → ${publishedUrl}`);
 

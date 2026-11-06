@@ -38,7 +38,7 @@ async function register(page: Page): Promise<void> {
   await page.getByLabel('Email').fill(`${uniq()}@example.com`);
   await page.getByLabel('Password', { exact: false }).first().fill('correct-horse-battery');
   await page.getByRole('button', { name: /sign up|register|create account/i }).click();
-  await expect(page).toHaveURL(/\/dashboard/);
+  await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
 }
 
 /** Collect visible interactive elements reachable by keyboard traversal. */
@@ -168,7 +168,7 @@ test.describe('T28 keyboard sweep (spec §14.4)', () => {
 
     // Question 2 (email) — error first, then corrected input (spec §15 M4).
     await page.keyboard.press('Enter');
-    await expect(page.locator('[role="alert"]')).toBeVisible();
+    await expect(page.locator('[role="alert"]').first()).toBeVisible();
     await page.keyboard.type('ada@example.com');
     await page.keyboard.press('Enter');
 

@@ -139,7 +139,11 @@ for (const { rel } of walk(ROOT)) {
 
 const nextDir = join(ROOT, "apps/web/.next");
 if (existsSync(nextDir)) {
+  // Only the CLIENT graph (.next/static) — server chunks legitimately read
+  // process.env.* by name; a name there is not a leak. A secret env read that
+  // actually ships to browsers lands in .next/static (webpack inlines it).
   for (const { rel } of walk(nextDir)) {
+    if (!/^apps\/web\/\.next\/static\//.test(rel)) continue;
     if (!/\.(?:js|html|mjs)$/.test(rel)) continue;
     const text = readFileSync(join(ROOT, rel), "utf8");
     for (const name of SECRET_ENV_NAMES) {
