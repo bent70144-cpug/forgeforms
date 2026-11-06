@@ -5,9 +5,10 @@
 set -uo pipefail
 cd /home/z/my-project || { echo "FAIL: project dir missing"; exit 1; }
 
-# 0. Sandbox file-sync keeps flipping .env.example to 0755; normalize before
-#    status so mode-bit noise doesn't pollute every checkpoint commit.
-chmod 644 .env.example 2>/dev/null || true
+# 0. Sandbox file-sync flips tracked files to 0755 between runs; normalize
+#    every tracked file back to 0644 before status (the repo has no
+#    intentionally-executable files — invoked via `bash scripts/auto-push.sh`).
+git ls-files -z | xargs -0 -r chmod 644 -- 2>/dev/null || true
 
 # 1. Commit any pending work (gitignore already excludes .env, upload/, skills/)
 if [ -n "$(git status --porcelain)" ]; then
@@ -17,8 +18,13 @@ if [ -n "$(git status --porcelain)" ]; then
     || echo "nothing to commit (only ignored/unstaged changes)"
 fi
 
-# 2. Token is required for the push step only (the commit above is purely local)
+# 2. Token: primary source is the GITHUB_TOKEN line in .env; fallback to
+#    scripts/.gh-token (gitignored, 0600) because the sandbox sync keeps
+#    wiping the .env line. Never printed.
 TOKEN=$(grep '^GITHUB_TOKEN=' .env | cut -d= -f2- | tr -d '[:space:]')
+if [ -z "$TOKEN" ] && [ -f scripts/.gh-token ]; then
+  TOKEN=$(tr -d '[:space:]' < scripts/.gh-token)
+fi
 if [ -z "$TOKEN" ]; then
   echo "PENDING: GITHUB_TOKEN not found in .env — nothing pushed; checkpoint stays local and will push on a future run once the token line is restored"
   exit 1
