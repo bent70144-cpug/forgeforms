@@ -6,7 +6,8 @@
     ".": "./src/index.ts",
     "./repositories": "./src/repositories/index.ts",
     "./repositories/submissions": "./src/repositories/submissions.ts",
-    "./repositories/billing": "./src/repositories/billing.ts"
+    "./repositories/billing": "./src/repositories/billing.ts",
+    "./repositories/domains": "./src/repositories/domains.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

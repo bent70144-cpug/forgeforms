@@ -42,3 +42,12 @@ export function createDrizzleRepositories(db: Db = getDb()) {
 // Ctx-scoped functions) — kept alongside the auth-session repo above. Selective
 // export: its DTO type names intentionally mirror identity.ts's.
 export { createIdentityRepositories, type IdentityRepositories } from "./access.ts";
+
+// T24 (issue #24): custom domains — Drizzle DomainsStore + routing table over
+// the §8 KV entry. Typed against the core ports (structural check at wiring).
+export {
+  createDomainsStore,
+  createDomainsRoutingTable,
+  getDomainsStoresFromEnv,
+  type DomainsDb,
+} from "./domains.ts";
