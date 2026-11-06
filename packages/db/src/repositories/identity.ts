@@ -8,6 +8,7 @@
 // the DTOs from the ports if desired.
 import { eq } from "drizzle-orm";
 import type { Db } from "../bridge";
+import { memberships, users, workspaces } from "../bridge";
 
 export type WorkspacePlan = "free" | "pro" | "business";
 export type MembershipRole = "owner" | "admin" | "editor" | "viewer";

@@ -5,6 +5,9 @@
 // src/schema/ with T05/hardening and delete it here).
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { createDb, type Database } from "./client.ts";
+// `users` is referenced by the local `sessions` table below (FK callback);
+// the other tables are re-exported only, so they need no local binding.
+import { users } from "./schema/identity.ts";
 
 export { users, workspaces, memberships, apiTokens } from "./schema/identity.ts";
 export { createDb, type Database };
