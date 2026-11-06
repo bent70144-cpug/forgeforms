@@ -737,7 +737,9 @@ body {
   animation-play-state: paused;
 }
 
-.ff-chip {
+/* Scoped to the landing page: an unscoped .ff-chip here would restyle the
+   dashboard's .ff-chip (defined above) on every app surface. */
+.ff-home .ff-chip {
   flex: none;
   border: 1px solid var(--ff-border);
   border-radius: 999px;
@@ -879,6 +881,15 @@ body {
 
 .ff-demo-pause:active {
   transform: translateY(1px);
+}
+
+/* Touch: the hero demo controls are the page's touch-critical taps; their
+   13px text leaves them ~34px tall, so pad them up to the 44px floor. */
+@media (pointer: coarse) {
+  .ff-tab,
+  .ff-demo-pause {
+    padding-block: 0.8125rem;
+  }
 }
 
 .ff-stage {
@@ -1123,6 +1134,18 @@ body {
 /* Pointer-driven decoration only makes sense with a hovering pointer. */
 @media (hover: none) {
   .ff-spot::after {
+    display: none;
+  }
+
+  /* Touch users have no hover to pause the marquee and the chips are not
+     focusable, so :focus-within never fires; give them the same static
+     wrap as prefers-reduced-motion (WCAG 2.2.2 pause mechanism). */
+  .ff-marquee-track {
+    animation: none;
+    flex-wrap: wrap;
+  }
+
+  .ff-marquee-track[aria-hidden="true"] {
     display: none;
   }
 }
