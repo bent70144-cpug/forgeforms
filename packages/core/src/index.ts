@@ -25,6 +25,7 @@ export {
   evaluate,
 } from "./logic/index.ts";
 export type {
+  Block,
   Rule,
   RuleAction,
   RuleCondition,
@@ -37,6 +38,8 @@ export type {
   DiagnosticCode,
   EvaluateCtx,
   EvaluateResult,
+  LogicEvaluate,
+  RouteMap,
 } from "./logic/index.ts";
 
 // T14 (issue #14): submissions ingest services.

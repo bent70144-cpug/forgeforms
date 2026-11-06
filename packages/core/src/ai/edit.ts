@@ -3,7 +3,8 @@
 // only ever returns a reviewable proposal, and the future server-side apply
 // path is guarded by assertEditConfirmed() so confirmation cannot be skipped.
 import { z } from "zod";
-import { AppError, err, ok, type Result } from "../bridge";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { DocumentBody as DocumentBodySchema } from "./types";
 import { type DocumentBody } from "./types";
 import { AI_JSON_CONTRACT, blockKindCheatsheet, extractJson, zodIssuesToDetails } from "./prompt";

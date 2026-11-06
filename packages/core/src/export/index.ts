@@ -1,18 +1,19 @@
 // T18 (issue #18) — public interface of the export module (spec §0.5: modules are
 // only consumed through their index).
 //
-// INTEGRATION-DEBT checklist for the integrator:
+// Remaining wiring checklist (tracked in the integration follow-up issue):
 //   1. apps/worker/src/index.ts (T17): register the handler on the `exports`
-//      queue — see apps/worker/src/jobs/csv-export.ts.
+//      queue — see apps/worker/src/jobs/csv-export.ts.  [ISSUE #30: done]
 //   2. API route `POST /api/v1/documents/:id/exports` (submissions:read):
 //      create the export job row (db repositories/exports.ts), enqueue on the
 //      `exports` queue with the payload produced from
-//      csvExportJobPayloadSchema, respond 202 with the job id.
+//      csvExportJobPayloadSchema, respond 202 with the job id.  [re-ticketed]
 //   3. Download route `GET /api/v1/exports/:token`: verifyExportToken →
-//      stream ObjectStore.get(payload.key) as text/csv.
-//   4. Delete packages/core/src/bridge.ts and re-point Mailer/SubmissionReader
-//      imports at T17's integrations surface / T14's submissions repository.
+//      stream ObjectStore.get(payload.key) as text/csv.  [re-ticketed]
+//   4. packages/core/src/bridge.ts is retired (issue #30); the ports live in
+//      ./ports.ts.
 //   5. Swap InMemoryObjectStore for the S3 ObjectStore (see object-store.ts).
+//      [re-ticketed]
 
 export {
   CSV_BOM,
@@ -68,11 +69,11 @@ export {
   type ExportJobStore,
 } from "./service";
 
-// INTEGRATION-DEBT: bridge types — replace with T02/T14/T17 surfaces when merged.
+// ISSUE #30: T18 plane ports moved here from the retired core bridge.ts.
 export type {
   EnqueueFn,
+  ExportSubmissionRow,
   Mailer,
   SubmissionReader,
-  SubmissionRow,
   SubmissionStreamParams,
-} from "../bridge";
+} from "./ports";

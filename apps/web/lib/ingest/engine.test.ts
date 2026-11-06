@@ -23,12 +23,12 @@ import {
   type IngestDeps,
   type IngestRequestCtx,
 } from "@formforge/core/submissions";
-import type { Snapshot } from "@formforge/core/bridge";
+import { IngestSnapshot } from "@formforge/core";;
 import { captureHiddenFields } from "../logic/hidden";
 import { npsScenarioRules } from "../logic/rules";
 import { compiledRouting, engineEvaluate } from "./engine";
 
-function makeDeps(snapshot: Snapshot): IngestDeps {
+function makeDeps(snapshot: IngestSnapshot): IngestDeps {
   return {
     repo: new InMemorySubmissionsRepo(),
     snapshots: { getPublishedSnapshot: async () => snapshot },
@@ -50,7 +50,7 @@ const request: IngestRequestCtx = {
   now: () => new Date("2026-11-06T10:00:00.000Z"),
 };
 
-function npsSnapshot(rules: ReturnType<typeof npsScenarioRules> = []): Snapshot {
+function npsSnapshot(rules: ReturnType<typeof npsScenarioRules> = []): IngestSnapshot {
   return {
     documentId: "11111111-1111-4111-8111-111111111111",
     workspaceId: "ws_a",

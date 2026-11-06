@@ -5,7 +5,9 @@
  * concrete repositories via `PublishPipelineDeps` at the composition root
  * (apps/web/lib/api). Module internals are never imported directly.
  */
-export { AppError, ok, err, type Ctx, type Result, type AppErrorCode, type AppErrorDetail } from '../bridge';
+export { type Ctx } from "../shared/ctx.ts";
+export { AppError, type AppErrorCode, type ErrorDetail as AppErrorDetail } from "../shared/errors.ts";
+export { ok, err, type Result } from "../shared/result.ts";;
 
 export type {
   BlockJson,

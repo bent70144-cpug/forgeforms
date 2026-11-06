@@ -1,11 +1,57 @@
 // Logic engine public types (spec §9). Pure data — safe to ship to the client.
-// Rule/Block input shapes come from the bridge (INTEGRATION-DEBT: awaiting T06).
-import type { Block, Rule, RuleAction, RuleCondition, RuleConditionOp } from "../bridge.ts";
 
 // ---------------------------------------------------------------------------
-// Re-exported input types (single source: bridge / @formforge/schema once T06 lands)
+// Structural input types (spec §7 `Rule` / `Block` shapes the engine consumes).
+// ISSUE #30: these lived in the retired core `bridge.ts`; they are defined here
+// until the engine fully adopts @formforge/schema's Zod-inferred types.
 // ---------------------------------------------------------------------------
-export type { Block, Rule, RuleAction, RuleCondition, RuleConditionOp };
+
+/** Comparison operators supported by rule conditions (spec §7 `Rule.when`). */
+export type RuleConditionOp =
+  | "eq"
+  | "neq"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "contains"
+  | "isEmpty"
+  | "matches";
+
+/**
+ * One condition of a rule. Conditions inside a rule are implicitly ANDed.
+ * `left` is an operand reference: `@block:<id>` | `@var:<name>` | `@hidden:<name>`.
+ */
+export interface RuleCondition {
+  left: string;
+  op: RuleConditionOp;
+  right?: unknown;
+}
+
+/** Actions a matching rule performs, in array order. */
+export type RuleAction =
+  | { type: "goto"; target: string } // blockId | `end:<endingId>`
+  | { type: "set"; var: string; value: unknown };
+
+/** A logic rule (spec §7 `Rule`). */
+export interface Rule {
+  id: string;
+  /** blockId this rule runs after, or `"start"` for pre-first-block rules. */
+  scope: string;
+  when: RuleCondition[];
+  then: RuleAction[];
+  /** `"in all other cases"` rule: has empty `when`, runs only if nothing matched. */
+  isFallback?: boolean;
+}
+
+/** Block document node (spec §7 `Block`). */
+export interface Block {
+  id: string;
+  kind: string;
+  props: Record<string, unknown>;
+  children?: Block[];
+  hidden?: boolean;
+}
 
 // ---------------------------------------------------------------------------
 // Operands
@@ -147,3 +193,14 @@ export interface EvaluateResult {
   /** Copy of the variables after any `set` actions ran. */
   readonly variables: Record<string, unknown>;
 }
+
+/**
+ * Dependency-injection type for the engine's `evaluate` (spec §9). Accepts a
+ * compiled `Routing`, the flat snapshot `RouteMap`, or nothing (degrades to
+ * the documented fallbacks). ISSUE #30: replaces the legacy strict alias that
+ * lived in the retired core `bridge.ts`.
+ */
+export type LogicEvaluate = (
+  routing: Routing | RouteMap | null | undefined,
+  ctx: Partial<EvaluateCtx> | null | undefined,
+) => EvaluateResult;

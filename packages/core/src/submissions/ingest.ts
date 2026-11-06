@@ -3,15 +3,10 @@
 // idempotency, honeypot, rate limits, per-answer validation against the
 // published snapshot, logic-driven `next` and the `submission.completed` event.
 
-import {
-  AppError,
-  parseDocumentId,
-  parseIsoDate,
-  shortId,
-  type ErrorDetail,
-  type Result,
-  type Snapshot,
-} from "../bridge";
+import { AppError, type ErrorDetail } from "../shared/errors.ts";
+import { parseDocumentId, shortId } from "../shared/ids.ts";
+import type { Result } from "../shared/result.ts";
+import type { IngestSnapshot } from "./types";
 import {
   buildQuestionIndex,
   firstQuestionBlockId,
@@ -39,6 +34,12 @@ export const START_RATE_LIMIT_PER_MINUTE = 60; // per-IP (spec §10.3 Limits)
 export const SAVE_RATE_LIMIT_PER_MINUTE = 120; // per-token (spec §10.3 Limits)
 export const MAX_PAYLOAD_BYTES = 256 * 1024; // payload cap (spec §10.3 Limits)
 export const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60; // 24h (spec §4)
+
+/** Parse an ISO datetime string; returns null when invalid. ISSUE #30: moved in from the retired bridge. */
+function parseIsoDate(value: string): Date | null {
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : new Date(ms);
+}
 
 /** Pure helper so the payload cap is testable outside the HTTP layer. */
 export function payloadSizeError(byteLength: number): AppError | null {
@@ -386,7 +387,7 @@ type WalkResult =
 
 function simulateLogicPath(
   deps: IngestDeps,
-  snapshot: Snapshot,
+  snapshot: IngestSnapshot,
   answers: Record<string, unknown>,
   submission: SubmissionRow,
 ): WalkResult {
@@ -433,6 +434,6 @@ function simulateLogicPath(
 async function loadSnapshot(
   deps: IngestDeps,
   submission: SubmissionRow,
-): Promise<Snapshot | null> {
+): Promise<IngestSnapshot | null> {
   return deps.snapshots.getPublishedSnapshot(submission.documentId);
 }

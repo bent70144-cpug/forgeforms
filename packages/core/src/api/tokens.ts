@@ -10,7 +10,7 @@
 //    storage-agnostic (Drizzle impl in @formforge/db, in-memory impl in tests).
 
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
-import { AppError } from '../bridge';
+import { AppError } from "../shared/errors.ts";;
 import type { Ctx } from './ctx';
 import { API_SCOPES, isApiScope, type ApiScope } from './scopes';
 

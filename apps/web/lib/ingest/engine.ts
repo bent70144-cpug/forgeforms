@@ -8,11 +8,8 @@
 // compiles through the SAME engine instead of the old raw-rule `compileLite`.
 
 import { compile as engineCompile, evaluate as engineEvaluateFn, routeMap as engineRouteMap } from "@formforge/core/logic";
-import type { Block, Rule } from "@formforge/core/bridge";
-import type { LogicEvaluate, Snapshot } from "@formforge/core/bridge";
-
-/**
- * `LogicEvaluate` adapter over T13's `evaluate`. T13 accepts the flat
+import { Block, Rule } from "@formforge/core";;
+import typeimport { LogicEvaluate, IngestSnapshot } from "@formforge/core";LogicEvaluate` adapter over T13's `evaluate`. T13 accepts the flat
  * `Record<string, RouteNode>` snapshot routing (structural detection) plus
  * partial ctx, so the adapter is a straight pass-through; the cast keeps the
  * bridge's legacy `LogicEvaluate` signature (flat raw routing) happy until
@@ -30,10 +27,10 @@ export function compiledRouting(
   rules: readonly Rule[] | null | undefined,
   blocks: readonly Block[] | null | undefined,
   endings: ReadonlyArray<{ id: string }> | readonly string[] | null | undefined,
-): Snapshot["routing"] {
+): IngestSnapshot["routing"] {
   const endingIds = (endings ?? []).map((e) =>
     typeof e === "string" ? e : (e as { id: string }).id,
   );
   const compiled = engineCompile(rules ?? [], blocks ?? [], endingIds);
-  return engineRouteMap(compiled) as unknown as Snapshot["routing"];
+  return engineRouteMap(compiled) as unknown as IngestSnapshot["routing"];
 }

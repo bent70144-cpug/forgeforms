@@ -2,7 +2,7 @@
 // Daily buckets are UTC (spec §4: all timestamps are UTC timestamptz; no DST
 // because UTC has no offsets). No I/O here — services feed events in.
 
-import { AppError } from "../bridge";
+import { AppError } from "../shared/errors.ts";;
 import type {
   AnalyticsKpis,
   AnalyticsRange,

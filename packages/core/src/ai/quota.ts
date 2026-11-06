@@ -2,7 +2,9 @@
 // `usage_counters` table (spec §6) + the single billing gate `can()` (§13).
 // The quota check runs BEFORE the provider call; usage is persisted via the
 // injected repo — never inline SQL here.
-import { AppError, err, ok, type Ctx, type Result } from "../bridge";
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { type CanFn } from "./types";
 
 export type Plan = "free" | "pro" | "business";

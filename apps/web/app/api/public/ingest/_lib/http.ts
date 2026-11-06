@@ -2,7 +2,7 @@
 // HTTP plumbing for the public ingest routes: spec §4 error mapping, payload
 // cap, request-id context, client IP and Idempotency-Key extraction.
 
-import { AppError, type AppErrorCode, type ErrorDetail } from "@formforge/core/bridge";
+import { AppError, type AppErrorCode, type ErrorDetail } from "@formforge/core";;
 import {
   payloadSizeError,
   type AnswerInput,

@@ -25,7 +25,7 @@ import {
   type AssetsService,
   type UploadEntitlements,
 } from "@formforge/core/assets";
-import { parseDocumentId, uuidv7 } from "@formforge/core/bridge";
+import { parseDocumentId, uuidv7 } from "@formforge/core";;
 import { createAssetsRepository, createDb } from "@formforge/db";
 import { createDrizzleIngestSnapshotReader } from "@formforge/db/repositories/submissions";
 import { createBillingFromEnv } from "../../app/api/webhooks/stripe/_lib/billing-server";

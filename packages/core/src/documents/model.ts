@@ -6,7 +6,7 @@
  * phrasing "current_version_id / published_at" is realized as these spec columns;
  * the lifecycle transitions are identical).
  */
-import type { Ctx } from '../bridge';
+import { type Ctx } from "../shared/ctx.ts";;
 
 export type DocumentType = 'form' | 'page' | 'portfolio';
 export type DocumentStatus = 'draft' | 'published' | 'archived';

@@ -3,7 +3,8 @@
 // question blocks (spec §7.1/§10.3: "ingest validates every answer against
 // the block's answerSchema + validate").
 
-import type { Block, Snapshot } from "../bridge";
+import type { Block } from "../logic/types.ts";
+import type { IngestSnapshot } from "./types";
 import type { AnswerInput, BlockInfo, BlockRegistry, ValidationDetail } from "./types";
 
 export type QuestionNode = {
@@ -20,7 +21,7 @@ export type QuestionNode = {
  * (spec §7.1).
  */
 export function buildQuestionIndex(
-  snapshot: Snapshot,
+  snapshot: IngestSnapshot,
   registry: BlockRegistry,
 ): Map<string, QuestionNode> {
   const index = new Map<string, QuestionNode>();
@@ -38,7 +39,7 @@ export function buildQuestionIndex(
 }
 
 export function firstQuestionBlockId(
-  snapshot: Snapshot,
+  snapshot: IngestSnapshot,
   registry: BlockRegistry,
 ): string | null {
   for (const block of snapshot.blocks) {
@@ -69,7 +70,7 @@ export type ParsedAnswer = { blockId: string; value: unknown; clientTs?: string 
  * clientTs, when present, must parse as ISO datetime.
  */
 export function validateAnswers(
-  snapshot: Snapshot,
+  snapshot: IngestSnapshot,
   registry: BlockRegistry,
   answers: AnswerInput[],
 ): { ok: true; parsed: ParsedAnswer[] } | { ok: false; error: ValidationDetail[] } {

@@ -1,7 +1,9 @@
 // T29 — GDPR services (spec §17): workspace data export, workspace + account
 // deletion, per-form retention purge. All services are Ctx-scoped, storage-
 // agnostic and clock-injected. See ./types.ts for the ports.
-import { AppError, err, ok, type Ctx, type Result } from '../bridge';
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import type {
   AccountDeletionDeps,
   RetentionDeps,

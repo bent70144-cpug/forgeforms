@@ -4,15 +4,10 @@
 // field-level validation and CONFLICT on double-complete.
 
 import { describe, expect, it } from "vitest";
-import {
-  compileLite,
-  evaluate,
-  shortId,
-  uuidv7,
-  type Block,
-  type Rule,
-  type Snapshot,
-} from "../../bridge";
+import { compile, evaluate, routeMap } from "../../logic/index.ts";
+import type { Block, Rule } from "../../logic/types.ts";
+import { shortId, uuidv7 } from "../../shared/ids.ts";
+import type { IngestSnapshot } from "../types";
 import {
   CaptureEventQueue,
   InMemoryIdempotencyStore,
@@ -36,32 +31,32 @@ import {
 
 const registry: BlockRegistry = createBootstrapBlockRegistry();
 
-function isQuestion(block: Block): boolean {
-  return registry.get(block.kind)?.family === "question";
-}
-
 const FORM_BLOCKS: Block[] = [
   { id: "b1", kind: "short-text", props: { label: "Name" } },
   { id: "b2", kind: "email", props: { label: "Email", required: true } },
   { id: "b3", kind: "single-select", props: { label: "Plan", options: [{ id: "opt_pro", label: "Pro" }] } },
 ];
 
-function makeSnapshot(overrides: Partial<Snapshot> = {}, rules: Rule[] = []): Snapshot {
-  const base: Snapshot = {
+function makeSnapshot(overrides: Partial<IngestSnapshot> = {}, rules: Rule[] = []): IngestSnapshot {
+  // ISSUE #30: the canonical T13 `compile` lints goto targets against the
+  // DECLARED endings, so the routing must be built from the snapshot's real
+  // ending list (the old compileLite accepted any `end:*` target blindly).
+  const endings = overrides.endings ?? [{ id: "end_1", title: "Thanks" }];
+  return {
     documentId: uuidv7(),
     workspaceId: uuidv7(),
     versionId: uuidv7(),
     type: "form",
     title: "Test form",
     blocks: FORM_BLOCKS,
-    endings: [{ id: "end_1", title: "Thanks" }],
-    routing: compileLite(rules, FORM_BLOCKS, [{ id: "end_1", title: "Thanks" }], isQuestion),
+    endings,
+    routing: routeMap(compile(rules, FORM_BLOCKS, endings.map((e) => e.id))),
     settings: { captcha: false },
+    ...overrides,
   };
-  return { ...base, ...overrides };
 }
 
-function makeDeps(snapshot: Snapshot) {
+function makeDeps(snapshot: IngestSnapshot) {
   const repo = new InMemorySubmissionsRepo();
   const queue = new CaptureEventQueue();
   const usage = new InMemoryUsageCounter();
@@ -233,7 +228,7 @@ describe("startSubmission", () => {
 });
 
 describe("saveStep", () => {
-  async function started(deps: IngestDeps, snapshot: Snapshot) {
+  async function started(deps: IngestDeps, snapshot: IngestSnapshot) {
     const result = await startSubmission(deps, ctx, { documentId: snapshot.documentId });
     if (!result.ok) throw new Error("start failed in test setup");
     return result.value.token;
@@ -410,7 +405,7 @@ describe("saveStep", () => {
 });
 
 describe("completeSubmission", () => {
-  async function started(deps: IngestDeps, snapshot: Snapshot) {
+  async function started(deps: IngestDeps, snapshot: IngestSnapshot) {
     const result = await startSubmission(deps, ctx, { documentId: snapshot.documentId });
     if (!result.ok) throw new Error("start failed in test setup");
     return result.value.token;

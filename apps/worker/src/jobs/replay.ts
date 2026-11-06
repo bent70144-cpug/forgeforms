@@ -8,7 +8,7 @@
 // a `replayOfDeliveryId`, so it gets its own row in the delivery log (new id +
 // new created_at make the chronology unambiguous — the schema has no replay
 // flag column, and T17 must not touch src/schema/**).
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import { JOBS, QUEUES } from "../queues/names";
 import type { WorkerDeps } from "../ports";
 

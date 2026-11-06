@@ -6,7 +6,7 @@
 // performs a single send attempt; failures propagate as thrown AppErrors so
 // BullMQ owns the retry schedule. Later tickets (T03 verify/reset, T18
 // export-ready) render + enqueue; this processor stays transport-only.
-import { ok, type AppError, type Result } from "@formforge/core/bridge";
+import { ok, type AppError, type Result } from "@formforge/core";;
 import { systemCtx, type WorkerDeps } from "../ports";
 import { parseEmailJobData } from "./contracts";
 

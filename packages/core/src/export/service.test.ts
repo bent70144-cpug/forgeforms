@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { Mailer, SubmissionReader, SubmissionRow, SubmissionStreamParams } from "../bridge";
+import type {
+  ExportSubmissionRow as SubmissionRow,
+  Mailer,
+  SubmissionReader,
+  SubmissionStreamParams,
+} from "./ports";
 import { CSV_BOM, CSV_EOL } from "./csv";
 import { questionColumnsFromDocument, SYSTEM_COLUMN_IDS, type QuestionColumn } from "./columns";
 import { InMemoryObjectStore } from "./object-store";

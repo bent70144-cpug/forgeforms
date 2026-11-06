@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import type { Mailer, SubmissionReader, SubmissionRow } from "@formforge/core/export";
+import type { ExportSubmissionRow as SubmissionRow, Mailer, SubmissionReader } from "@formforge/core/export";
 import { InMemoryObjectStore, questionColumnsFromDocument } from "@formforge/core/export";
 import type { CsvExportDeps, ExportJobStore } from "@formforge/core/export";
 import {

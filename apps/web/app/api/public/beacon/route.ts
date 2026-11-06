@@ -13,7 +13,7 @@
 //   • Permissive CORS: beacons fire cross-origin from customer sites/embeds.
 //   • Malformed batches → 422 with the §4 error body; pixel GET never errors.
 
-import { AppError } from "../../../../../../packages/core/src/bridge";
+import { AppError } from "@formforge/core";
 import {
   createAnalyticsService,
   pixelEventFromQuery,

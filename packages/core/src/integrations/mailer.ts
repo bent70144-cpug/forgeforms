@@ -3,7 +3,8 @@
 // Transport is injected (Resend in prod, console in dev); rendering is pure so
 // it is unit-testable without any transport. Rendering NEVER includes answer
 // values (spec §4 logging rule / issue #17 "never log answer values").
-import type { AppError, Result } from "../bridge";
+import { type AppError } from "../shared/errors.ts";
+import { type Result } from "../shared/result.ts";;
 
 export type MailMessage = {
   to: string;

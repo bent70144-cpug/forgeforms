@@ -1,7 +1,7 @@
 // tests: createBilling service — webhook idempotency, workspace resolution,
 // checkout/portal via the fake gateway, seats.
 import { describe, expect, it } from 'vitest';
-import { AppError } from '../bridge';
+import { AppError } from "../shared/errors.ts";;
 import { createBilling, type Billing } from './service';
 import type { BillingStore, WorkspaceBillingRow } from './store';
 import { buildStripeEvent, type StripeEvent } from './stripe/events';

@@ -2,11 +2,13 @@
 // Public interface of `core/api`; consumers (web routes, other tickets) must
 // import only from here, never internals (spec §0.5).
 
-export { AppError, err, ok } from '../bridge';
+export { AppError } from "../shared/errors.ts";
+export { err, ok } from "../shared/result.ts";
 export { makeCtx } from './ctx';
-export { httpStatusFor } from '../bridge';
+export { toHttpStatus } from '../shared/errors.ts';
 export type { AuthActor, Ctx, Role } from './ctx';
-export type { ErrorCode, Result } from '../bridge';
+export type { AppErrorCode as ErrorCode } from '../shared/errors.ts';
+export type { Result } from '../shared/result.ts';
 
 export { API_SCOPES, hasScope, isApiScope, requireScope } from './scopes';
 export type { ApiScope } from './scopes';

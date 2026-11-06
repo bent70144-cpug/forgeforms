@@ -2,14 +2,9 @@
 // Public interface per spec §3: mailer transports + renderers, webhook
 // signing/backoff/dispatch, and the webhook/event payload contract.
 // Kernel types come from ./bridge until T02 lands (INTEGRATION-DEBT).
-export {
-  AppError,
-  ok,
-  err,
-  type AppErrorCode,
-  type Ctx,
-  type Result,
-} from "../bridge";
+export { type Ctx } from "../shared/ctx.ts";
+export { AppError, type AppErrorCode } from "../shared/errors.ts";
+export { ok, err, type Result } from "../shared/result.ts";;
 export {
   EMAIL_JOB_NAMES,
   renderNotificationEmail,

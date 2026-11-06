@@ -139,3 +139,8 @@ export function formatZodPath(path: PropertyKey[]): string {
 export function toHttpStatus(code: AppErrorCode): number {
   return HTTP_STATUS_BY_CODE[code];
 }
+
+/** §4 error envelope from an AppError — convenience for API surfaces (issue #30: was bridge-only). */
+export function errorBody(error: AppError): AppErrorResponseBody {
+  return error.toResponseBody();
+}

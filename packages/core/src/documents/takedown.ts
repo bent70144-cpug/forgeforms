@@ -11,7 +11,9 @@
  * Idempotent: archiving an already-archived document re-purges (cache ops are
  * safe to repeat) and reports `takedown: false`.
  */
-import { err, ok, AppError, type Ctx, type Result } from '../bridge';
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { docTag, snapshotCacheKeys, type PublishPipelineDeps } from './ports';
 import type { DocumentRecord } from './model';
 

@@ -14,7 +14,9 @@
 // Auth.js; this service is the seam.
 import { randomBytes } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
-import { AppError, err, ok, type Ctx, type Result } from "../bridge";
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import type { IdentityDeps } from "./ports";
 import type { LoginOutput } from "./service";
 import { primaryWorkspace, startSession } from "./service";

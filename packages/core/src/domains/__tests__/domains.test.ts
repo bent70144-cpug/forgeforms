@@ -10,7 +10,7 @@
  * All DNS lookups are mocked behind the DnsLookup port (sandbox has no live DNS/DB).
  */
 import { describe, expect, it } from 'vitest';
-import { AppError } from '../../bridge.ts';
+import { AppError } from "../../shared/errors.ts";;
 import {
   dnsPassingCname,
   dnsPassingTxt,

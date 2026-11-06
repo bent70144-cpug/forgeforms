@@ -13,7 +13,10 @@
  * Errors use the §4 kernel: VALIDATION (422), CONFLICT (409), NOT_FOUND (404),
  * PLAN_LIMIT (402) via billing.planLimitError — never inline plan checks.
  */
-import { err, ok, AppError, uuidv7, type Ctx, type Result } from '../bridge.ts';
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { uuidv7 } from "../shared/ids.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { planLimitError, type Capability } from '../billing/index.ts';
 import { docTag } from '../documents/index.ts';
 import {

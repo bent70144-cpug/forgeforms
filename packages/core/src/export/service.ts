@@ -14,7 +14,7 @@
 // T02 AppError (VALIDATION/INTERNAL) at the job boundary without changing this flow.
 
 import { z } from "zod";
-import type { Mailer, SubmissionReader, SubmissionRow } from "../bridge";
+import type { ExportSubmissionRow as SubmissionRow, Mailer, SubmissionReader } from "./ports";
 import { buildCsvStream } from "./csv";
 import { formatAnswerCell, SYSTEM_COLUMN_IDS, type QuestionColumn } from "./columns";
 import type { ObjectStore } from "./object-store";

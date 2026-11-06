@@ -1,7 +1,8 @@
 // Resend mailer — HTTP transport behind injected `fetch` (spec §1: Resend).
 // Zero new deps: uses global fetch; injectable for tests. Never throws —
 // returns Result per spec §3. Never logs message bodies (may contain answers).
-import { err, ok, AppError, type Result } from "../bridge";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import type { MailMessage, Mailer, MailSendResult } from "./mailer";
 
 export type ResendMailerConfig = {

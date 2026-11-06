@@ -10,7 +10,7 @@
 //   limiter for multi-instance deploys.
 // - usage counter: in-memory placeholder until billing lands.
 
-import { uuidv7, type Block, type Rule, type Snapshot } from "@formforge/core/bridge";
+import { uuidv7, type Block, type Rule, type IngestSnapshot } from "@formforge/core";;
 import { compiledRouting, engineEvaluate } from "@/lib/ingest/engine";
 import {
   CaptureEventQueue,
@@ -77,9 +77,9 @@ async function buildWiring(): Promise<Wiring> {
   return { deps, dispose: store.close };
 }
 
-/** Map the db-layer snapshot DTO to the core Snapshot (compile via the T13 engine if T10 hasn't). */
-function toSnapshot(raw: SnapshotLike, _blocks: BlockRegistry): Snapshot {
-  let routing = raw.routing as Snapshot["routing"];
+/** Map the db-layer snapshot DTO to the core IngestSnapshot (compile via the T13 engine if T10 hasn't). */
+function toSnapshot(raw: SnapshotLike, _blocks: BlockRegistry): IngestSnapshot {
+  let routing = raw.routing as IngestSnapshot["routing"];
   if (Object.keys(routing).length === 0 && (raw.logicRules?.length ?? 0) > 0) {
     const blockList = raw.blocks as Block[];
     routing = compiledRouting(raw.logicRules as Rule[], blockList, raw.endings);

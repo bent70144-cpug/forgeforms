@@ -1,7 +1,8 @@
 // AiProvider — the only seam between FormForge and an LLM (spec §15 M8).
 // Tests always inject a FakeProvider with fixture responses; the Anthropic
 // Messages implementation below uses plain fetch (no SDK, spec-pinned).
-import { AppError, err, ok, type Result } from "../bridge";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 
 export type AiCompletionRequest = {
   system: string;

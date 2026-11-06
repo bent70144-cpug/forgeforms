@@ -14,5 +14,7 @@ export * from "./oauth";
 // via the package root export. Until T02 lands src/shared/ + src/index.ts,
 // re-export the bridge types here so web route handlers/actions can map errors
 // per spec §4. After T02: point these re-exports at "../shared" or drop them.
-export { AppError, errorBody } from "../bridge";
-export type { AppErrorCode, AppErrorDetail, Ctx, Result } from "../bridge";
+export { AppError, errorBody } from "../shared/errors.ts";;
+export { type Ctx } from "../shared/ctx.ts";
+export { type AppErrorCode, type ErrorDetail as AppErrorDetail } from "../shared/errors.ts";
+export { type Result } from "../shared/result.ts";;

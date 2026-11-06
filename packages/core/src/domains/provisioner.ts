@@ -9,7 +9,7 @@
  *    via the REST API (zero dependencies, fetch-based like billing's gateway).
  *    Failures surface as AppError INTERNAL with the API's error messages.
  */
-import { AppError } from '../bridge.ts';
+import { AppError } from "../shared/errors.ts";;
 import { manualDnsInstructions } from './hostname.ts';
 import type { DomainProvisioner, ProvisionOutcome } from './ports.ts';
 

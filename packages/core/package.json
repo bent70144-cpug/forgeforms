@@ -7,7 +7,6 @@
     "./identity": "./src/identity/index.ts",
     "./identity/policy": "./src/identity/policy.ts",
     "./identity/testing": "./src/identity/testing.ts",
-    "./bridge": "./src/bridge.ts",
     "./logic": "./src/logic/index.ts",
     "./submissions": "./src/submissions/index.ts",
     "./gdpr": "./src/gdpr/index.ts",

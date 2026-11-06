@@ -9,7 +9,7 @@
 // Plain `Response` objects (not NextResponse) keep this module framework-thin
 // and unit-testable outside Next.js.
 
-import { AppError, httpStatusFor, type ErrorCode } from '@formforge/core/api';
+import { AppError, toHttpStatus, type ErrorCode } from '@formforge/core/api';
 
 export const JSON_MEDIA = 'application/json';
 
@@ -46,7 +46,7 @@ export function jsonError(
     if (retryAfter) headers['retry-after'] = retryAfter;
   }
   return new Response(JSON.stringify(apiErrorBody(code, message, details)), {
-    status: httpStatusFor(code),
+    status: toHttpStatus(code),
     headers,
   });
 }

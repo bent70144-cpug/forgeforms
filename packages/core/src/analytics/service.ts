@@ -3,8 +3,8 @@
 // the composition root (Next route / BullMQ worker); this module stays pure of
 // I/O and uses only `ctx.now()` for time (spec §4).
 
-import { AppError } from "../bridge";
-import type { Ctx } from "../bridge";
+import { AppError } from "../shared/errors.ts";;
+import { type Ctx } from "../shared/ctx.ts";;
 import { z } from "zod";
 import { addUtcDays, buildDailySeries, computeDropOff, computeKpis, dayKeyToDate, resolveRange, utcDayKey } from "./bucket";
 import { buildPixelEvent, parseBeaconBatch } from "./beacon";

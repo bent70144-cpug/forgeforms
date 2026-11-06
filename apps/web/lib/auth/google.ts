@@ -10,7 +10,7 @@
 // button/flow are entirely absent when GOOGLE_CLIENT_ID is unset.
 // The pure helpers below are unit-tested; the routes are thin wrappers.
 import { randomBytes } from "node:crypto";
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import type { GoogleProfile } from "@formforge/core/identity";
 
 export const GOOGLE_STATE_COOKIE = "ff_oauth_state";

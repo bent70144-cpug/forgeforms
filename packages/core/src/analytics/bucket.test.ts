@@ -16,7 +16,7 @@ import {
   startOfUtcDay,
   utcDayKey,
 } from "./bucket";
-import { AppError } from "../bridge";
+import { AppError } from "../shared/errors.ts";;
 import type { RangeSpec, RawAnalyticsEvent } from "./types";
 
 /** Fixture factory — defaults to a `view` by `session-a` at 2026-11-06T12:00Z. */

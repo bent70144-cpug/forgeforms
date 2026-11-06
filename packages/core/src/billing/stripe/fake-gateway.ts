@@ -3,7 +3,8 @@
 // Issue #23 hard rule: everything Stripe sits behind interfaces and unit
 // tests use the fake gateway.
 
-import { err, ok, type AppError, type Result } from '../../bridge';
+import { type AppError } from "../../shared/errors.ts";
+import { err, ok, type Result } from "../../shared/result.ts";;
 import type {
   CheckoutSessionInput,
   CheckoutSessionResult,

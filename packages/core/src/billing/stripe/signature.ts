@@ -8,7 +8,8 @@
 // replayed deliveries.
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { ok, err, type Result, AppError } from '../../bridge';
+import { AppError } from "../../shared/errors.ts";
+import { ok, err, type Result } from "../../shared/result.ts";;
 
 export const DEFAULT_TOLERANCE_SECONDS = 300;
 

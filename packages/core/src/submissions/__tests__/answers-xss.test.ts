@@ -16,13 +16,10 @@
 // `<img src=x onerror=alert(1)>` could become executable — this suite fails.
 
 import { describe, expect, it } from "vitest";
-import {
-  compileLite,
-  evaluate,
-  uuidv7,
-  type Block,
-  type Snapshot,
-} from "../../bridge";
+import { compile, evaluate, routeMap } from "../../logic/index.ts";
+import type { Block } from "../../logic/types.ts";
+import { uuidv7 } from "../../shared/ids.ts";
+import type { IngestSnapshot } from "../types";
 import { escapeCsvCell, sanitizeCsvFormula } from "../../export";
 import {
   CaptureEventQueue,
@@ -67,7 +64,7 @@ const XSS_STRINGS = [
   "=Math.CONCAT(REPT(1,9),\"pwned\")",
 ];
 
-function makeSnapshot(): Snapshot {
+function makeSnapshot(): IngestSnapshot {
   const endings = [{ id: "end_1", title: "Thanks" }];
   return {
     documentId: uuidv7(),
@@ -77,12 +74,12 @@ function makeSnapshot(): Snapshot {
     title: "XSS answers form",
     blocks: FORM_BLOCKS,
     endings,
-    routing: compileLite([], FORM_BLOCKS, endings, isQuestion),
+    routing: routeMap(compile([], FORM_BLOCKS, endings.map((e) => e.id))),
     settings: { captcha: false },
   };
 }
 
-function makeDeps(snapshot: Snapshot) {
+function makeDeps(snapshot: IngestSnapshot) {
   const repo = new InMemorySubmissionsRepo();
   const deps: IngestDeps = {
     repo,

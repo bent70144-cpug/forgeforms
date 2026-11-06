@@ -6,7 +6,7 @@
 //   - T14 (ingest) enqueues `parseSubmissionCompletedEvent`-shaped payloads on
 //     the `events` queue with job name `submission.completed`;
 //   - T18 enqueues `send-export-ready` email jobs (rendered) on the `email` queue.
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import type { SubmissionCompletedEvent } from "@formforge/core/integrations";
 
 /** `events` / `submission.completed` job data = the full event payload (spec §12). */

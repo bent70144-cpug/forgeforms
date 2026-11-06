@@ -2,7 +2,8 @@
 // local dev loop (`docker compose up -d && pnpm dev`) still delivers emails
 // visibly. Logs metadata only: never subject content that could embed answer
 // values, never the html/text bodies.
-import { ok, AppError, type Result } from "../bridge";
+import { AppError } from "../shared/errors.ts";
+import { ok, type Result } from "../shared/result.ts";;
 import type { MailMessage, Mailer, MailSendResult } from "./mailer";
 
 export type ConsoleMailerConfig = {

@@ -1,6 +1,6 @@
 // Test doubles for the ai module. Every test uses fixtures — no network, no
 // API key (ANTHROPIC_API_KEY does not exist in this environment).
-import { ok, type Result } from "../../bridge";
+import { ok, type Result } from "../../shared/result.ts";;
 import type { AiCompletionRequest, AiProvider } from "../provider";
 import type { AiUsageRepo } from "../quota";
 

@@ -7,7 +7,7 @@
 // identical to the ones in packages/db/src/repositories/{events,webhooks}.ts
 // (which own the SQL). When T02 lands, wire the real repositories here — the
 // shapes already match, so the swap is mechanical.
-import type { AppError, Ctx, Result } from "@formforge/core/bridge";
+import { AppError, Ctx, Result } from "@formforge/core";;
 import type { DeliveryOutcome, HttpPost, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
 import type { ObjectStore } from "@formforge/core/assets";
 import type { GdprStoresPort } from "./jobs/retention-purge";

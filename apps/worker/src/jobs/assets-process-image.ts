@@ -15,7 +15,7 @@
 // transcoder will fill; until then signed URLs for the variants 404 in S3
 // while the ORIGINAL still renders (variants are additive to `src`).
 
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import {
   imageDimensions,
   isRasterImageMime,

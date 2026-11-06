@@ -3,8 +3,11 @@
 // index.ts — services take a Ctx, types, error classes).
 
 // Types
-export type { ErrorCode, Result, Ctx } from '../bridge';
-export { AppError, ok, err } from '../bridge';
+export type { AppErrorCode as ErrorCode } from '../shared/errors.ts';
+export type { Result } from '../shared/result.ts';
+export type { Ctx } from '../shared/ctx.ts';
+export { AppError } from "../shared/errors.ts";
+export { ok, err } from "../shared/result.ts";
 export type { Plan, PaidPlan, PlanCatalogEntry, PlanPrices, StripePriceEnvKey } from './plans';
 export type { Entitlements, EntitlementValue, Capability } from './entitlements';
 export type {

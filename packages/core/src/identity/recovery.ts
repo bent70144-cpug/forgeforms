@@ -11,7 +11,9 @@
 //   verifyEmail — token single-use + 24h expiry, updates the user's
 //     verified-at column (spec §6 users.email_verified_at).
 import { v7 as uuidv7 } from "uuid";
-import { AppError, err, ok, type Ctx, type Result } from "../bridge";
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { defaultAuthEmailRenderer } from "./emails";
 import type { IdentityDeps } from "./ports";
 import { ResetPasswordInputSchema, RequestPasswordResetInputSchema, zodToDetails } from "./schemas";

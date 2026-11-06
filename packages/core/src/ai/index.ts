@@ -1,7 +1,8 @@
 // @formforge/core — ai module public interface (spec §3).
 // AI draft + edit-with-AI + monthly quota (spec §15 M8, issue #27).
 // Service functions take Ctx first; results are Result<T, AppError>.
-import type { Ctx, Result } from "../bridge";
+import { type Ctx } from "../shared/ctx.ts";
+import { type Result } from "../shared/result.ts";
 import { generateDraftBody, type DraftInput, type DraftSuccess } from "./draft";
 import { proposeEditOps, type AiEditInput, type EditProposal } from "./edit";
 import {
@@ -150,18 +151,10 @@ export {
   extractJson,
   zodIssuesToDetails,
 } from "./prompt";
-export {
-  // bridge re-exports (INTEGRATION-DEBT: swap to @formforge/core kernel +
-  // @formforge/schema + billing when T02/T06/T23 land — see src/bridge.ts)
-  AppError,
-  httpStatusFor as appErrorStatus,
-  ok,
-  err,
-  type ActorType,
-  type Ctx,
-  type ErrorCode,
-  type Result,
-} from "../bridge";
+export { AppError, toHttpStatus as appErrorStatus } from "../shared/errors.ts";
+export { ok, err, type Result } from "../shared/result.ts";
+export { type ActorType, type Ctx } from "../shared/ctx.ts";
+export type { AppErrorCode as ErrorCode } from "../shared/errors.ts";
 
 // §7 document shape consumed by route tests and the AI workbench.
 export { DocumentBody } from "./types";

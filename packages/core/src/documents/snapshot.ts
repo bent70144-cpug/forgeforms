@@ -6,7 +6,9 @@
  * text passed through the injected sanitizer. The reader serves renderers and
  * ingest and returns deep-frozen snapshots (spec §6: rendered is immutable).
  */
-import { err, ok, AppError, type Ctx, type Result } from '../bridge';
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { canonicalHash, deepFreeze, structuralClone } from './hash';
 import { sanitizeRichTextProp } from './sanitize';
 import type {

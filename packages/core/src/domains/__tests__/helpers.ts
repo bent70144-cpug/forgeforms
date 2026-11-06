@@ -5,7 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { ENTITLEMENTS, type Entitlements } from '../../billing/index.ts';
-import type { Ctx } from '../../bridge.ts';
+import { type Ctx } from "../../shared/ctx.ts";;
 import { manualDnsInstructions, verificationTxtName, verificationTxtValue } from '../hostname.ts';
 import type { CustomDomainRecord } from '../model.ts';
 import type {

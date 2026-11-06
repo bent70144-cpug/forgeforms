@@ -3,9 +3,43 @@
 // Services depend only on these interfaces; concrete implementations are
 // injected by apps/web (drizzle/redis/bullmq) or tests (in-memory fakes).
 
-import type { LogicEvaluate, Snapshot } from "../bridge";
+import type { Block, LogicEvaluate, RouteMap } from "../logic/types.ts";
 
-export type { AppError, LogicEvaluate, Result, Snapshot } from "../bridge";
+export type { AppError } from "../shared/errors.ts";
+export type { Result } from "../shared/result.ts";
+export type { LogicEvaluate } from "../logic/types.ts";
+
+/* ------------------------------------------------------------------ *
+ * Published snapshot (ingest plane, spec §8/§10.3) — ISSUE #30: moved here
+ * from the retired core `bridge.ts`. This is the READER-side shape the
+ * ingest service consumes (needs `workspaceId` for tenant scoping, which
+ * the spec's publish-plane snapshot in documents/model.ts does not carry).
+ * ------------------------------------------------------------------ */
+
+/** Ending as stored in the published snapshot (spec §8). */
+export type SnapshotEnding = { id: string; title: string; body?: string; redirectUrl?: string };
+
+export type IngestSnapshotSettings = {
+  progressBar?: boolean;
+  autoAdvance?: boolean;
+  showBranding?: boolean;
+  captcha?: boolean;
+  closeAt?: string;
+  maxSubmissions?: number;
+};
+
+/** Published snapshot as consumed by ingest: flat T13 `RouteMap` routing. */
+export type IngestSnapshot = {
+  documentId: string;
+  workspaceId: string;
+  versionId: string;
+  type: "form" | "page" | "portfolio";
+  title: string;
+  blocks: Block[];
+  endings: SnapshotEnding[];
+  routing: RouteMap;
+  settings: IngestSnapshotSettings;
+};
 
 /* ------------------------------------------------------------------ *
  * Rows (structural DTOs — mirrored by packages/db/src/repositories;
@@ -53,12 +87,12 @@ export interface SubmissionsRepo {
 }
 
 /* ------------------------------------------------------------------ *
- * Snapshot / blocks seams
+ * IngestSnapshot / blocks seams
  * ------------------------------------------------------------------ */
 
 export interface SnapshotReader {
   /** Returns the published snapshot or null when the document is missing/unpublished (spec §8/§10.3). */
-  getPublishedSnapshot(documentId: string): Promise<Snapshot | null>;
+  getPublishedSnapshot(documentId: string): Promise<IngestSnapshot | null>;
 }
 
 /**

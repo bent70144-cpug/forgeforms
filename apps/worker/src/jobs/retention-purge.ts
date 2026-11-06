@@ -16,7 +16,7 @@
 // touch every tenant (table owner), OR each store call is wrapped in a
 // `set local app.workspace_id` transaction by the container. See
 // packages/db/src/repositories/gdpr.ts header.
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import { purgeExpiredSubmissionData, purgeExpiredWorkspaces, DEFAULT_WORKSPACE_GRACE_DAYS } from "@formforge/core/gdpr";
 import type { Logger } from "../logger";
 

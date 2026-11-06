@@ -12,7 +12,9 @@
  * Idempotency (issue #10): re-publishing an unchanged draft does NOT create a
  * new version row — the previous version is reused and the same URL returned.
  */
-import { err, ok, AppError, type Ctx, type Result } from '../bridge';
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { err, ok, type Result } from "../shared/result.ts";;
 import { canonicalHash } from './hash';
 import { uuidv7 } from './ids';
 import type { DocumentBodyJson, PublishOutcome } from './model';

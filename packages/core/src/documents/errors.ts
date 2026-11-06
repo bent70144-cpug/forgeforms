@@ -2,7 +2,7 @@
  * T10 — AppError → HTTP mapping (spec §4) and the §4 API error body shape.
  * Lives in core so worker jobs, ingest and the API routes share one table.
  */
-import { AppError, type AppErrorCode } from '../bridge';
+import { AppError, type AppErrorCode } from "../shared/errors.ts";;
 
 // SPEC-NOTE: UNPUBLISHED → 410 is required by spec §8 / issue #10 ("unpublish
 // → 410"); it extends the §4 code list until folded into the shared kernel.

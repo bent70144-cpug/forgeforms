@@ -10,7 +10,7 @@
 // The size/MIME gates run BEFORE anything is presigned or persisted; the
 // security boundary is the magic-byte check at confirm time.
 
-import { AppError } from "@formforge/core/bridge";
+import { AppError } from "@formforge/core";;
 import { sanitizeFileName } from "@formforge/core/assets";
 import { PublicUploadPresignRequestSchema } from "@formforge/schema/api";
 import { errorResponse, readJsonBody } from "../../ingest/_lib/http";

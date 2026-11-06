@@ -11,7 +11,7 @@ import { mkdirSync, appendFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { createConsoleMailer } from "@formforge/core/integrations";
 import type { Mailer, MailMessage, MailSendResult } from "@formforge/core/integrations";
-import { type AppError, type Result } from "@formforge/core/bridge";
+import { type AppError, type Result } from "@formforge/core";;
 
 export type DevMailerOptions = {
   /** Directory for the E2E outbox; enables the file sink when set. */

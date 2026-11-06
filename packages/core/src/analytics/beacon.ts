@@ -7,8 +7,9 @@
 
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { AppError, err, ok } from "../bridge";
-import type { Result } from "../bridge";
+import { AppError } from "../shared/errors.ts";
+import { err, ok } from "../shared/result.ts";;
+import { type Result } from "../shared/result.ts";;
 import { ANALYTICS_EVENT_TYPES } from "./types";
 import type { AnalyticsEventType, RawAnalyticsEvent } from "./types";
 

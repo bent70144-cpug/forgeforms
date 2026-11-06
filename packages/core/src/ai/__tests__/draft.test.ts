@@ -2,7 +2,8 @@
 // prompt contains the §7.2 cheatsheet; valid fixture → DocumentBody;
 // invalid fixture → exactly one repair attempt → clear failure.
 import { describe, expect, it } from "vitest";
-import { AppError, err } from "../../bridge";
+import { AppError } from "../../shared/errors.ts";
+import { err } from "../../shared/result.ts";;
 import {
   buildDraftSystemPrompt,
   buildDraftUserPrompt,

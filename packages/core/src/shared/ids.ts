@@ -131,3 +131,17 @@ export function isShortId(value: string): value is PrefixedShortId {
 export function isUuidV7(value: string): boolean {
   return UUID_V7_REGEX.test(value);
 }
+
+// ISSUE #30: moved from the retired core `bridge.ts`.
+const ANY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Accepts a raw uuid or the `doc_<short58>` public id; returns the canonical
+ * uuid form, or null. Used by ingest and asset URL resolution (spec §10.3).
+ */
+export function parseDocumentId(id: string): string | null {
+  if (ANY_UUID_RE.test(id)) return id.toLowerCase();
+  const parsed = parseShortId(id);
+  if (parsed?.prefix === "doc" && ANY_UUID_RE.test(parsed.uuid)) return parsed.uuid;
+  return null;
+}

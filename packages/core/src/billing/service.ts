@@ -5,7 +5,9 @@
 // else."). Owns: entitlements, checkout/portal via the injected gateway,
 // seats, and the Stripe webhook application (idempotent by event id).
 
-import { AppError, ok, type Ctx, type Result } from '../bridge';
+import { type Ctx } from "../shared/ctx.ts";
+import { AppError } from "../shared/errors.ts";
+import { ok, type Result } from "../shared/result.ts";;
 import { createEntitlementsService, type EntitlementsService, type OverridesFn } from './can';
 import type { Capability, Entitlements } from './entitlements';
 import { planLimitError } from './entitlements';

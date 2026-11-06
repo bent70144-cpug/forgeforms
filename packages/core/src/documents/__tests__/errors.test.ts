@@ -2,7 +2,7 @@
  * T10 — AppError → HTTP mapping per spec §4 (+ UNPUBLISHED → 410 per §8).
  */
 import { describe, expect, it } from 'vitest';
-import { AppError } from '../../bridge';
+import { AppError } from "../../shared/errors.ts";;
 import { appErrorToHttpStatus, toApiErrorBody } from '../errors';
 
 describe('appErrorToHttpStatus (spec §4)', () => {

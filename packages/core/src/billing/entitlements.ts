@@ -4,7 +4,7 @@
 // Everything else must go through `can()` / `getEntitlements()` (spec §4:
 // "one function only … no inline plan checks anywhere else").
 
-import { AppError } from '../bridge';
+import { AppError } from "../shared/errors.ts";;
 import { PLANS, type Plan } from './plans';
 
 /** Fair-use soft alert (spec §13): no automatic cutoff, admin review. */

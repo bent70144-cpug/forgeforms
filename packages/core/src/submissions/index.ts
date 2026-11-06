@@ -35,6 +35,10 @@ export type {
   NewSubmissionRow,
   AnswerRow,
   AnswerUpsert,
+  // snapshot (ingest plane — ISSUE #30: moved from the retired core bridge.ts)
+  IngestSnapshot,
+  SnapshotEnding,
+  IngestSnapshotSettings,
   // seams
   SubmissionsRepo,
   SnapshotReader,

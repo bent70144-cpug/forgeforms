@@ -21,7 +21,7 @@ export type {
 
 // Re-exports for consumers that render template bodies (gallery, preview, embeds).
 // INTEGRATION-DEBT: awaiting T06 — these come from the local bridge until
-// @formforge/schema is mergeable; see packages/core/src/bridge.ts.
+// @formforge/schema is mergeable (issue #30 retired src/bridge.ts).
 export type {
   DocumentBody,
   Block,

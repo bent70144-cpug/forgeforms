@@ -1,7 +1,7 @@
 // tests: StripeGateway adapters — fake (recording) and zero-dep fetch impl
 // (network mocked; no Stripe SDK, no keys).
 import { describe, expect, it, vi } from 'vitest';
-import { AppError } from '../bridge';
+import { AppError } from "../shared/errors.ts";;
 import { createFakeStripeGateway } from './stripe/fake-gateway';
 import { createStripeGateway } from './stripe/fetch-gateway';
 

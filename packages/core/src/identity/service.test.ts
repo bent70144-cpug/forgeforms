@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AppError } from "../bridge";
+import { AppError } from "../shared/errors.ts";;
 import {
   SESSION_MAX_AGE_MS,
   SESSION_UPDATE_AGE_MS,

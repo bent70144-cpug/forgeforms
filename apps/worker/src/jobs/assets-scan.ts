@@ -18,7 +18,7 @@
 //   store:  objectStoreFromEnv(process.env),
 //   scanner: clamavScannerFromEnv(process.env)  // dev default → "unavailable"
 
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import type { WorkerDeps } from "../ports";
 
 /** `assets` / `scan` job data — produced by the upload-confirm service. */

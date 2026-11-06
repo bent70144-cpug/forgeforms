@@ -3,8 +3,8 @@
 // server (ingest validation, snapshot build). Zero I/O, zero framework
 // imports, no node-only APIs.
 //
-// INTEGRATION-DEBT: rule/block input types come from src/bridge.ts until
-// T06 (@formforge/schema) lands — see bridge.ts for the one-file swap.
+// ISSUE #30: the structural rule/block input types are defined in types.ts
+// (they previously came from the retired src/bridge.ts).
 
 export { compile, lint, routeMap, isRoutingShape } from "./compile.ts";
 export { evaluate } from "./evaluate.ts";
@@ -18,6 +18,7 @@ export type {
   DiagnosticCode,
   EvaluateCtx,
   EvaluateResult,
+  LogicEvaluate,
   Operand,
   RouteMap,
   RouteNode,

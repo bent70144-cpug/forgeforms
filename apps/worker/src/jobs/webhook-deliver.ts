@@ -10,7 +10,7 @@
 // attempts the endpoint is disabled and the owner is notified by email.
 //
 // Never logs: answer values, endpoint secrets.
-import { AppError, err, ok, type Result } from "@formforge/core/bridge";
+import { AppError, err, ok, type Result } from "@formforge/core";;
 import {
   computeRetryDelayMs,
   deliverWebhook,

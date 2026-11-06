@@ -5,7 +5,8 @@
 //   customer.subscription.deleted, invoice.payment_failed
 
 import { z } from 'zod';
-import { AppError, err, ok, type Result } from '../../bridge';
+import { AppError } from "../../shared/errors.ts";
+import { err, ok, type Result } from "../../shared/result.ts";;
 import { isPaidPlan, type PaidPlan } from '../plans';
 
 export const HANDLED_EVENT_TYPES = [

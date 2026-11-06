@@ -5,7 +5,7 @@
 // - verification flow updates the verified-at column.
 // All DB-free: in-memory repository fakes + capturing mailer.
 import { describe, expect, it } from "vitest";
-import { AppError } from "../bridge";
+import { AppError } from "../shared/errors.ts";;
 import {
   RESET_TOKEN_TTL_MS,
   VERIFY_TOKEN_TTL_MS,

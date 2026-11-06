@@ -3,7 +3,7 @@
 // (10 MB default cap, pending→clean/infected/skipped lifecycle).
 
 import { describe, expect, it, vi } from "vitest";
-import { AppError } from "../bridge.ts";
+import { AppError } from "../shared/errors.ts";;
 import { InMemoryObjectStore } from "../shared/object-store.ts";
 import { EXE_BYTES, PNG_BYTES } from "./test-bytes.ts";
 import {

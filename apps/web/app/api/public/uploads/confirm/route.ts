@@ -10,7 +10,7 @@
 // The asset id (unguessable uuid) is the only public-plane credential: the
 // workspace is resolved from the asset row, never from the client.
 
-import { AppError } from "@formforge/core/bridge";
+import { AppError } from "@formforge/core";;
 import { PublicUploadConfirmRequestSchema } from "@formforge/schema/api";
 import { errorResponse, readJsonBody } from "../../ingest/_lib/http";
 import { getPublicAssetsDeps } from "../../../../../lib/assets/server";

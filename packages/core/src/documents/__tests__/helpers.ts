@@ -2,7 +2,7 @@
  * T10 — shared test fixtures: fake clock, Ctx, draft/document builders and a
  * one-call deps factory over the in-memory store (issue #10: in-memory fakes).
  */
-import type { Ctx } from '../../bridge';
+import { type Ctx } from "../../shared/ctx.ts";;
 import type { DocumentBodyJson, DocumentRecord } from '../model';
 import type { AssetUrlResolver, DraftValidator, LogicCompiler, PublicUrlBuilder } from '../ports';
 import { createInMemoryDocumentStore, type InMemoryDocumentStore } from '../inmemory';

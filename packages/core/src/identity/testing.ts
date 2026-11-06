@@ -20,8 +20,9 @@ import type {
   UserRecord,
   WorkspaceRecord,
 } from "./types";
-import type { Ctx } from "../bridge";
-import { AppError, ok, type Result } from "../bridge";
+import { type Ctx } from "../shared/ctx.ts";;
+import { AppError } from "../shared/errors.ts";
+import { ok, type Result } from "../shared/result.ts";;
 import { ScryptPasswordHasher } from "./password";
 import { preAuthCtx } from "./service";
 

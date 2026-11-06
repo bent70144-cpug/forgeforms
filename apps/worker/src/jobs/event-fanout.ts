@@ -12,7 +12,7 @@
 // triggers the `analytics` queue from beacons/cron instead. We provide the
 // seam (deps.analyticsHook) but do not enqueue analytics by default — T19
 // decides whether to use it.
-import { ok, type AppError, type Result } from "@formforge/core/bridge";
+import { ok, type AppError, type Result } from "@formforge/core";;
 import {
   parseSubmissionCompletedEvent,
   renderNotificationEmail,
