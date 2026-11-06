@@ -17,7 +17,10 @@ import {
   type Role,
 } from '@formforge/core/api';
 import { getApiTokenStoreFromEnv } from '../../../../../../packages/db/src/repositories/api-tokens';
-import { getCurrentSession } from '@/lib/auth/session';
+// T03 session reader — imported DYNAMICALLY in sessionCtx so this module (and
+// thus every /api/v1 route) never pulls next/headers + the identity/DB graph
+// at module scope; unit tests inject a fake via `sessionLoader` instead.
+import type { AuthenticatedSession } from '@formforge/core/identity';
 import {
   SESSION_RATE_LIMIT_PER_MINUTE,
   TOKEN_RATE_LIMIT_PER_MINUTE,
@@ -31,11 +34,26 @@ export function extractBearer(header: string | null): string | null {
   return match?.[1] ?? null;
 }
 
+/** Injectable session reader (DI for tests); defaults to T03's cookie session. */
+export type SessionLoader = () => Promise<AuthenticatedSession | null>;
+
+/**
+ * Default session reader — DYNAMIC import so this module (and thus every
+ * /api/v1 route) never pulls next/headers + the identity/DB graph at module
+ * scope; unit tests inject a fake via `sessionLoader` instead.
+ */
+async function defaultSessionLoader(): Promise<AuthenticatedSession | null> {
+  const mod = await import('@/lib/auth/session');
+  return mod.getCurrentSession();
+}
+
 export interface AuthenticateOptions {
   /** `false` → session-only routes (e.g. token management, spec §11). */
   readonly allowToken?: boolean;
   /** DI for tests; defaults to the env-backed Drizzle store. */
   readonly store?: ApiTokenStore;
+  /** DI for tests; defaults to `@/lib/auth/session#getCurrentSession`. */
+  readonly sessionLoader?: SessionLoader;
   readonly now?: () => Date;
 }
 
@@ -61,8 +79,16 @@ export function scopesForRole(role: Role | null): readonly string[] {
     : SESSION_SCOPES_READONLY;
 }
 
-async function sessionCtx(req: Request): Promise<Ctx> {
-  const session = await getCurrentSession();
+async function sessionCtx(req: Request, loadSession: SessionLoader): Promise<Ctx> {
+  // ANY session-resolution failure (no cookie, expired, no request scope in
+  // tests, DB down) is "no credentials" from the API's perspective — the §4
+  // vocabulary has no 401, so it answers FORBIDDEN (403), never 500.
+  let session: AuthenticatedSession | null;
+  try {
+    session = await loadSession();
+  } catch {
+    session = null;
+  }
   if (!session) {
     throw AppError.forbidden('Authentication required: session cookie or Authorization: Bearer ff_…');
   }
@@ -112,7 +138,10 @@ export async function authenticate(req: Request, options: AuthenticateOptions = 
     });
   }
 
-  const session = await sessionCtx(req);
+  // NOTE: the arrow is parenthesized — `?? async () => {…}` after a
+  // line-comment breaks vite/oxc's parser (verified in isolation).
+  const loadSession: SessionLoader = options.sessionLoader ?? defaultSessionLoader;
+  const session = await sessionCtx(req, loadSession);
   assertRateLimit(`session:${session.userId ?? 'anon'}`, SESSION_RATE_LIMIT_PER_MINUTE);
   return session;
 }

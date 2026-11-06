@@ -1,11 +1,12 @@
-// Unit tests for the /api/v1 _lib helpers (issue #25).
+// Unit tests for the /api/v1 _lib helpers (issue #25, T07 session path).
 
 import { describe, expect, it, vi } from 'vitest';
 import { AppError, hashToken, type ApiTokenRecord, type ApiTokenStore } from '@formforge/core/api';
+import type { AuthenticatedSession } from '@formforge/core/identity';
 import { CreateTokenRequestSchema } from '@formforge/schema/api';
-import { authenticate, extractBearer } from './auth';
+import { authenticate, extractBearer, scopesForRole, type SessionLoader } from './auth';
 import { handleApiError, listResponse, ok } from './respond';
-import { assertRateLimit, rateLimit, TOKEN_RATE_LIMIT_PER_MINUTE } from './rate-limit';
+import { assertRateLimit, rateLimit, SESSION_RATE_LIMIT_PER_MINUTE, TOKEN_RATE_LIMIT_PER_MINUTE } from './rate-limit';
 
 /* ------------------------------- fakes ------------------------------------ */
 
@@ -103,6 +104,132 @@ describe('authenticate (bearer path)', () => {
       code: 'FORBIDDEN',
       message: expect.stringContaining('session'),
     });
+  });
+});
+
+/* --------------------- authenticate (session path, T07) -------------------- */
+
+function makeSession(overrides: Partial<AuthenticatedSession> = {}): AuthenticatedSession {
+  return {
+    session: {
+      id: 'sess-1',
+      userId: 'user-1',
+      tokenHash: 'hash',
+      expiresAt: new Date('2026-12-31T00:00:00Z'),
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    },
+    user: {
+      id: 'user-1',
+      email: 'ada@example.com',
+      name: 'Ada',
+      passwordHash: null,
+      emailVerifiedAt: null,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    },
+    workspace: {
+      id: 'ws_1',
+      name: 'Ada Inc',
+      slug: 'ada-inc',
+      plan: 'free',
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+    },
+    role: 'owner',
+    ...overrides,
+  } as AuthenticatedSession;
+}
+
+describe('scopesForRole (role → §11 scope map)', () => {
+  it('owner/admin/editor get the full document scope set', () => {
+    for (const role of ['owner', 'admin', 'editor'] as const) {
+      expect(scopesForRole(role)).toEqual([
+        'docs:read',
+        'docs:write',
+        'docs:publish',
+        'submissions:read',
+      ]);
+    }
+  });
+
+  it('viewer and unknown roles are read-only', () => {
+    expect(scopesForRole('viewer')).toEqual(['docs:read', 'submissions:read']);
+    expect(scopesForRole(null)).toEqual(['docs:read', 'submissions:read']);
+  });
+});
+
+describe('authenticate (session path)', () => {
+  const loader = (session: AuthenticatedSession | null, throws = false): SessionLoader =>
+    vi.fn(async () => {
+      if (throws) throw new Error('cookies() outside request scope');
+      return session;
+    });
+
+  it('resolves the active workspace + role-scoped scopes from the session', async () => {
+    const load = loader(makeSession());
+    const ctx = await authenticate(req(), { sessionLoader: load });
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(ctx.workspaceId).toBe('ws_1');
+    expect(ctx.actor).toMatchObject({ kind: 'session', userId: 'user-1', role: 'owner' });
+    expect(ctx.scopes).toContain('docs:write');
+    expect(ctx.scopes).toContain('docs:publish');
+  });
+
+  it('viewer sessions cannot write or publish', async () => {
+    const ctx = await authenticate(req(), { sessionLoader: loader(makeSession({ role: 'viewer' })) });
+    expect(ctx.scopes).toEqual(['docs:read', 'submissions:read']);
+  });
+
+  it('FORBIDDEN (403, never 500) when there is no session or resolution fails', async () => {
+    await expect(authenticate(req(), { sessionLoader: loader(null) })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+    // e.g. next/headers cookies() outside a request scope, DB down, …
+    await expect(authenticate(req(), { sessionLoader: loader(null, true) })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    });
+  });
+
+  it('FORBIDDEN when the session has no active workspace (documents are workspace-scoped)', async () => {
+    const noWorkspace = makeSession({ workspace: null });
+    await expect(authenticate(req(), { sessionLoader: loader(noWorkspace) })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      message: expect.stringContaining('workspace'),
+    });
+  });
+
+  it('a bearer token wins over the session cookie (explicit credential)', async () => {
+    const store = makeStore({
+      findByTokenHash: async (hash) =>
+        hash === hashToken(`ff_${'ab'.repeat(32)}`)
+          ? {
+              id: 'tok-9',
+              workspaceId: 'ws_token',
+              name: 't',
+              tokenHash: hash,
+              scopes: ['docs:read'],
+              lastUsedAt: null,
+              createdAt: new Date(),
+            }
+          : null,
+    });
+    const load = loader(makeSession());
+    const ctx = await authenticate(req({ authorization: `Bearer ff_${'ab'.repeat(32)}` }), {
+      store,
+      sessionLoader: load,
+    });
+    expect(load).not.toHaveBeenCalled();
+    expect(ctx.workspaceId).toBe('ws_token');
+  });
+
+  it('rate-limits the session credential at 300/min (spec §11)', () => {
+    let t = 0;
+    const clock = () => (t += 10);
+    const key = 'session:u9';
+    for (let i = 0; i < SESSION_RATE_LIMIT_PER_MINUTE; i++) {
+      expect(rateLimit(key, SESSION_RATE_LIMIT_PER_MINUTE, clock).allowed).toBe(true);
+    }
+    expect(rateLimit(key, SESSION_RATE_LIMIT_PER_MINUTE, clock).allowed).toBe(false);
   });
 });
 
