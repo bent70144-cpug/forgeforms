@@ -9,6 +9,7 @@
 // shapes already match, so the swap is mechanical.
 import type { AppError, Ctx, Result } from "@formforge/core/bridge";
 import type { DeliveryOutcome, HttpPost, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
+import type { ObjectStore } from "@formforge/core/assets";
 import type { JobName, QueueName } from "./queues/names";
 import type { Logger } from "./logger";
 
@@ -89,6 +90,41 @@ export type NotificationTargetPort = {
 };
 
 // ---------------------------------------------------------------------------
+// T16 assets ports (spec §12 assets queue: scan + process-image)
+// ---------------------------------------------------------------------------
+
+/** Structural mirror of the assets row (packages/db repositories/assets.ts). */
+export type AssetRow = {
+  id: string;
+  workspaceId: string;
+  key: string;
+  mime: string;
+  sizeBytes: number;
+  purpose: string;
+  scanStatus: "pending" | "clean" | "infected" | "skipped";
+  variants: unknown;
+  confirmedAt: Date | null;
+  createdAt: Date;
+};
+
+/**
+ * System-plane asset persistence for job handlers (the worker is not
+ * request-scoped; statements key by id like the other system-plane repos).
+ */
+export type AssetsRepositoryPort = {
+  getByIdUnscoped(assetId: string): Promise<AssetRow | null>;
+  patch(
+    assetId: string,
+    patch: Partial<Pick<AssetRow, "scanStatus" | "variants" | "mime">>,
+  ): Promise<AssetRow | null>;
+};
+
+/** Virus scanner seam (spec §12: ClamAV, or `unavailable` → skipped in dev). */
+export type VirusScannerPort = {
+  scan(input: { key: string }): Promise<"clean" | "infected" | "unavailable">;
+};
+
+// ---------------------------------------------------------------------------
 // Queue + runtime ports
 // ---------------------------------------------------------------------------
 
@@ -123,6 +159,12 @@ export type WorkerDeps = {
   events: EventRepositoryPort;
   webhooks: WebhookRepositoryPort;
   notifications: NotificationTargetPort;
+  /** T16 — asset rows for the `assets` queue handlers (scan / process-image). */
+  assets: AssetsRepositoryPort;
+  /** T16 — object storage (readRange for dimension sniffing, remove for purge). */
+  store: ObjectStore;
+  /** T16 — AV seam; the dev default reports "unavailable" → `skipped` (§12). */
+  scanner: VirusScannerPort;
   mailer: Mailer;
   /** HTTP transport for webhook deliveries (injectable for tests). */
   post: HttpPost;

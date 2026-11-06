@@ -39,6 +39,14 @@ import {
   ListDomainsResponseSchema,
   VerifyDomainResponseSchema,
 } from './domains';
+import {
+  AssetConfirmRequestSchema,
+  AssetEnvelopeSchema,
+  AssetPresignRequestSchema,
+  AssetSchema,
+  ConfirmUploadResponseSchema,
+  PresignUploadResponseSchema,
+} from './assets';
 import { ErrorBodySchema } from './errors';
 
 /** All named component schemas — the single source registry. */
@@ -61,6 +69,12 @@ export const FORMFORGE_API_SCHEMAS = {
   CreateDomainResponse: CreateDomainResponseSchema,
   ListDomainsResponse: ListDomainsResponseSchema,
   VerifyDomainResponse: VerifyDomainResponseSchema,
+  AssetPresignRequest: AssetPresignRequestSchema,
+  AssetConfirmRequest: AssetConfirmRequestSchema,
+  PresignUploadResponse: PresignUploadResponseSchema,
+  ConfirmUploadResponse: ConfirmUploadResponseSchema,
+  Asset: AssetSchema,
+  AssetEnvelope: AssetEnvelopeSchema,
 } as const;
 
 const BEARER: OpenApiSecurityScheme = {
@@ -347,6 +361,68 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
     },
   };
 
+  // T16 (issue #16) — media upload plane (spec §11 rows). The public upload
+  // routes (/api/public/uploads/*) are unauthenticated and documented in §10.1;
+  // they share the presign/confirm response shapes registered above.
+  const assetsPresignItem: OpenApiPathItem = {
+    post: {
+      operationId: 'presignAsset',
+      summary: 'Presign a media upload',
+      description:
+        'Issues a presigned PUT (direct browser → S3/R2, never proxied). Size caps per §13 entitlements (10 MB free/pro, 50 MB business) and the MIME allowlist are enforced BEFORE anything is presigned. ' +
+        RATE_LIMIT_NOTE,
+      tags: ['assets'],
+      'x-required-scope': 'docs:write',
+      security: BEARER_OR_SESSION,
+      requestBody: jsonBody('AssetPresignRequest'),
+      responses: {
+        '200': jsonResponse('Presigned PUT target + the pending asset row', 'PresignUploadResponse'),
+        '402': err('PLAN_LIMIT — upload size beyond the plan entitlement'),
+        '403': err('Credential missing the docs:write scope'),
+        '422': err('VALIDATION — disallowed mime, over-cap size or invalid file name'),
+      },
+    },
+  };
+
+  const assetsConfirmItem: OpenApiPathItem = {
+    post: {
+      operationId: 'confirmAsset',
+      summary: 'Confirm an uploaded asset',
+      description:
+        'Verifies the object landed in storage, re-derives the MIME from the magic bytes (a mismatch marks the asset `infected` and purges the object) and queues the `scan` job (plus `process-image` for raster uploads).',
+      tags: ['assets'],
+      'x-required-scope': 'docs:write',
+      security: BEARER_OR_SESSION,
+      requestBody: jsonBody('AssetConfirmRequest'),
+      responses: {
+        '200': jsonResponse('Confirmed asset (scan pending)', 'ConfirmUploadResponse'),
+        '403': err('Credential missing the docs:write scope'),
+        '404': err('Asset not found in this workspace'),
+        '422': err('VALIDATION — object missing or magic-byte/type-spoof rejection'),
+      },
+    },
+  };
+
+  const assetIdItem: OpenApiPathItem = {
+    parameters: [
+      { name: 'id', in: 'path', required: true, description: 'Asset id (uuid)', schema: { type: 'string', format: 'uuid' } },
+    ],
+    get: {
+      operationId: 'getAsset',
+      summary: 'Asset metadata + signed download URL',
+      description:
+        'Signed downloads only (spec §17): a short-TTL presigned GET is issued ONLY for clean/skipped assets. Pending/infected assets return `download: null` with their scan status.',
+      tags: ['assets'],
+      'x-required-scope': 'docs:read',
+      security: BEARER_OR_SESSION,
+      responses: {
+        '200': jsonResponse('Asset metadata; `download` null while not servable', 'AssetEnvelope'),
+        '403': err('Credential missing the docs:read scope'),
+        '404': err('Asset not found in this workspace'),
+      },
+    },
+  };
+
   return buildOpenApiDocument({
     title: 'FormForge API',
     version: '1.0.0',
@@ -359,6 +435,7 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
       { name: 'documents', description: 'Forms, pages and portfolios (docs:read / docs:write / docs:publish)' },
       { name: 'tokens', description: 'API token management (session only)' },
       { name: 'domains', description: 'Custom hostnames (docs:write; §13 quota no | 1 | 5)' },
+      { name: 'assets', description: 'Media uploads — presign/confirm + signed downloads (docs:write; §13 size caps)' },
     ],
     schemas: FORMFORGE_API_SCHEMAS,
     paths: {
@@ -369,6 +446,9 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
       '/api/v1/tokens': tokensItem,
       '/api/v1/domains': domainsItem,
       '/api/v1/domains/{id}/verify': domainVerifyItem,
+      '/api/v1/assets/presign': assetsPresignItem,
+      '/api/v1/assets/confirm': assetsConfirmItem,
+      '/api/v1/assets/{id}': assetIdItem,
     },
     securitySchemes: {
       bearerAuth: BEARER,

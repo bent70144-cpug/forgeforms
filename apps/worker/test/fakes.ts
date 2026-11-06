@@ -1,7 +1,10 @@
 // In-memory fakes + fake clock for worker job tests (no Redis, no Postgres).
 import { createConsoleMailer } from "@formforge/core/integrations";
+import { InMemoryObjectStore } from "@formforge/core/assets";
 import { createLogger } from "../src/logger";
 import type {
+  AssetsRepositoryPort,
+  AssetRow,
   Clock,
   EnqueueOptions,
   EventRepositoryPort,
@@ -10,6 +13,7 @@ import type {
   NewWebhookDelivery,
   NotificationTargetPort,
   QueuePort,
+  VirusScannerPort,
   WebhookDeliveryRow,
   WebhookEndpointRow,
   WebhookRepositoryPort,
@@ -213,6 +217,39 @@ export function fakePost(responses: Array<{ ok: boolean; status: number }> = [])
   };
 }
 
+/** T16 — in-memory assets repository + verdict-controllable scanner. */
+export class FakeAssetsRepository implements AssetsRepositoryPort {
+  readonly rows = new Map<string, AssetRow>();
+  readonly removedIds: string[] = [];
+
+  seed(row: AssetRow): void {
+    this.rows.set(row.id, row);
+  }
+
+  async getByIdUnscoped(assetId: string): Promise<AssetRow | null> {
+    return this.rows.get(assetId) ?? null;
+  }
+
+  async patch(
+    assetId: string,
+    patch: Partial<Pick<AssetRow, "scanStatus" | "variants" | "mime">>,
+  ): Promise<AssetRow | null> {
+    const row = this.rows.get(assetId);
+    if (!row) return null;
+    Object.assign(row, patch);
+    return row;
+  }
+}
+
+export class FakeScanner implements VirusScannerPort {
+  constructor(public verdict: "clean" | "infected" | "unavailable" = "clean") {}
+  readonly scannedKeys: string[] = [];
+  async scan(input: { key: string }): Promise<"clean" | "infected" | "unavailable"> {
+    this.scannedKeys.push(input.key);
+    return this.verdict;
+  }
+}
+
 export type TestHarness = {
   deps: WorkerDeps;
   clock: ReturnType<typeof fakeClock>;
@@ -221,11 +258,17 @@ export type TestHarness = {
   webhooks: FakeWebhookRepository;
   post: ReturnType<typeof fakePost>;
   logs: string[];
+  /** T16 — the default in-memory assets repo (unless overridden via makeDeps). */
+  assets: AssetsRepositoryPort;
+  store: WorkerDeps["store"];
+  scanner: VirusScannerPort;
 };
 
 export function makeDeps(overrides: {
   notificationTarget?: { email: string; documentTitle: string | null } | null;
   appUrl?: string;
+  scanner?: VirusScannerPort;
+  assets?: AssetsRepositoryPort;
 } = {}): TestHarness {
   const clock = fakeClock();
   const queue = new FakeQueue();
@@ -240,6 +283,9 @@ export function makeDeps(overrides: {
     queue,
     events,
     webhooks,
+    assets: overrides.assets ?? new FakeAssetsRepository(),
+    store: new InMemoryObjectStore({ now: clock.now }),
+    scanner: overrides.scanner ?? new FakeScanner("unavailable"),
     notifications: new FakeNotifications(
       overrides.notificationTarget === undefined
         ? { email: "owner@example.com", documentTitle: "Contact form" }
@@ -254,7 +300,19 @@ export function makeDeps(overrides: {
     })(),
     appUrl: overrides.appUrl ?? "http://localhost:3000",
   };
-  return { deps, clock, queue, events, webhooks, post, logs };
+  const harness: TestHarness = {
+    deps,
+    clock,
+    queue,
+    events,
+    webhooks,
+    post,
+    logs,
+    assets: deps.assets,
+    store: deps.store,
+    scanner: deps.scanner,
+  };
+  return harness;
 }
 
 // Re-export for convenience in tests.
