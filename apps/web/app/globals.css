@@ -178,6 +178,36 @@ h3 {
     background: #450a0a;
     color: #fecaca;
   }
+
+  .ff-banner-success {
+    background: #052e16;
+    color: #bbf7d0;
+  }
+}
+
+/* Success/info banner (e.g. password updated, email verified — ticket #5). */
+.ff-banner-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Google / credentials divider (spec §14.1 Google button). */
+.ff-auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ff-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+  margin: 0;
+}
+
+.ff-auth-divider::before,
+.ff-auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--ff-border);
 }
 
 /* --- buttons -------------------------------------------------------------- */

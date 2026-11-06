@@ -6,6 +6,7 @@
     ".": "./src/index.ts",
     "./identity": "./src/identity/index.ts",
     "./identity/policy": "./src/identity/policy.ts",
+    "./identity/testing": "./src/identity/testing.ts",
     "./bridge": "./src/bridge.ts",
     "./submissions": "./src/submissions/index.ts",
     "./integrations": "./src/integrations/index.ts",
