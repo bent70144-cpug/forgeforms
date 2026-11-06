@@ -86,6 +86,34 @@ describe('buildSnapshot (spec §8 shape)', () => {
     expect(snapshot.blocks[0]?.props?.['richText']).toBe('<p>sanitized</p>');
   });
 
+  // T29 (spec §17): the SNAPSHOT BUILD is a mandatory sanitizer seam — the
+  // renderer passes HTML strings through dangerouslySetInnerHTML, so the
+  // default (no override configured) must still neutralize raw markup.
+  it('sanitizes rich text with the allowlist sanitizer BY DEFAULT (no override)', async () => {
+    const draft = makeDraft({
+      blocks: [
+        {
+          id: 't1',
+          kind: 'text',
+          props: {
+            richText: '<p>ok</p><script>alert(1)</script><img src=x onerror=alert(1)>',
+          },
+        },
+      ],
+    });
+    const { snapshot } = await buildSnapshot({
+      document: { id: 'doc_1', title: 'T', type: 'page' },
+      versionId: 'ver_1',
+      body: draft,
+      assets: { resolve: async () => null },
+      compiler: { compile: () => ({ routing: {}, issues: [] }) },
+      // NOTE: no sanitizeRichText — the secure default must apply.
+    });
+    const html = snapshot.blocks[0]?.props?.['richText'];
+    expect(html).toBe('<p>ok</p>');
+    expect(String(html)).not.toMatch(/<script|onerror|<img/i);
+  });
+
   it('derives a stable etag from the rendered payload', async () => {
     const draft = makeDraft();
     const args = {

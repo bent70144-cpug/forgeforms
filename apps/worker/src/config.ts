@@ -9,6 +9,8 @@ export type WorkerConfig = {
   resendApiKey: string | null;
   logLevel: "debug" | "info" | "warn" | "error";
   concurrency: number;
+  /** T29 (spec §17 GDPR): set → the retention/workspace purge stores wire up. */
+  databaseUrl: string | null;
 };
 
 export function loadWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
@@ -18,6 +20,7 @@ export function loadWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerCo
     appUrl: env.PUBLIC_BASE_URL ?? env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
     mailFrom: env.MAIL_FROM ?? "FormForge <notifications@formforge.dev>",
     resendApiKey: env.RESEND_API_KEY ?? null,
+    databaseUrl: env.DATABASE_URL ?? null,
     logLevel:
       logLevel === "debug" || logLevel === "info" || logLevel === "warn" || logLevel === "error"
         ? logLevel

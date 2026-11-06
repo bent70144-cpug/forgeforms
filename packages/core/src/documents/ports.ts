@@ -19,7 +19,9 @@ import type {
 // ---------------------------------------------------------------------------
 
 export type PublishStatePatch = {
-  status: 'published' | 'draft';
+  // T29: 'archived' is the terminal takedown state (spec §17) — reachable ONLY
+  // via makeTakedownDocument; publish/unpublish keep the published/draft pair.
+  status: 'published' | 'draft' | 'archived';
   publishedVersionId: string | null;
   updatedAt: Date;
 };

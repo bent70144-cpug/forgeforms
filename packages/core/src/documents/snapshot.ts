@@ -8,6 +8,7 @@
  */
 import { err, ok, AppError, type Ctx, type Result } from '../bridge';
 import { canonicalHash, deepFreeze, structuralClone } from './hash';
+import { sanitizeRichTextProp } from './sanitize';
 import type {
   BlockJson,
   DocumentBodyJson,
@@ -33,7 +34,13 @@ export type BuildSnapshotArgs = {
   body: DocumentBodyJson;
   assets: AssetUrlResolver;
   compiler: LogicCompiler;
-  /** Sanitizes Tiptap JSON props (allowlist HTML). Default: pass-through. */
+  /**
+   * Override for the rich-text sanitizer (tests). SECURE DEFAULT (T29, spec
+   * §17): when omitted, every rich-text prop is passed through the core
+   * allowlist sanitizer (`sanitizeRichTextProp`) — the renderer's
+   * `dangerouslySetInnerHTML` trusts HTML strings, so the snapshot must never
+   * carry raw markup, regardless of how the draft was stored.
+   */
   sanitizeRichText?: (node: unknown) => unknown;
 };
 
@@ -121,7 +128,10 @@ export async function resolveBlockAssetUrls(
   }
 
   function sanitizeRich(node: unknown): unknown {
-    return sanitizeRichText ? sanitizeRichText(node) : node;
+    // T29 (spec §17): secure default — allowlist sanitizer, not pass-through.
+    // The publish pipeline (publish.ts) forwards its own override when a
+    // caller configured one; tests may inject a spy the same way.
+    return sanitizeRichText ? sanitizeRichText(node) : sanitizeRichTextProp(node);
   }
 }
 

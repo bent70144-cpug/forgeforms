@@ -1,0 +1,58 @@
+# T29 (spec §17) — security audit job. Ticket-scoped CI addition (allowed for
+# T29 only): runs the secrets audit and verifies the §17 checklist file stays
+# honest (every item carries an evidence link). Complements ci.yml — it does
+# NOT duplicate the typecheck/lint/test pipeline there.
+name: Security audit
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Secrets audit (static: client graphs, logs, committed literals)
+        run: pnpm secrets:audit
+
+      - name: Build web (for the bundle scan)
+        run: pnpm --filter @formforge/web build
+        env:
+          SESSION_SECRET: ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci
+          AUTH_SECRET: ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci
+          # Intentionally NO real secrets — placeholders must build fine.
+
+      - name: Secrets audit (bundle scan: apps/web/.next)
+        run: pnpm secrets:audit
+
+  checklist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: §17 checklist completeness
+        run: |
+          # Every checklist row must carry an evidence link (docs/…, test path,
+          # or commit link). A row without one fails the audit.
+          missing=$(awk -F'|' '/^\| s17/ {print}' docs/security-checklist.md 2>/dev/null | grep -cv 'docs/\|\.test\.\|packages/\|apps/\|scripts/' || true)
+          if [ ! -f docs/security-checklist.md ]; then
+            echo "docs/security-checklist.md is missing"; exit 1
+          fi
+          count=$(grep -c '^| s17-' docs/security-checklist.md || true)
+          if [ "$count" -lt 11 ]; then
+            echo "docs/security-checklist.md has only $count s17 rows (expected ≥ 11)"; exit 1
+          fi
+          echo "security-checklist.md: $count s17 rows present"

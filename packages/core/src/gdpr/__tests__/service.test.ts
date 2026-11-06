@@ -5,15 +5,15 @@ import { createCtx } from '../../shared/ctx';
 import {
   createInMemoryGdprState,
   createInMemoryGdprStores,
-} from './testing';
+} from '../testing';
 import {
   deleteAccount,
   exportWorkspaceData,
   purgeExpiredSubmissionData,
   purgeExpiredWorkspaces,
   requestWorkspaceDeletion,
-} from './service';
-import type { InMemoryGdprState } from './testing';
+} from '../service';
+import type { InMemoryGdprState } from '../testing';
 
 const T0 = Date.parse('2026-11-06T12:00:00.000Z');
 const DAY = 24 * 60 * 60 * 1000;
@@ -93,6 +93,7 @@ describe('exportWorkspaceData (workspace data export)', () => {
     const stores = createInMemoryGdprStores(state);
     const result = await exportWorkspaceData({ exports: stores.exports, now: () => new Date(T0) }, ctxFor(state, 'ws_1'));
     expect(result.ok).toBe(true);
+    if (!result.ok) return; // type narrowing for the assertions below
     const serialized = JSON.stringify(result.value);
     expect(serialized).not.toContain('SUPERSECRET');
     expect(serialized).not.toContain('deadbeefdeadbeef');

@@ -32,6 +32,7 @@ import {
   makeListDocuments,
   makePatchDocument,
   makePublishDocument,
+  makeTakedownDocument,
   makeUnpublishDocument,
   noopCdnPurge,
   type CrudDocumentsRepo,
@@ -42,6 +43,7 @@ import {
   type PublishOutcome,
   type PublishPipelineDeps,
   type Result,
+  type TakedownOutcome,
   type UnpublishOutcome,
   type WireOp,
 } from '@formforge/core';
@@ -245,15 +247,22 @@ export type DocumentsApi = {
   publishDocument: (ctx: ApiCtx, id: string) => Promise<Result<PublishOutcome, AppError>>;
   unpublishDocument: (ctx: ApiCtx, id: string) => Promise<Result<UnpublishOutcome, AppError>>;
   getPublishedSnapshot: GetPublishedSnapshot;
+  /**
+   * T29 (spec §17): staff takedown — status → 'archived', snapshot dropped,
+   * CDN tag + route/snapshot keys purged. Auth happens at the route (staff
+   * key); the service itself is unauthenticated-by-design (kernel layer).
+   */
+  takedownDocument: (ctx: ApiCtx, id: string) => Promise<Result<TakedownOutcome, AppError>>;
 };
 
 export const documentsApi: DocumentsApi = {
   publishDocument: (ctx: ApiCtx, id: string) => makePublishDocument(deps)(toKernelCtx(ctx), id),
   unpublishDocument: (ctx: ApiCtx, id: string) => makeUnpublishDocument(deps)(toKernelCtx(ctx), id),
   getPublishedSnapshot: (slug: string) => makeGetPublishedSnapshot(deps)(slug),
+  takedownDocument: (ctx: ApiCtx, id: string) => makeTakedownDocument(deps)(toKernelCtx(ctx), id),
 };
 
-export type { PublishOutcome, UnpublishOutcome };
+export type { TakedownOutcome };
 
 // ---------------------------------------------------------------------------
 // Wire mappers (§11 response schemas live in @formforge/schema/api)

@@ -10,7 +10,8 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "secrets:audit": "node scripts/secrets-audit.mjs"
   },
   "devDependencies": {
     "eslint": "^9.39.5",

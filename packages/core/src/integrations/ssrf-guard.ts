@@ -193,9 +193,8 @@ export type SsrfRejection = { ok: false; reason: string };
 
 async function defaultLookup(hostname: string): Promise<ReadonlyArray<{ address: string; family: number }>> {
   const dns = await import('node:dns');
-  return dns.promises.lookup(hostname, { all: true, verbatim: true }) as Promise<
-    ReadonlyArray<LookupAddress> & ReadonlyArray<{ address: string; family: number }>
-  >;
+  const records = await dns.promises.lookup(hostname, { all: true, verbatim: true });
+  return records.map((r) => ({ address: r.address, family: r.family }));
 }
 
 /**
@@ -288,7 +287,9 @@ function nodePost(
       // a DNS-validated, public IP (never a second, unvalidated resolution).
       lookup: pinnedLookup(lookup),
       ...(secure ? { servername: parsed.hostname ?? undefined } : {}),
-    } as Parameters<typeof mod.request>[0];
+      // The legacy url.parse shape does not satisfy the full RequestOptions
+      // type (string | URL overload); go through `unknown` deliberately.
+    } as unknown as Parameters<typeof mod.request>[0];
     return new Promise<{ ok: boolean; status: number }>((resolve, reject) => {
       const req = mod.request(requestOptions, (res: HttpResponseish) => {
         // Drain (bounded) so the socket closes cleanly; body is not needed.

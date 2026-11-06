@@ -10,6 +10,7 @@ import {
   classifySnapshotError,
   getPublishedSnapshot,
 } from "@formforge/renderer";
+import { ReportAbuseLink } from "@/components/public/report-abuse-link";
 
 /**
  * Public render for custom hostnames (spec §2 `_host/[...path]`; §10.1
@@ -73,5 +74,13 @@ export default async function CustomHostPage({ params }: HostPageProps) {
     notFound();
   }
 
-  return <ScrollRenderer snapshot={snapshot} />;
+  return (
+    <>
+      <ScrollRenderer snapshot={snapshot} />
+      {/* T29 (spec §17): "Report abuse" link on every public page. */}
+      <footer style={{ textAlign: "center", padding: "0 1.25rem 2rem", fontSize: "0.8rem" }}>
+        <ReportAbuseLink documentRef={snapshot.documentId} />
+      </footer>
+    </>
+  );
 }

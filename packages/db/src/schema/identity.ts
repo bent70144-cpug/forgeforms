@@ -46,6 +46,11 @@ export const workspaces = pgTable("workspaces", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  // T29 (spec §17 GDPR): soft-deletion marker — set when deletion is REQUESTED;
+  // the hard purge (documents, versions, snapshots, submissions, answers,
+  // webhooks, tokens, memberships, exports, row) happens after the grace
+  // window (default 30 days) in the maintenance job. Expand-compatible.
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const memberships = pgTable(
