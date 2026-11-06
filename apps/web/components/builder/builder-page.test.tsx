@@ -86,20 +86,21 @@ describe("<BuilderShell> (loaded state)", () => {
     expect(html).toContain("Thanks!");
     expect(html).toContain("Add ending");
     expect(html).toContain("Logic (1 rule)");
-    // right pane default tab = document settings
-    expect(html).toContain("Settings panel placeholder");
+    // right pane default tab = document settings (real panel — stub replaced
+    // by the settings milestone; testid kept stable for this smoke)
+    expect(html).toContain('data-testid="settings-panel"');
   });
 
-  it("renders the panel stub matching state.panel (theme / endings)", () => {
+  it("renders the right-pane panel matching state.panel (theme / endings)", () => {
     const theme = editorReducer(loadedState(), { type: "setPanel", panel: "theme" });
     expect(renderLoaded(theme, h(BuilderShell, { saveStatusStore: createSaveStatusStore() }))).toContain(
-      "Theme panel placeholder",
+      'data-testid="theme-panel"',
     );
 
     const endings = editorReducer(loadedState(), { type: "setPanel", panel: "endings" });
     expect(
       renderLoaded(endings, h(BuilderShell, { saveStatusStore: createSaveStatusStore() })),
-    ).toContain("Endings panel placeholder");
+    ).toContain('data-testid="endings-panel"');
   });
 
   it("flags blocks with a missing label with an issue badge (§8.1 block level)", () => {

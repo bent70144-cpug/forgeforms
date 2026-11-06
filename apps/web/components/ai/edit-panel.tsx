@@ -4,8 +4,16 @@
 // explicit "Apply" (issue #27: AI ops are never applied without user
 // confirmation). onApply is the handoff point to the builder autosave (T05),
 // which replays the ops through the normal documents PATCH flow.
-import { useId, useState } from "react";
+//
+// B8 (spec §11): the proposal is reviewed as a diff list with Apply/Discard,
+// and Apply hands off the ops as ONE undoable group — toGroupedApply bundles
+// `{ops, label, group}` (`ai:<batchId>`) for the builder store's apply action
+// (§11 "applying dispatches ops through the normal path, so it is one
+// undoable group"). §15 telemetry: "ai_applied {opsCount}" — counts only.
+import { useId, useMemo, useState } from "react";
 import type { DocumentBody } from "@formforge/core/ai";
+import { summarizeOpsDiff, toBuilderOps, toGroupedApply, type GroupedApply } from "@/lib/builder/ai-apply";
+import { track } from "@/lib/telemetry";
 
 type EditResponse = {
   summary: string;
@@ -17,12 +25,24 @@ type EditResponse = {
 
 type ApiError = { error: { code: string; message: string; details?: unknown } };
 
+/** Batch id for the `ai:<batchId>` history group (crypto-backed, offline-safe). */
+export function newAiBatchId(now: () => number = Date.now): string {
+  const cryptoObj = globalThis.crypto;
+  if (typeof cryptoObj?.randomUUID === "function") return cryptoObj.randomUUID();
+  return `batch-${now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export type AiEditPanelProps = {
   document: DocumentBody;
   /** INTEGRATION-DEBT (T01): session provides this; header stopgap until then. */
   workspaceId?: string;
-  /** Handoff point: builder applies the confirmed ops via documents PATCH. */
-  onApply?: (ops: EditResponse["ops"]) => void;
+  /**
+   * Handoff point: builder applies the confirmed ops via documents PATCH.
+   * B8: the second argument carries the §11 grouped apply bundle — dispatch
+   * it as `dispatch({ type: "apply", ...grouped })` so the whole AI proposal
+   * lands as ONE undoable history entry (undo label "Apply AI edits (N)").
+   */
+  onApply?: (ops: EditResponse["ops"], grouped?: GroupedApply) => void;
 };
 
 export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps) {
@@ -33,6 +53,13 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+
+  // Client-side diff summary (§11): counts + human lines derived from the
+  // proposal ops (core vocabulary normalized to the builder Op union).
+  const diffSummary = useMemo(
+    () => summarizeOpsDiff(toBuilderOps(proposal?.ops ?? [])),
+    [proposal],
+  );
 
   async function propose(): Promise<void> {
     setStatus("loading");
@@ -64,6 +91,24 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
       setError("Could not reach the AI edit endpoint.");
       setStatus("error");
     }
+  }
+
+  function discard(): void {
+    setProposal(null);
+    setApplied(false);
+    setStatus("idle");
+    setError(null);
+    setErrorCode(null);
+  }
+
+  function apply(): void {
+    if (!proposal || applied) return;
+    const builderOps = toBuilderOps(proposal.ops);
+    const grouped = toGroupedApply(builderOps, newAiBatchId());
+    // §15 telemetry: op count only — never labels or props.
+    track("ai_applied", { opsCount: builderOps.length });
+    onApply?.(proposal.ops, grouped);
+    setApplied(true);
   }
 
   return (
@@ -119,29 +164,41 @@ export function AiEditPanel({ document, workspaceId, onApply }: AiEditPanelProps
               ({proposal.ops.length} op{proposal.ops.length === 1 ? "" : "s"})
             </span>
           </p>
+          {/* §11 diff list: counts summary + one line per proposed op, with
+              Apply (grouped handoff) / Discard (clears). */}
+          <p aria-label="Change summary" className="text-xs opacity-80">
+            {diffSummary.added} added · {diffSummary.changed} changed · {diffSummary.removed}{" "}
+            removed · {diffSummary.moved} moved · {diffSummary.other} other
+          </p>
           <ul
             aria-label="Proposed changes"
             className="space-y-1 rounded bg-neutral-50 p-3 font-mono text-xs dark:bg-neutral-800"
           >
-            {proposal.diff.map((line, index) => (
-              <li key={index}>{line}</li>
-            ))}
+            {diffSummary.lines.length > 0
+              ? diffSummary.lines.map((line, index) => <li key={index}>{line}</li>)
+              : proposal.diff.map((line, index) => <li key={index}>{line}</li>)}
           </ul>
           {applied ? (
             <p className="text-sm text-emerald-700 dark:text-emerald-400">
-              Ops handed to the editor.
+              Ops handed to the editor as one undoable group.
             </p>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                onApply?.(proposal.ops);
-                setApplied(true);
-              }}
-              className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
-            >
-              Apply ops
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={apply}
+                className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-800"
+              >
+                Apply ops
+              </button>
+              <button
+                type="button"
+                onClick={discard}
+                className="rounded border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-800"
+              >
+                Discard
+              </button>
+            </div>
           )}
         </div>
       ) : null}

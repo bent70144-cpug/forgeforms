@@ -13,12 +13,21 @@ export default async function DashboardPage() {
   const session = await getCurrentSession();
   if (!session) redirect("/login");
 
-  // Template catalog for the §14.1.2 create modal ("start from template or
-  // blank"). listTemplates() is a pure in-memory registry read — no I/O.
+  // Template catalog for the §11/§14.1.2 create modal ("Blank | Template |
+  // Generate with AI"). listTemplates() is a pure in-memory registry read —
+  // no I/O. Extra catalog fields (description, counts, logic flag, gradient)
+  // feed the in-modal gallery rows; the original {id,name,category} contract
+  // stays intact (extra optional fields only).
   const templates = listTemplates().map((t) => ({
     id: t.id,
     name: t.name,
     category: t.category,
+    description: t.description,
+    tags: t.tags,
+    blockCount: t.blockCount,
+    questionCount: t.questionCount,
+    hasLogic: t.hasLogic,
+    gradient: t.gradient,
   }));
 
   return (
