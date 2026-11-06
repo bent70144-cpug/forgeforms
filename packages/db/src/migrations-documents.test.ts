@@ -38,8 +38,13 @@ describe("documents migration (spec §6)", () => {
 
   it("enforces slug uniqueness per workspace and the dashboard list index", async () => {
     const sql = await allMigrationSql();
-    // unique (workspace_id, slug)
-    expect(sql).toMatch(/CREATE UNIQUE INDEX "documents_workspace_id_slug_unique"[\s\S]*?\("workspace_id","slug"\)/);
+    // unique (workspace_id, slug) — INTEGRATION (T04×T07): 0002_crazy_magneto
+    // (T04) creates the constraint as an inline table UNIQUE constraint (the
+    // same name backs the unique index Postgres stores); T07's standalone
+    // CREATE UNIQUE INDEX form is accepted too so both shapes stay honest.
+    expect(sql).toMatch(
+      /CONSTRAINT "documents_workspace_id_slug_unique" UNIQUE\("workspace_id","slug"\)|CREATE UNIQUE INDEX "documents_workspace_id_slug_unique"/,
+    );
     // index on (workspace_id, updated_at desc)
     expect(sql).toMatch(/CREATE INDEX "documents_workspace_id_updated_at_idx"[\s\S]*?"updated_at" DESC/);
   });
