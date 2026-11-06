@@ -23,29 +23,6 @@ export type {
   PublishResult,
 } from "./services.ts";
 
-// INTEGRATION-DEBT re-exports (see src/bridge.ts): swap to
-// @formforge/core (Ctx, Result, AppError, Scope) and @formforge/schema
-// (DocumentBody, Block, Theme, Settings, Rule, Ending, Op) when they land.
-export {
-  AppError,
-  Block,
-  DocumentBody,
-  Ending,
-  Op,
-  Rule,
-  Settings,
-  TOKEN_SCOPES,
-  Theme,
-  err,
-  ok,
-  validateDocumentBody,
-  zodIssuesToDetails,
-} from "./bridge.ts";
-export type {
-  ActorType,
-  AppErrorCode,
-  AppErrorDetail,
-  Ctx,
-  Result,
-  Scope,
-} from "./bridge.ts";
+// ISSUE #30: the bridge re-exports were retired — kernel types come from
+// @formforge/core (+ @formforge/core/api for scopes), document types from
+// @formforge/schema, and validation lives in ./validation.ts.

@@ -13,9 +13,9 @@ import type { CallToolResult, TextContent } from "@modelcontextprotocol/sdk/type
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { newAuditEntry } from "./audit.ts";
 import type { AuditLog } from "./audit.ts";
-import { AppError } from "./bridge.ts";
-import type { Ctx } from "./bridge.ts";
-import { zodIssuesToDetails } from "./bridge.ts";
+import { AppError } from "@formforge/core";
+import type { Ctx } from "@formforge/core";
+import { zodIssuesToDetails } from "./validation.ts";
 import type { FormForgeMcpDeps, TokenRecord } from "./services.ts";
 import type { AnyTool } from "./tools.ts";
 

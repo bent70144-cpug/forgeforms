@@ -123,7 +123,7 @@ describe("get_document", () => {
     const result = await t.call("get_document", { documentId: "doc_b1" });
     expect(result.isError).toBe(true);
     expect(payload(result)).toEqual({
-      error: { code: "FORBIDDEN", message: expect.stringContaining("another workspace"), details: undefined },
+      error: { code: "FORBIDDEN", message: expect.stringContaining("another workspace"), details: [] },
     });
     expect(t.audit.entries).toHaveLength(1);
     expect(t.audit.entries[0]).toMatchObject({
@@ -205,7 +205,7 @@ describe("apply_ops", () => {
     const result = await t.call("apply_ops", {
       documentId: "doc_a1",
       baseRev: 0,
-      ops: [{ type: "meta.update", title: "Renamed form" }],
+      ops: [{ op: "meta.update", patch: { title: "Renamed form" } }],
     });
     expect(result.isError).toBeFalsy();
     const updated = payload(result);
@@ -224,7 +224,7 @@ describe("apply_ops", () => {
       await t.call("apply_ops", {
         documentId: "doc_a1",
         baseRev: 0,
-        ops: [{ type: "block.update", id: "b1", props: { label: "Full name" } }],
+        ops: [{ op: "block.update", id: "b1", props: { label: "Full name" } }],
       }),
     );
     expect(updated.draft.blocks[0]?.props).toMatchObject({ label: "Full name" });
@@ -236,7 +236,7 @@ describe("apply_ops", () => {
     const result = await t.call("apply_ops", {
       documentId: "doc_a1",
       baseRev: 0,
-      ops: [{ type: "meta.update", title: "x" }],
+      ops: [{ op: "meta.update", patch: { title: "x" } }],
     });
     expect(result.isError).toBe(true);
     const error = payload(result).error;
@@ -265,7 +265,7 @@ describe("apply_ops", () => {
     const result = await t.call("apply_ops", {
       documentId: "doc_a1",
       baseRev: 0,
-      ops: [{ type: "meta.update", title: "x" }],
+      ops: [{ op: "meta.update", patch: { title: "x" } }],
     });
     expect(result.isError).toBe(true);
     expect(payload(result).error.code).toBe("INTERNAL");

@@ -74,9 +74,9 @@ describe("sample MCP client end-to-end", () => {
               documentId: created.id,
               baseRev: 0,
               ops: [
-                { type: "meta.update", title: "Onboarding survey v2" },
+                { op: "meta.update", patch: { title: "Onboarding survey v2" } },
                 {
-                  type: "block.insert",
+                  op: "block.insert",
                   index: 0,
                   block: { id: "hero1", kind: "hero", props: { title: "Welcome" } },
                 },

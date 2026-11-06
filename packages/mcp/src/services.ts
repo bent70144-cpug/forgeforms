@@ -6,7 +6,10 @@
 // tokens). These interfaces describe exactly what the MCP server needs; the
 // real implementations will be injected in the process composition root
 // (src/main.ts). Fakes live in test/fakes.ts.
-import type { Ctx, DocumentBody, Op, Result, Scope } from "./bridge.ts";
+import type { Ctx, Result } from "@formforge/core";
+import type { ApiScope as Scope } from "@formforge/core/api";
+import type { DocumentBody } from "@formforge/schema";
+import type { DocumentOp as Op } from "@formforge/schema";
 import type { AuditLog } from "./audit.ts";
 
 export type DocumentType = "form" | "page" | "portfolio";

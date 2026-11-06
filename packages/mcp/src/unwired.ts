@@ -11,7 +11,7 @@
 //   tokens:      T25 TokenResolver (sha256 lookup → workspaceId + scopes)
 //   documents:   @formforge/core documents module
 //   submissions: @formforge/core submissions module
-import { AppError, err } from "./bridge.ts";
+import { AppError, err } from "@formforge/core";
 import type { DocumentService, SubmissionService, TokenResolver } from "./services.ts";
 
 const failure = () =>

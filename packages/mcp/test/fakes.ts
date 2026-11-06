@@ -1,8 +1,16 @@
 // test/fakes.ts — in-memory implementations of the service seams (spec-faithful
 // behaviour: tenant scoping via ctx.workspaceId, Result returns, no throws).
 import { randomUUID } from "node:crypto";
-import { AppError, DocumentBody, err, ok } from "../src/bridge.ts";
-import type { Ctx, Op, Result, Scope } from "../src/bridge.ts";
+import { AppError, err, ok } from "@formforge/core";
+import {
+  DocumentBody as DocumentBodySchema,
+  type DocumentBody,
+  type DocumentSettings,
+  type Theme,
+} from "@formforge/schema";
+import type { Ctx, Result } from "@formforge/core";
+import type { ApiScope as Scope } from "@formforge/core/api";
+import type { DocumentOp as Op } from "@formforge/schema";
 import type {
   ApplyOpsInput,
   CreateDocumentInput,
@@ -70,7 +78,7 @@ export type FakeDocRow = {
 };
 
 export function makeDocumentBody(overrides: Record<string, unknown> = {}): DocumentBody {
-  return DocumentBody.parse({
+  return DocumentBodySchema.parse({
     schemaVersion: 1,
     type: "form",
     theme: { tokens: {} },
@@ -183,9 +191,9 @@ export class FakeDocuments implements DocumentService {
       : applyOpsToBody(row.draft, input.ops);
     row.updatedAt = ctx.now();
     for (const op of input.ops) {
-      if (op.type === "meta.update") {
-        if (op.title !== undefined) row.title = op.title;
-        if (op.slug !== undefined) row.slug = op.slug;
+      if (op.op === "meta.update") {
+        if (op.patch.title !== undefined) row.title = op.patch.title;
+        if (op.patch.slug !== undefined) row.slug = op.patch.slug;
       }
     }
     return ok(toDetail(row));
@@ -256,12 +264,22 @@ function slugify(title: string): string {
   return slug === "" ? "document" : slug;
 }
 
+/** Shallow patch merge with §-ops "null deletes the key" semantics (canonical op contract). */
+function mergePatch<T extends Record<string, unknown>>(base: T, patch: Record<string, unknown> | undefined): T {
+  if (patch === undefined) return base;
+  const out = { ...base } as Record<string, unknown>;
+  for (const [key, value] of Object.entries(patch)) {
+    if (value !== null) out[key] = value;
+  }
+  return out as T;
+}
+
 /** Fake-side op application: covers the structural ops a fake can honour;
  * the real op engine lives in the documents module (T02/T20). */
 function applyOpsToBody(body: DocumentBody, ops: Op[]): DocumentBody {
   let next = body;
   for (const op of ops) {
-    switch (op.type) {
+    switch (op.op) {
       case "block.insert": {
         const blocks = [...next.blocks];
         blocks.splice(Math.min(op.index, blocks.length), 0, op.block);
@@ -277,10 +295,13 @@ function applyOpsToBody(body: DocumentBody, ops: Op[]): DocumentBody {
         };
         break;
       case "theme.update":
-        next = { ...next, theme: { ...next.theme, ...op.theme } };
+        next = { ...next, theme: mergePatch(next.theme as Record<string, unknown>, op.patch) as Theme };
         break;
       case "settings.update":
-        next = { ...next, settings: { ...next.settings, ...op.settings } };
+        next = {
+          ...next,
+          settings: mergePatch(next.settings as Record<string, unknown>, op.patch) as DocumentSettings,
+        };
         break;
       default:
         // block.move / block.remove / ending.* / rule.*: accepted, revision

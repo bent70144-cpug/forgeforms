@@ -3,7 +3,7 @@
 // the injected AuditLog. The server never imports a concrete sink itself; the
 // process composition root picks one (ConsoleAuditLog for stdio usage).
 import { randomUUID } from "node:crypto";
-import type { ActorType, AppErrorCode } from "./bridge.ts";
+import type { ActorType, AppErrorCode } from "@formforge/core";
 
 // SPEC-NOTE: shape mirrors spec §6 `audit_log` columns (id, workspace_id,
 // actor_type, actor_id, action, target, created_at). Two additive fields are

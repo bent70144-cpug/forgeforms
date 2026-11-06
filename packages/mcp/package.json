@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "FormForge MCP server — 7 tools (no deletes), scoped token auth, audit logging (issue #26, spec §15 M8)",
+  "description": "FormForge MCP server \u2014 7 tools (no deletes), scoped token auth, audit logging (issue #26, spec \u00a715 M8)",
   "bin": {
     "formforge-mcp": "./src/main.ts"
   },

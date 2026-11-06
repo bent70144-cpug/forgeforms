@@ -14,8 +14,10 @@
 // live in the pipeline (src/pipeline.ts), not here.
 import { z } from "zod";
 import type { ToolAnnotations } from "@modelcontextprotocol/sdk/types.js";
-import { AppError, DocumentBody, Op, err } from "./bridge.ts";
-import type { Ctx, Result, Scope } from "./bridge.ts";
+import { AppError, err, type Ctx, type Result } from "@formforge/core";
+import type { ApiScope as Scope } from "@formforge/core/api";
+import { DocumentBody, DocumentOpSchema as Op } from "@formforge/schema";
+
 import type {
   CreateDocumentInput,
   DocumentService,
@@ -24,7 +26,7 @@ import type {
   ListSubmissionsQuery,
   SubmissionService,
 } from "./services.ts";
-import { validateDocumentBody } from "./bridge.ts";
+import { validateDocumentBody } from "./validation.ts";
 
 export const TOOL_NAMES = [
   "list_documents",
