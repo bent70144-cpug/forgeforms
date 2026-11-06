@@ -9,3 +9,17 @@ export type Database = NodePgDatabase<typeof schema>;
 export function createDb(connectionString: string): Database {
   return drizzle(connectionString, { schema });
 }
+
+/** Lazy singleton so importing this package never requires DATABASE_URL. ISSUE #30: moved from the retired bridge.ts. */
+let db: Database | undefined;
+
+export function getDb(): Database {
+  if (!db) {
+    const connectionString = process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error("DATABASE_URL is not set — cannot connect to Postgres.");
+    }
+    db = createDb(connectionString);
+  }
+  return db;
+}

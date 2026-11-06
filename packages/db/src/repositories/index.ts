@@ -1,16 +1,13 @@
 // @formforge/db — repositories barrel (ticket #3). Imported as
 // `@formforge/db/repositories` by the web composition root.
 //
-// INTEGRATION-DEBT: awaiting T02 — getDb() is re-exported from ../bridge.ts
-// until T02 ships the real client module; then drop this re-export and import
-// the client from its canonical location.
+// ISSUE #30: getDb/Db previously came from the retired ../bridge.ts; they live
+// canonically in ../client.ts now.
 //
 // SPEC-NOTE: the return type is intentionally inferred — db does not depend on
 // @formforge/core; the composition root (apps/web/lib/auth/container.ts)
 // assigns this object to the `IdentityRepositories` port, so any structural
 // drift fails typecheck there.
-import type { Db } from "../bridge";
-import { getDb } from "../bridge";
 import {
   DrizzleMembershipRepository,
   DrizzleRegistrationRepository,
@@ -20,8 +17,10 @@ import {
 import { DrizzleSessionRepository } from "./sessions";
 import { DrizzleAuthTokenRepository } from "./auth-tokens";
 
-export { getDb } from "../bridge";
-export type { Db } from "../bridge";
+import { getDb, type Database as Db } from "../client.ts";
+
+export { getDb } from "../client.ts";
+export type { Database as Db } from "../client.ts";
 export {
   DrizzleMembershipRepository,
   DrizzleRegistrationRepository,

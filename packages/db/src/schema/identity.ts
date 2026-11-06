@@ -84,9 +84,10 @@ export const apiTokens = pgTable("api_tokens", {
 
 /**
  * DB-backed sessions (ticket #3 acceptance) — opaque sha256-hashed tokens with
- * sliding expiry. Formalized here in T05 (moved out of the integration shim in
- * src/bridge.ts); spec §6 lists no sessions table because Auth.js owns it in
- * the original plan — we own the session store ourselves (see auth.config.ts).
+ * sliding expiry. Formalized here in T05 (issue #30 retired the src/bridge.ts
+ * shim this table once lived in); spec §6 lists no sessions table because
+ * Auth.js owns it in the original plan — we own the session store ourselves
+ * (see auth.config.ts).
  */
 export const sessions = pgTable("sessions", {
   id: uuid("id").primaryKey(),

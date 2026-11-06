@@ -2,13 +2,12 @@
 // port contracts exported by `@formforge/core/identity`; the web composition
 // root enforces the structural match at typecheck time.
 //
-// INTEGRATION-DEBT: awaiting T02 — tables and Db come from ../bridge.ts until
-// T02's src/schema/** and client land; input/output DTOs mirror the identity
-// ports. After T02: swap the import to "../schema" + T02's client and re-derive
-// the DTOs from the ports if desired.
+// ISSUE #30: tables come from ../schema/identity.ts and Db from ../client.ts
+// (previously the retired ../bridge.ts shim); input/output DTOs mirror the
+// identity ports.
 import { eq } from "drizzle-orm";
-import type { Db } from "../bridge";
-import { memberships, users, workspaces } from "../bridge";
+import type { Database as Db } from "../client.ts";
+import { memberships, users, workspaces } from "../schema/identity.ts";
 
 export type WorkspacePlan = "free" | "pro" | "business";
 export type MembershipRole = "owner" | "admin" | "editor" | "viewer";

@@ -2,8 +2,8 @@
 // email verification tokens, sha256 at rest, atomic compare-and-set consume.
 import { and, eq, isNull } from "drizzle-orm";
 import type { AuthTokenKind, AuthTokenRecord } from "@formforge/core/identity";
-import type { Db } from "../bridge";
-import { authTokens } from "../bridge";
+import type { Database as Db } from "../client.ts";
+import { authTokens } from "../schema/identity.ts";
 
 function toRecord(row: typeof authTokens.$inferSelect): AuthTokenRecord {
   return {

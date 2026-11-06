@@ -1,11 +1,11 @@
 // Drizzle session repository (ticket #3) — opaque session tokens, sha256 at
 // rest, sliding expiry via `touch`.
 //
-// INTEGRATION-DEBT: awaiting T02 — table + Db come from ../bridge.ts until
-// T02's src/schema/** and client land.
+// ISSUE #30: the sessions table lives canonically in ../schema/identity.ts
+// (formalized by T05) and Db in ../client.ts — no more bridge shim.
 import { eq } from "drizzle-orm";
-import type { Db } from "../bridge";
-import { sessions, users } from "../bridge";
+import type { Database as Db } from "../client.ts";
+import { sessions, users } from "../schema/identity.ts";
 
 export type SessionRecord = {
   id: string;
