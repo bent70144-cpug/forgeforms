@@ -72,9 +72,9 @@ export function DomainsClient() {
     }
   }, []);
 
-  // Published documents for the attach target. INTEGRATION-DEBT (T07): the
-  // documents list endpoint answers an empty page until T07 lands; the manual
-  // documentId input keeps the flow usable meanwhile.
+  // Published documents for the attach target (T07 documents list endpoint,
+  // merged at integration). Empty page → the manual documentId input keeps the
+  // flow usable.
   useEffect(() => {
     fetch('/api/v1/documents?limit=50', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
@@ -300,7 +300,7 @@ export function DomainsClient() {
             )}
             <p className="mt-1 text-[11px] text-slate-500">
               {docOptions.length === 0
-                ? 'The document picker fills in once published documents are listed here (T07).'
+                ? 'No documents listed yet — enter a document id from this workspace manually.'
                 : 'Only documents in this workspace can be attached.'}
             </p>
           </div>

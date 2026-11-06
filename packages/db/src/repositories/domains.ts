@@ -178,25 +178,21 @@ let cached: { store: DomainsStore; routing: DomainsRoutingTable } | null = null;
  * route to a document in the caller's workspace, so `addDomain` resolves the
  * document through this workspace-scoped lookup.
  *
- * INTEGRATION-DEBT (T02/T07): the `documents` table DDL is not part of
- * packages/db yet. While the migration is absent the query throws; we fail
- * open for well-formed UUIDs so staging keeps working, and fail closed the
- * moment T07's store lands (the catch disappears then).
+ * INTEGRATION (T24×T07 merge): T07's documents table/repos are merged (schema
+ * src/schema/documents.ts, migration 0002) — the lookup now hits the real
+ * store and FAILS CLOSED: null when the document does not exist in the
+ * workspace (the addDomain service maps that to NOT_FOUND). Query failures
+ * propagate (no silent format-only acceptance).
  */
 export function createDomainsDocumentLookup(db: BillingDbClient): DomainDocumentLookup {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return {
     async getById(workspaceId, documentId) {
       if (!UUID_RE.test(documentId)) return null;
-      try {
-        const result = await db.execute(
-          sql`select id from documents where id = ${documentId} and workspace_id = ${workspaceId} limit 1`,
-        );
-        return result.rows.length > 0 ? { id: documentId } : null;
-      } catch {
-        // T07 migration pending → format-checked id only (see note above).
-        return { id: documentId };
-      }
+      const result = await db.execute(
+        sql`select id from documents where id = ${documentId} and workspace_id = ${workspaceId} limit 1`,
+      );
+      return result.rows.length > 0 ? { id: documentId } : null;
     },
   };
 }
