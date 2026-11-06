@@ -43,7 +43,12 @@ export function makePublishDocument(deps: PublishPipelineDeps): PublishDocument 
     // validated body has the §7 structural shape when it reports no issues.
     const body = doc.draft as DocumentBodyJson;
     const schemaIssues = await deps.validator.validate(doc.draft);
-    const lintIssues = schemaIssues.length === 0 ? deps.compiler.compile(body.logic?.rules ?? [], body.blocks ?? []).issues : [];
+    // T20 (issue #20): pass the draft's ending ids so the engine's lint can
+    // verify `end:<id>` goto targets (dangling target blocks publish).
+    const endingIds = (body.endings ?? []).map((ending) => ending.id);
+    const lintIssues = schemaIssues.length === 0
+      ? deps.compiler.compile(body.logic?.rules ?? [], body.blocks ?? [], endingIds).issues
+      : [];
     const allIssues = [...schemaIssues, ...lintIssues];
     if (allIssues.length > 0) {
       return err(new AppError('VALIDATION', 'Draft failed validation', allIssues));

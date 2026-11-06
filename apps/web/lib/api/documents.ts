@@ -17,7 +17,6 @@ import {
   makePublishDocument,
   makeUnpublishDocument,
   noopCdnPurge,
-  passthroughLogicCompiler,
   type Ctx,
   type GetPublishedSnapshot,
   type PublishDocument,
@@ -26,6 +25,7 @@ import {
   type UnpublishDocument,
   type UnpublishOutcome,
 } from '@formforge/core';
+import { t13LogicCompiler } from './logic-compiler';
 
 function buildDefaultDeps(): PublishPipelineDeps {
   const store = createInMemoryDocumentStore();
@@ -37,7 +37,9 @@ function buildDefaultDeps(): PublishPipelineDeps {
     snapshots: store.snapshots,
     cdn: noopCdnPurge,
     validator: defaultDraftValidator,
-    compiler: passthroughLogicCompiler,
+    // T20 (issue #20): publish gating runs T13's logic lint (dangling goto
+    // targets, unknown scopes, fallbacks, cycles) via the engine package.
+    compiler: t13LogicCompiler,
     assets: devAssetUrlResolver(cdnBase),
     publicUrl: defaultPublicUrlBuilder(baseUrl),
   };
