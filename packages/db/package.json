@@ -8,7 +8,8 @@
     "./repositories/submissions": "./src/repositories/submissions.ts",
     "./repositories/gdpr": "./src/repositories/gdpr.ts",
     "./repositories/billing": "./src/repositories/billing.ts",
-    "./repositories/domains": "./src/repositories/domains.ts"
+    "./repositories/domains": "./src/repositories/domains.ts",
+    "./repositories/analytics": "./src/repositories/analytics.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

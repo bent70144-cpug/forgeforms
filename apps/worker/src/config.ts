@@ -11,6 +11,8 @@ export type WorkerConfig = {
   concurrency: number;
   /** T29 (spec §17 GDPR): set → the retention/workspace purge stores wire up. */
   databaseUrl: string | null;
+  /** T18 (issue #30): HMAC secret for signed CSV export links (EXPORT_SIGNING_SECRET / SESSION_SECRET). */
+  exportSigningSecret: string | null;
 };
 
 export function loadWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
@@ -21,6 +23,7 @@ export function loadWorkerConfig(env: NodeJS.ProcessEnv = process.env): WorkerCo
     mailFrom: env.MAIL_FROM ?? "FormForge <notifications@formforge.dev>",
     resendApiKey: env.RESEND_API_KEY ?? null,
     databaseUrl: env.DATABASE_URL ?? null,
+    exportSigningSecret: env.EXPORT_SIGNING_SECRET ?? env.SESSION_SECRET ?? null,
     logLevel:
       logLevel === "debug" || logLevel === "info" || logLevel === "warn" || logLevel === "error"
         ? logLevel

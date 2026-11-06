@@ -25,6 +25,7 @@ import { createLogger } from "./logger";
 import type { EventRepositoryPort, WebhookRepositoryPort, WorkerDeps } from "./ports";
 import { createBullQueuePort, QUEUE_DEFAULT_JOB_OPTIONS } from "./queues/bullmq-queue-port";
 import { QUEUES } from "./queues/names";
+import { createAnalyticsJobHandlers } from "./jobs/analytics-rollup";
 import { registerJobs } from "./jobs/registry";
 
 const config = loadWorkerConfig();
@@ -96,8 +97,16 @@ const queues = {
       ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.maintenance] }
       : {}),
   }),
-  // T18/T19: create the exports/analytics Queues here (same
-  // pattern) and register processors in src/jobs/registry.ts.
+  // T18 (issue #18; registered in issue #30): exports queue — csv-export.
+  [QUEUES.exports]: new Queue(QUEUES.exports, {
+    connection,
+    ...(QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.exports] ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.exports] } : {}),
+  }),
+  // T19 (issue #19; registered in issue #30): analytics queue — rollup + partitions.
+  [QUEUES.analytics]: new Queue(QUEUES.analytics, {
+    connection,
+    ...(QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.analytics] ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.analytics] } : {}),
+  }),
 };
 
 // --- Deps --------------------------------------------------------------------
@@ -155,6 +164,11 @@ const deps: WorkerDeps = {
   // INTEGRATION-DEBT: switch to uuidv7() from the T02 kernel (spec §4 ids).
   newId: () => crypto.randomUUID(),
   appUrl: config.appUrl,
+  // T18 (issue #30): HMAC secret for signed CSV export links.
+  exportSigningSecret: config.exportSigningSecret,
+  // T19 (issue #30): analytics handlers over the DB rollup repository — only
+  // when DATABASE_URL is configured (same posture as the GDPR stores above).
+  ...(config.databaseUrl ? { analytics: createAnalyticsJobHandlers() } : {}),
 };
 
 // --- Workers from the registry ----------------------------------------------

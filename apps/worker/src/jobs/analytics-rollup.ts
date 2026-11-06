@@ -3,25 +3,19 @@
 //                           (cron: hourly for today, daily for yesterday)
 //   • `create-partitions` — ensure monthly range partitions (current + next)
 //
-// INTEGRATION-DEBT: registration in apps/worker/src/index.ts is BLOCKED because
-// that file is owned by T17 (issue #17). The lead/T17 should register these
-// handlers like:
-//   import { createAnalyticsJobHandlers, ANALYTICS_QUEUE_NAME, ANALYTICS_CRON_SCHEDULES }
-//     from "./jobs/analytics-rollup";
-//   const handlers = createAnalyticsJobHandlers();          // reads DATABASE_URL
-//   // Worker(ANALYTICS_QUEUE_NAME, (job) => handlers[job.name]?.(job.payload))
-//   // + repeatable jobs per ANALYTICS_CRON_SCHEDULES (rollup hourly/daily, partitions monthly)
+// ISSUE #30: registered in src/jobs/registry.ts (the analytics queue starts
+// always; handlers activate when DATABASE_URL is configured).
 // Handlers are BullMQ-agnostic (plain payload objects) so registration style is free.
 
 import {
   AnalyticsBatchSchemas,
   createAnalyticsService,
   type AnalyticsRepositoryPort,
-} from "../../../../packages/core/src/analytics";
+} from "@formforge/core/analytics";
 import {
   getDefaultAnalyticsRepository,
   type AnalyticsRepository,
-} from "../../../../packages/db/src/repositories/analytics";
+} from "@formforge/db/repositories/analytics";
 
 export const ANALYTICS_QUEUE_NAME = "analytics";
 

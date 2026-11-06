@@ -7,8 +7,9 @@
 // identical to the ones in packages/db/src/repositories/{events,webhooks}.ts
 // (which own the SQL). When T02 lands, wire the real repositories here — the
 // shapes already match, so the swap is mechanical.
-import { AppError, Ctx, Result } from "@formforge/core";;
-import type { DeliveryOutcome, HttpPost, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
+import { AppError } from "@formforge/core";
+import type { Ctx, Result } from "@formforge/core";
+import type { DeliveryOutcome, HttpPost, MailMessage, Mailer, SubmissionCompletedEvent } from "@formforge/core/integrations";
 import type { ObjectStore } from "@formforge/core/assets";
 import type { GdprStoresPort } from "./jobs/retention-purge";
 import type { JobName, QueueName } from "./queues/names";
@@ -188,6 +189,21 @@ export type WorkerDeps = {
    * failures are logged and never block the fan-out.
    */
   analyticsHook?: (event: SubmissionCompletedEvent) => Promise<void>;
+  /**
+   * T18 (issue #18) — HMAC secret for signed CSV export links. Omitted → the
+   * exports queue processor fails loudly instead of signing with an empty key.
+   */
+  exportSigningSecret?: string | null;
+  /**
+   * T19 (issue #19) — analytics job handlers over the DB rollup repository,
+   * constructed in src/index.ts when DATABASE_URL is set. Omitted (dev/CI) →
+   * the analytics queue fails loudly instead of silently no-opping (same
+   * posture as the T02 repository stubs).
+   */
+  analytics?: {
+    rollup(payload: unknown): Promise<unknown>;
+    "create-partitions"(payload: unknown): Promise<unknown>;
+  };
 };
 
 /** Build a spec §3 Ctx for a background job (system actor, injected clock). */

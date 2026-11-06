@@ -2,20 +2,12 @@
 //   queue: `exports`, job: `csv-export`
 //   "Stream rows by cursor to S3, email signed link (7-day expiry)"
 //
-// INTEGRATION-DEBT (T17 owns apps/worker/src/index.ts — do not edit it here):
-//   registration must be added by the lead/T17, e.g.:
-//     import { createCsvExportJobHandler, EXPORTS_QUEUE, CSV_EXPORT_JOB,
-//              csvExportJobOptions } from "./jobs/csv-export.js";
-//     new Worker(EXPORTS_QUEUE, createCsvExportJobHandler({
-//       store: s3OrInMemoryStore,          // ObjectStore (S3 impl — see core/export/object-store.ts)
-//       mailer,                            // T17 Mailer (@formforge/core/integrations)
-//       submissions: submissionsRepo,      // T14 repository adapted to streamByCursor
-//       jobs: createExportJobsRepo(db),    // @formforge/db repositories/exports.ts
-//       config: { secret: env.SESSION_SECRET, baseUrl: env.PUBLIC_BASE_URL },
-//       now: () => new Date(),
-//     }), { connection, ... });
-//   The API ticket enqueues with: enqueue(EXPORTS_QUEUE, CSV_EXPORT_JOB, payload,
-//   csvExportJobOptions(exportId)) after inserting the export_jobs row.
+// ISSUE #30: registered in src/jobs/registry.ts ([QUEUES.exports]). The
+// submissions stream + export-jobs store are still unwired (loud failure)
+// until the db-backed readers land with the API wiring — re-ticketed with the
+// issue #30 follow-up. The API ticket enqueues with:
+//   enqueue(EXPORTS_QUEUE, CSV_EXPORT_JOB, payload, csvExportJobOptions(exportId))
+// after inserting the export_jobs row.
 
 import {
   parseCsvExportJobPayload,

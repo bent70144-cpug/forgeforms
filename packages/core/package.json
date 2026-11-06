@@ -18,7 +18,8 @@
     "./domains": "./src/domains/index.ts",
     "./domains/routing": "./src/domains/routing.ts",
     "./api": "./src/api/index.ts",
-    "./ai": "./src/ai/index.ts"
+    "./ai": "./src/ai/index.ts",
+    "./analytics": "./src/analytics/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",
