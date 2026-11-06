@@ -2,7 +2,6 @@
 // OWNED BY T06 (issue #6).
 import type { FC, ReactNode } from "react";
 import type { z } from "zod";
-import type { Block } from "@formforge/schema";
 
 export type BlockFamily = "content" | "question" | "action" | "layout";
 
@@ -53,7 +52,7 @@ export interface BlockDef<P = unknown, A = never> {
 // `RenderProps.answer` for content blocks; a per-property erased signature like
 // `(props: RenderProps<any, any>) => ...` would require `any ↛ never` under
 // strictFunctionTypes. `FC<any>` keeps registration assignability exact.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- erased registry view
+/* eslint-disable @typescript-eslint/no-explicit-any -- erased registry view (SPEC-NOTE above) */
 export type AnyBlockDef = {
   kind: string;
   family: BlockFamily;
@@ -66,6 +65,7 @@ export type AnyBlockDef = {
   Editor: FC<any>;
   Render: FC<any>;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export class BlockRegistrationError extends Error {
   readonly kind?: string;

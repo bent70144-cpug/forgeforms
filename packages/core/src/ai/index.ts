@@ -162,16 +162,6 @@ export {
   type ErrorCode,
   type Result,
 } from "../bridge";
-import {
-  DocumentBody,
-  Block,
-  Theme,
-  Rule,
-  BLOCK_KIND_CHEATSHEET,
-  KNOWN_BLOCK_KINDS,
-  type DocumentType,
-  type CanFn,
-} from "./types";
 
 // §7 document shape consumed by route tests and the AI workbench.
 export { DocumentBody } from "./types";

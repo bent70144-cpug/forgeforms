@@ -336,15 +336,6 @@ describe('checkout & portal via the injected gateway', () => {
 });
 
 describe('seats (spec §13: 1/3/10)', () => {
-  function ctxOf() {
-    return {
-      workspaceId: 'ws_1',
-      actor: { type: 'user', id: 'u_1' },
-      requestId: 'req_1',
-      now: () => new Date(),
-    } as const;
-  }
-
   it('reports usage against the plan limit', async () => {
     const { store } = makeStore({
       ws_1: { workspaceId: 'ws_1', plan: 'pro', stripeCustomerId: null, stripeSubscriptionId: null } as WorkspaceBillingRow & { members: number },

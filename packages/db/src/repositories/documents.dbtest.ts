@@ -28,7 +28,8 @@ function executor(pool: pg.Pool): SqlExecutor {
 
 async function applyMigrations(pool: pg.Pool): Promise<void> {
   const drizzleDir = join(import.meta.dirname, "..", "..", "drizzle");
-  const entries = await readdir(drizzleDir, { withFileTypes: true });
+  // Side-effect readdir: fails fast if the drizzle dir is missing/unwired.
+  const _entries = await readdir(drizzleDir, { withFileTypes: true });
   const journal = JSON.parse(
     await readFile(join(drizzleDir, "meta", "_journal.json"), "utf8"),
   ) as { entries: { tag: string }[] };

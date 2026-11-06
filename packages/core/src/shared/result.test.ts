@@ -55,7 +55,7 @@ describe("Result", () => {
   });
 
   it("andThen short-circuits on first error", () => {
-    const failing = (n: number): Result<number, AppError> => err(AppError.validation("nope"));
+    const failing = (_n: number): Result<number, AppError> => err(AppError.validation("nope"));
     const doubling = (n: number): Result<number, AppError> => ok(n * 2);
 
     const good = andThen(andThen(ok(1), doubling), doubling);

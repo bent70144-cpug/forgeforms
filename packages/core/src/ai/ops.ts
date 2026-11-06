@@ -6,7 +6,7 @@
 // @formforge/schema (or core/documents), replace the schemas below with a
 // re-export of it. The AI edit flow must always speak the same op language
 // as the authoring autosave PATCH endpoint.
-import type { Block, DocumentBody, Rule, Theme } from "./types";
+import type { Block, DocumentBody } from "./types";
 import { Block as BlockSchema, DocumentBody as DocumentBodySchema, Rule as RuleSchema, Theme as ThemeSchema } from "./types";
 import { z } from "zod";
 

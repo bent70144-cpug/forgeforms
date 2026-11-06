@@ -4,7 +4,6 @@
 // tests use the fake gateway.
 
 import { err, ok, type AppError, type Result } from '../../bridge';
-import type { PaidPlan } from '../plans';
 import type {
   CheckoutSessionInput,
   CheckoutSessionResult,

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buttonBlock } from "./button";
 import { heroBlock } from "./hero";
-import { shortTextBlock } from "./short-text";
 import { ButtonProps, ButtonStyle, buttonDefaultProps } from "./button/schema";
 import { HeroProps, heroDefaultProps } from "./hero/schema";
 import {
