@@ -164,6 +164,19 @@ export {
 export { NpsEditor } from "./nps/editor";
 export { NpsRender } from "./nps/render";
 
+// --- T16 file uploads (spec §7.2 question row; answer { assetIds }) ----------
+export { fileUploadBlock } from "./file-upload";
+export {
+  FILE_UPLOAD_BLOCK_MAX_MB,
+  FileUploadAnswer,
+  FileUploadProps,
+  acceptAttributeValue,
+  fileUploadDefaultProps,
+  validateFileUpload,
+} from "./file-upload/schema";
+export { FileUploadEditor } from "./file-upload/editor";
+export { FileUploadRender, setFileUploadClient, type UploadClient } from "./file-upload/render";
+
 // --- T21 content blocks -------------------------------------------------------
 export { galleryBlock } from "./gallery";
 export { GalleryLayout, GalleryProps, galleryDefaultProps } from "./gallery/schema";

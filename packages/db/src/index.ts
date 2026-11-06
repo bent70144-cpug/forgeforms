@@ -16,3 +16,6 @@ export * from "./repositories/document-versions.ts";
 export * from "./repositories/tenant.ts";
 // T07 (issue #7): documents CRUD repo + snapshots repo (spec §6 tables).
 export * from "./repositories/documents.ts";
+// T16 (issue #16): assets repo — RLS-bound tenant plane + system-plane lookups
+// (spec §6 assets; consumes @formforge/core/assets AssetVariants structurally).
+export * from "./repositories/assets.ts";

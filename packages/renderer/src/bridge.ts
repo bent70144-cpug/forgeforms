@@ -188,6 +188,7 @@ export const QUESTION_KINDS = [
   'dropdown',
   'rating',
   'nps',
+  'file-upload', // T16 (issue #16) — answer { assetIds } (spec §7.2)
 ] as const;
 
 export type QuestionKind = (typeof QUESTION_KINDS)[number];

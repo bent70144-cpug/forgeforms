@@ -13,6 +13,7 @@
 // the T02 client. Queue topology, job contracts and processors are final.
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
+import { objectStoreFromEnv } from "@formforge/core/assets";
 import { createConsoleMailer, createResendMailer } from "@formforge/core/integrations";
 import { loadWorkerConfig } from "./config";
 import { createLogger } from "./logger";
@@ -78,7 +79,12 @@ const queues = {
       ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.webhooks] }
       : {}),
   }),
-  // T18/T19: create the exports/analytics/assets/maintenance Queues here (same
+  // T16 (issue #16): assets queue — scan + process-image (spec §12).
+  [QUEUES.assets]: new Queue(QUEUES.assets, {
+    connection,
+    ...(QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.assets] ? { defaultJobOptions: QUEUE_DEFAULT_JOB_OPTIONS[QUEUES.assets] } : {}),
+  }),
+  // T18/T19: create the exports/analytics/maintenance Queues here (same
   // pattern) and register processors in src/jobs/registry.ts.
 };
 
@@ -92,6 +98,19 @@ const deps: WorkerDeps = {
   events: eventsRepository,
   webhooks: webhooksRepository,
   notifications,
+  // T16 assets wiring (spec §12): S3/MinIO via env, in-memory dev fallback.
+  // INTEGRATION-DEBT: the asset-row repository follows the same T02 posture as
+  // events/webhooks above — swap the stub for
+  //   createAssetsRepository(createDb(config.databaseUrl))
+  // (packages/db/src/repositories/assets.ts) once the worker gains the db dep.
+  assets: {
+    getByIdUnscoped: unwired("assets.getByIdUnscoped"),
+    patch: unwired("assets.patch"),
+  },
+  store: objectStoreFromEnv(process.env),
+  // Dev default: no AV wired → scan jobs resolve `unavailable` → `skipped`
+  // (spec §12 "or `skipped` in dev"). A ClamAV adapter swaps in here.
+  scanner: { scan: async () => "unavailable" },
   mailer,
   // Real transports: injectable in tests, direct fetch here.
   post: (url, init) => fetch(url, init),

@@ -7,3 +7,5 @@ export * from "./tenancy.ts";
 export * from "./documents.ts";
 // T24 (issue #24): custom_domains + domain_routes.
 export * from "./domains.ts";
+// T16 (issue #16): uploaded files + media (spec §6 assets).
+export * from "./assets.ts";

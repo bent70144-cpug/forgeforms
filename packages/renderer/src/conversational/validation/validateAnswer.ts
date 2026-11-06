@@ -30,9 +30,38 @@ export function validateAnswer(block: Block, value: unknown): string | null {
       return validateRating(value, props, required);
     case 'nps':
       return validateNps(value, required);
+    case 'file-upload':
+      return validateFileUpload(value, props, required);
     default:
       return null;
   }
+}
+
+/** `{ assetIds: string[] }` — ids returned by the upload confirm endpoint. */
+function assetIdsOf(value: unknown): string[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  const ids = (value as { assetIds?: unknown }).assetIds;
+  return Array.isArray(ids) ? ids : [];
+}
+
+// Pragmatic mirror of the @formforge/blocks file-upload rules (shape, cap,
+// required). Duplicate/foreign ids stay possible client-side — the ingest
+// server re-validates against the block answerSchema + validate().
+function validateFileUpload(
+  value: unknown,
+  props: Record<string, unknown>,
+  required: boolean,
+): string | null {
+  const ids = assetIdsOf(value);
+  if (ids.some((id) => typeof id !== 'string' || id.length === 0)) {
+    return 'Invalid file reference.';
+  }
+  const maxFiles = propNum(props, 'maxFiles');
+  if (maxFiles !== undefined && ids.length > maxFiles) {
+    return `Please attach at most ${maxFiles} file${maxFiles === 1 ? '' : 's'}.`;
+  }
+  if (required && ids.length === 0) return MSG_REQUIRED;
+  return null;
 }
 
 function isEmptyText(value: unknown): boolean {
@@ -145,6 +174,10 @@ export function normalizeAnswer(block: Block, value: unknown): unknown {
     case 'single-select':
     case 'dropdown':
       return asSelectValue(value);
+    case 'file-upload': {
+      // Answer shape { assetIds: string[] } — drop non-string entries.
+      return { assetIds: assetIdsOf(value).filter((id) => typeof id === 'string' && id.length > 0) };
+    }
     default:
       return value;
   }

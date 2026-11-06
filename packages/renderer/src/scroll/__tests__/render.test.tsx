@@ -70,6 +70,50 @@ describe("ScrollRenderer (SSR)", () => {
     expect(html).not.toContain("<img");
   });
 
+  // T16 (issue #16) acceptance — "Generated image variants served with srcset
+  // + blur placeholder in renderer": a resolved ImageAssetRef (asset row with
+  // process-image variants, signed URLs) renders srcset/sizes + the LQIP blur.
+  it("serves T16 image variants with srcset + blur placeholder", () => {
+    const html = renderToString(
+      ScrollRenderer({
+        snapshot: snapshot([
+          {
+            id: "i1",
+            kind: "image",
+            props: {
+              src: {
+                assetId: "ast_1",
+                src: "https://cdn/photo.png",
+                srcSet: "https://cdn/photo.320w.webp 320w, https://cdn/photo.640w.avif 640w",
+                sizes: "(max-width: 640px) 100vw, 640px",
+                blurDataURL: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3C%2Fsvg%3E",
+                width: 1000,
+                height: 600,
+              },
+              alt: "A photo",
+            },
+          },
+        ]),
+      }),
+    );
+    expect(html).toContain('src="https://cdn/photo.png"');
+    expect(html).toContain('srcSet="https://cdn/photo.320w.webp 320w, https://cdn/photo.640w.avif 640w"');
+    expect(html).toContain('sizes="(max-width: 640px) 100vw, 640px"');
+    expect(html).toContain('width="1000"');
+    expect(html).toContain('height="600"');
+    expect(html).toContain("background-image:url(");
+    expect(html).toContain("data:image/svg+xml");
+  });
+
+  it("keeps a plain <img> when the snapshot carries no variant fields", () => {
+    const html = renderToString(
+      ScrollRenderer({ snapshot: snapshot([{ id: "i1", kind: "image", props: { src: "https://cdn/i.png", alt: "p" } }]) }),
+    );
+    expect(html).toContain("<img");
+    expect(html).not.toContain("srcSet");
+    expect(html).not.toContain("background-image");
+  });
+
   it("skips unknown blocks without crashing and warns server-side", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const html = renderToString(

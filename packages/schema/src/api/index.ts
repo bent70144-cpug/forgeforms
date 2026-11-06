@@ -7,5 +7,6 @@ export * from './pagination';
 export * from './tokens';
 export * from './documents';
 export * from './domains';
+export * from './assets';
 export * from './openapi';
 export * from './spec';

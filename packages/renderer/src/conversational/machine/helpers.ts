@@ -125,6 +125,12 @@ export function propOptions(props: Record<string, unknown>): SelectOption[] {
   return options;
 }
 
+/** String-array prop (file-upload `accept`, spec §7.2). */
+export function propAccept(props: Record<string, unknown>): string[] {
+  const raw = props['accept'];
+  return Array.isArray(raw) ? raw.filter((entry): entry is string => typeof entry === 'string' && entry !== '') : [];
+}
+
 /** Fisher–Yates shuffle used when single-select.randomize is on. */
 export function shuffled<T>(items: readonly T[]): T[] {
   const out = [...items];

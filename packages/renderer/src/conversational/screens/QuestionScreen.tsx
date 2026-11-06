@@ -5,6 +5,7 @@ import type { Block } from '../../bridge';
 import {
   isInstantAnswer,
   isQuestionKind,
+  propAccept,
   propBool,
   propNum,
   propOptions,
@@ -13,6 +14,7 @@ import {
 } from '../machine/helpers';
 import { questionLabel } from '../validation/validateAnswer';
 import { ChoiceList } from '../inputs/ChoiceList';
+import { FileUploadInput } from '../inputs/FileUpload';
 import { NpsInput } from '../inputs/NpsInput';
 import { RatingInput } from '../inputs/RatingInput';
 import { TextArea } from '../inputs/TextArea';
@@ -119,6 +121,19 @@ export function QuestionScreen({ block, number, total, value, error, onChange, o
             {...inputCommon}
             leftLabel={propStr(props, 'leftLabel') || undefined}
             rightLabel={propStr(props, 'rightLabel') || undefined}
+            value={value}
+          />
+        );
+        break;
+      case 'file-upload':
+        // T16 (issue #16): direct-to-storage upload — presign → PUT → confirm
+        // per file; the answer only ever holds confirmed asset ids.
+        input = (
+          <FileUploadInput
+            {...inputCommon}
+            accept={propAccept(props)}
+            maxSizeMb={propNum(props, 'maxSizeMb')}
+            maxFiles={propNum(props, 'maxFiles')}
             value={value}
           />
         );

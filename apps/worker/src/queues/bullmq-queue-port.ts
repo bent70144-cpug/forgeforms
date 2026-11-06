@@ -4,6 +4,8 @@
 //   - email:    5 attempts, exponential 30s (spec §12 "retry 5× exponential")
 //   - webhooks: 1 attempt — retries are SELF-managed by the deliver job so the
 //     exact schedule (1m/5m/30m/2h/12h + bounded jitter) is preserved.
+//   - assets:   3 attempts, exponential 10s — scan/process-image are idempotent
+//     (pending-only transitions, variants set once), so queue retries are safe.
 import type { DefaultJobOptions, Queue } from "bullmq";
 import type { EnqueueOptions, EnqueueResult, QueuePort } from "../ports";
 import { QUEUES, type JobName, type QueueName } from "./names";
@@ -24,6 +26,12 @@ export const QUEUE_DEFAULT_JOB_OPTIONS: Partial<Record<QueueName, DefaultJobOpti
   [QUEUES.webhooks]: {
     attempts: 1,
     removeOnComplete: { age: 7 * 24 * 3_600_000 },
+    removeOnFail: { age: 7 * 24 * 3_600_000 },
+  },
+  [QUEUES.assets]: {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 10_000 },
+    removeOnComplete: { age: 24 * 3_600_000 },
     removeOnFail: { age: 7 * 24 * 3_600_000 },
   },
 };

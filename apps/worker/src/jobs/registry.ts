@@ -7,6 +7,8 @@
 // Everything else (config, ports, workers, shutdown) is already generic.
 import type { AppError, Result, WorkerDeps } from "../ports";
 import { JOBS, QUEUES, type QueueName } from "../queues/names";
+import { processProcessImageJob } from "./assets-process-image";
+import { processScanJob as processAssetsScan } from "./assets-scan";
 import { processEmailJob } from "./email";
 import { processEventFanout } from "./event-fanout";
 import { processWebhookDeliver } from "./webhook-deliver";
@@ -53,6 +55,11 @@ export function registerJobs(deps: WorkerDeps): QueueRegistry {
     },
     [QUEUES.webhooks]: {
       [JOBS.deliver]: unwrapIntoProcessor((d, jobId, data) => processWebhookDeliver(d, jobId, data), deps),
+    },
+    // T16 (issue #16) — assets queue (spec §12): scan + WebP/AVIF planning.
+    [QUEUES.assets]: {
+      [JOBS.scan]: unwrapIntoProcessor((d, jobId, data) => processAssetsScan(d, jobId, data), deps),
+      [JOBS.processImage]: unwrapIntoProcessor((d, jobId, data) => processProcessImageJob(d, jobId, data), deps),
     },
   };
 }
