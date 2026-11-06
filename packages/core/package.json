@@ -10,6 +10,7 @@
     "./bridge": "./src/bridge.ts",
     "./logic": "./src/logic/index.ts",
     "./submissions": "./src/submissions/index.ts",
+    "./assets": "./src/assets/index.ts",
     "./integrations": "./src/integrations/index.ts",
     "./export": "./src/export/index.ts",
     "./templates": "./src/templates/index.ts",
