@@ -193,7 +193,9 @@ export class FakeDocuments implements DocumentService {
     for (const op of input.ops) {
       if (op.op === "meta.update") {
         if (op.patch.title !== undefined) row.title = op.patch.title;
-        if (op.patch.slug !== undefined) row.slug = op.patch.slug;
+        // B1/§21 made patch.slug nullable as the undo delete-token; this
+        // fake's row model keeps a required slug, so null is a no-op here.
+        if (op.patch.slug != null) row.slug = op.patch.slug;
       }
     }
     return ok(toDetail(row));

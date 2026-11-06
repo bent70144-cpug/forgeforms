@@ -25,7 +25,10 @@
 import { validateDocumentBody } from "@formforge/schema";
 import { registeredKindSchemas, safeHref } from "@formforge/blocks";
 import { lint } from "@formforge/core/logic";
-import { scanSensitiveFields } from "@formforge/core";
+// Deep subpath import (NOT the @formforge/core barrel): this module runs in
+// the browser, and the barrel pulls in node:crypto-dependent identity/billing
+// modules, which breaks the client webpack build (§19: one-line justification).
+import { scanSensitiveFields } from "@formforge/core/documents/sensitive-fields";
 import type { Block, DocumentBody } from "../bridge";
 import { getBlockMeta } from "./blockMeta";
 
