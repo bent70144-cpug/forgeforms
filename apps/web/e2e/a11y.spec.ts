@@ -122,6 +122,7 @@ test.describe('T28 axe — public form (conversational renderer harness)', () =>
 
 test.describe('T28 reduced-motion emulation (spec §14.4)', () => {
   test('renderer collapses animation/transition under prefers-reduced-motion: reduce', async ({ browser }) => {
+    test.setTimeout(90_000); // fresh context + dev-compile race; chromium crashes otherwise surface as 30s hangs
     const context = await browser.newContext({ reducedMotion: 'reduce' });
     const reduced = await context.newPage();
     await reduced.goto('/dev/form-plane-harness');
@@ -140,8 +141,13 @@ test.describe('T28 reduced-motion emulation (spec §14.4)', () => {
       .evaluate((el) => getComputedStyle(el).animationDuration)
       .catch(() => 'none'); // skeletons may already be replaced by real cards
     // '0.01ms' is the global reduced-motion collapse (globals.css, !important);
-    // '0s'/'none' cover per-component `animation: none` overrides.
-    expect(['0.01ms', '0.00001s', '0s', 'none']).toContain(skeleton);
+    // '0s'/'none' cover per-component `animation: none` overrides. Multi-animation
+    // elements return a comma-joined list — every duration must be collapsed.
+    const durations = String(skeleton).split(',').map((d) => d.trim());
+    expect(
+      durations.every((d) => ['0.01ms', '0.00001s', '0s', 'none'].includes(d)),
+      `reduced-motion must collapse the skeleton animation (computed: ${skeleton})`,
+    ).toBe(true);
 
     await context.close();
   });
