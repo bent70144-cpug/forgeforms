@@ -11,3 +11,6 @@ export {
 
 // T10 (issue #10): document_versions repository (insert-only, immutable rows).
 export * from "./repositories/document-versions.ts";
+
+// T04 (issue #4): RLS-bound tenant repositories + scope helpers.
+export * from "./repositories/tenant.ts";
