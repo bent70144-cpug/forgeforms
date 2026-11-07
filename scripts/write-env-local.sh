@@ -23,7 +23,9 @@ write_env() { # $1 = target path, $2 = include gh line ("yes"/"no")
     echo "AUTH_SECRET=$AUTH"
     echo "LOG_LEVEL=info"
     echo "DATABASE_URL=$POOLED"
-    echo "REDIS_URL=redis://localhost:6379"
+    # No REDIS_URL locally: with it set, the public ingest wiring uses Redis
+    # idempotency + BullMQ (fails, no redis in sandbox). Omitting it makes
+    # ingest fall back to in-memory stores (the file header documents this).
     if [ "$2" = "yes" ] && [ -n "$GH_LINE" ]; then echo "$GH_LINE"; fi
   } > "$1"
   chmod 600 "$1"

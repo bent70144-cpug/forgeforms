@@ -34,3 +34,4 @@ scripts/.neon-db-url
 scripts/.neon-db-url-direct
 .hallmark/
 scripts/.vercel-env*
+scripts/.neon-api-key
