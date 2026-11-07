@@ -1,6 +1,7 @@
 // RestorePrompt — §7.2 static-render tests (node env, no jsdom). Covers the
 // restore variant (Restore + Discard), the discard-stale variant (Discard
-// only + note) and the null no-op.
+// only + note — since follow-up #2 the fallback shown when the §7.3 conflict
+// routing's server-doc fetch fails) and the null no-op.
 
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
