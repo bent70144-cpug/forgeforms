@@ -25,6 +25,7 @@ import {
   type EditorAction,
   type EditorState,
 } from "@/lib/builder/store";
+import { telemetryDispatch } from "@/lib/builder/telemetry-events";
 
 type BuilderContextValue = {
   state: EditorState;
@@ -56,11 +57,17 @@ export function BuilderProvider({
   initialState?: EditorState;
   children: ReactNode;
 }) {
-  const [state, dispatch] = useReducer(
+  const [state, rawDispatch] = useReducer(
     editorReducer,
     initialState ?? docId,
     (arg: EditorState | string) => (typeof arg === "string" ? initialEditorState(arg) : arg),
   );
+  // §15 telemetry (builder audit follow-up #9): ONE observation point for the
+  // mutation vocabulary (block_added/deleted/moved, undo, redo) — wrapped
+  // around dispatch, never inside the reducer; per-keystroke ops
+  // (block.update) emit nothing. Identity-stable (memoized on the stable raw
+  // dispatch) so §13 memoization (React.memo cards, stable callbacks) holds.
+  const dispatch = useMemo(() => telemetryDispatch(rawDispatch), [rawDispatch]);
   const value = useMemo<BuilderContextValue>(() => ({ state, dispatch }), [state]);
   return (
     <BuilderContext.Provider value={value}>

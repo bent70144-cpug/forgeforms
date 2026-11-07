@@ -51,6 +51,8 @@ import {
   rejectionNoticeText,
   sharedOfflineQueue,
 } from "@/lib/builder/wiring";
+import { withAutosaveTelemetry } from "@/lib/builder/telemetry-events";
+import { track } from "@/lib/telemetry";
 import { BuilderProvider, useBuilder } from "./context";
 import { BuilderShell } from "./BuilderShell";
 import { BlockPicker } from "./BlockPicker";
@@ -133,7 +135,9 @@ function BuilderSession({
         if (loadDocument) {
           envelope = await loadDocument(docId);
         } else {
-          const transport = createTransport();
+          // §15: the transport PATCH is wrapped so autosave completion points
+          // emit autosave_ok {opsCount, ms} / autosave_error {status}.
+          const transport = withAutosaveTelemetry(createTransport());
           transportRef.current = transport;
           envelope = await transport.load(docId);
         }
@@ -141,6 +145,8 @@ function BuilderSession({
         const mode =
           loadDocument || process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1" ? "mock" : "api";
         dispatch({ type: "loaded", envelope, mode });
+        // §15: builder session started (ids/counts only — no payload).
+        track("builder_opened");
         // §14: an archived document shows the banner (editing disabled).
         setEnvelopeArchived((envelope.status as string) === "archived");
 
@@ -211,15 +217,19 @@ function BuilderSession({
       },
       // §7.3.3 rebase failed — the dialog takes over (queue parked inside
       // the controller; local pending ops stay mirrored to IndexedDB).
-      onConflict: (event) => setConflict(event),
+      // §15: conflict raised, not yet resolved.
+      onConflict: (event) => {
+        setConflict(event);
+        track("conflict", { resolved: false });
+      },
       // §14: exactly one op was rolled back — surface a dismissable notice.
       onOpRejected: ({ code, message }: OpRejectedEvent) => {
         console.warn(`[formforge:builder] op rejected by the server (422 ${code}): ${message}`);
         setRejectNotice(rejectionNoticeText({ code, message }));
       },
       // §7.3.4: history was already reset by the `reconciled` dispatch —
-      // nothing else to clear here.
-      onConflictResolved: () => {},
+      // nothing else to clear here. §15: the conflict was resolved.
+      onConflictResolved: () => track("conflict", { resolved: true }),
     });
     controllerRef.current = controller;
     return () => {
@@ -253,18 +263,28 @@ function BuilderSession({
   }, [docId]);
 
   // --- "ff:force-save" (⌘S / publish 409) + "ff:open-preview" (⌘⇧P) ----------
+  // §15: both preview paths flow through openPreview so preview_opened has a
+  // single emission seam (window event AND TopBar's controlled open).
+  const openPreview = useCallback(() => {
+    setPreviewOpen(true);
+    track("preview_opened");
+  }, []);
+  const onPreviewOpenChange = useCallback((open: boolean) => {
+    setPreviewOpen(open);
+    if (open) track("preview_opened");
+  }, []);
+
   useEffect(() => {
     const onForceSave = () => {
       void controllerRef.current?.flushNow();
     };
-    const onOpenPreview = () => setPreviewOpen(true);
     window.addEventListener(SHORTCUT_EVENTS.forceSave, onForceSave);
-    window.addEventListener(SHORTCUT_EVENTS.openPreview, onOpenPreview);
+    window.addEventListener(SHORTCUT_EVENTS.openPreview, openPreview);
     return () => {
       window.removeEventListener(SHORTCUT_EVENTS.forceSave, onForceSave);
-      window.removeEventListener(SHORTCUT_EVENTS.openPreview, onOpenPreview);
+      window.removeEventListener(SHORTCUT_EVENTS.openPreview, openPreview);
     };
-  }, []);
+  }, [openPreview]);
 
   // --- zero data loss on reload (§7.1) ----------------------------------------
   useEffect(() => {
@@ -378,7 +398,7 @@ function BuilderSession({
         notice={rejectNotice}
         onNoticeDismiss={() => setRejectNotice(null)}
         previewOpen={previewOpen}
-        onPreviewOpenChange={setPreviewOpen}
+        onPreviewOpenChange={onPreviewOpenChange}
       />
 
       {/* Wave-3 overlays — mounted exactly once (single listeners live in
