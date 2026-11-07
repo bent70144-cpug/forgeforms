@@ -68,6 +68,14 @@ export { HeroProps, heroDefaultProps } from "./hero/schema";
 export { HeroEditor } from "./hero/editor";
 export { HeroRender } from "./hero/render";
 
+// Follow-up #6 (builder-audit §9.4): Tiptap JSON richText, sanitized on render,
+// editor lazy-loaded per §13 — see ./text/.
+export { textBlock } from "./text";
+export { TextProps, textDefaultProps, paragraphDoc, plainTextFromRichText, isRichTextDoc, RichTextDocSchema, RICH_TEXT_MARK_TYPES } from "./text/schema";
+export type { RichTextBlock, RichTextDoc, RichTextInline, RichTextListItem, RichTextMark, RichTextMarkType, RichTextValue } from "./text/schema";
+export { TextEditor } from "./text/editor";
+export { TextRender } from "./text/render";
+
 export { shortTextBlock } from "./short-text";
 export {
   ShortTextAnswer,
