@@ -40,9 +40,11 @@ import {
   type ConflictMode,
   type LimitExceededEvent,
   type OpRejectedEvent,
+  type PlanLimitEvent,
   type UnauthenticatedEvent,
 } from "@/lib/builder/autosave";
 import { createTransport, type DocumentTransport } from "@/lib/builder/transport";
+import { BUILDER_EVENTS } from "@/lib/builder/canvas-ops";
 import type { DocumentEnvelope } from "@/lib/bridge";
 import {
   discardPending as discardStoredPending,
@@ -56,6 +58,7 @@ import type { Op } from "@/lib/builder/ops";
 import {
   bannerKindFor,
   limitExceededNoticeText,
+  planLimitNoticeText,
   planRecovery,
   rejectionNoticeText,
   sharedOfflineQueue,
@@ -275,8 +278,6 @@ function BuilderSession({
         recoveryConflictRef.current = null;
         setConflict(event);
       },
-      // the controller; local pending ops stay mirrored to IndexedDB).
-      onConflict: (event) => setConflict(event),
       // §7.1 follow-up #3 — session expired: park + prompt. Pending ops stay
       // in the controller queue (and the IndexedDB mirror) until resume.
       onUnauthenticated: (event) => setReauth(event),
@@ -292,6 +293,15 @@ function BuilderSession({
           `[formforge:builder] flush refused: document body JSON ~${chars} chars exceeds the 1 MB cap`,
         );
         setRejectNotice(limitExceededNoticeText());
+      },
+
+      // §14 (follow-up #8): the batch was refused with 402/403 — an inline
+      // plan-limit explanation in the SAME shell notice, never a dead end.
+      onPlanLimit: (event: PlanLimitEvent) => {
+        console.warn(
+          `[formforge:builder] save refused by the plan (${event.status}${event.capability ? ` ${event.capability}` : ""}): ${event.message}`,
+        );
+        setRejectNotice(planLimitNoticeText(event, latest.current.state.entitlements));
       },
       // §7.3.4: history was already reset by the `reconciled` dispatch —
       // nothing else to clear here.
@@ -339,16 +349,24 @@ function BuilderSession({
   }, [docId]);
 
   // --- "ff:force-save" (⌘S / publish 409) + "ff:open-preview" (⌘⇧P) ----------
+  // + "ff:plan-limit" (§14 follow-up #8 — publish refused by 402/403).
   useEffect(() => {
     const onForceSave = () => {
       void controllerRef.current?.flushNow();
     };
     const onOpenPreview = () => setPreviewOpen(true);
+    const onPlanLimit = (event: Event) => {
+      const detail = (event as CustomEvent<PlanLimitEvent>).detail;
+      if (!detail) return;
+      setRejectNotice(planLimitNoticeText(detail, latest.current.state.entitlements));
+    };
     window.addEventListener(SHORTCUT_EVENTS.forceSave, onForceSave);
     window.addEventListener(SHORTCUT_EVENTS.openPreview, onOpenPreview);
+    window.addEventListener(BUILDER_EVENTS.planLimit, onPlanLimit);
     return () => {
       window.removeEventListener(SHORTCUT_EVENTS.forceSave, onForceSave);
       window.removeEventListener(SHORTCUT_EVENTS.openPreview, onOpenPreview);
+      window.removeEventListener(BUILDER_EVENTS.planLimit, onPlanLimit);
     };
   }, []);
 

@@ -1,7 +1,10 @@
 /**
  * T07 — GET/PATCH/DELETE /api/v1/documents/:id (spec §8, §11).
  *
- * GET     the builder envelope (draft body + metadata; T08 DocumentTransport).
+ * GET     the builder envelope (draft body + metadata; T08 DocumentTransport)
+ *         + the §24 `entitlements` surface resolved via billing for the
+ *         workspace's plan (additive; free-plan default when billing is
+ *         unreachable — follow-up #8).
  * PATCH   applies `{ baseRev, ops }` in one transaction against the draft,
  *         validates the result with DocumentBody, increments `rev`. A stale
  *         baseRev → 409 CONFLICT carrying the CURRENT rev + body (spec §8).
@@ -13,6 +16,7 @@ import { authenticate } from '../../_lib/auth';
 import { handleApiError, noContent } from '../../_lib/respond';
 import { jsonOk } from '@/lib/api/http';
 import { documentsCrud, toDocumentEnvelope } from '@/lib/api/documents';
+import { builderEntitlementsFor } from '@/lib/api/entitlements';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,7 +32,8 @@ export async function GET(
 
     const result = await documentsCrud.get(ctx, id);
     if (!result.ok) return handleApiError(result.error);
-    return jsonOk(toDocumentEnvelope(result.value));
+    const entitlements = await builderEntitlementsFor(ctx.workspaceId);
+    return jsonOk(toDocumentEnvelope(result.value, entitlements));
   } catch (error) {
     return handleApiError(error);
   }

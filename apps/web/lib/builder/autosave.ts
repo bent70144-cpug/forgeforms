@@ -33,6 +33,8 @@ import type { Block, DocumentBody, DocumentEnvelope } from "../bridge";
 import { applyOpsBestEffort, type EditableDoc, type Op } from "./ops";
 import {
   ConflictError,
+  ForbiddenError,
+  PlanLimitError,
   type DocumentTransport,
   type PatchResult,
   OpRejectedError,
@@ -89,11 +91,26 @@ export type OpRejectedEvent = { op: Op; index: number; code: string; message: st
  * open or dismissed.
  */
 export type UnauthenticatedEvent = { pendingCount: number };
+
+/**
  * §13/§14 hard limit hit at flush time (follow-up #10): the local document
  * body is over the ~1 MB JSON cap, so the growth batch is refused BEFORE it
  * is sent (the server would answer 413 anyway). The batch stays queued.
  */
 export type LimitExceededEvent = { kind: "bytes"; chars: number };
+
+/**
+ * The save was refused by the plan (§13/§14): 402 PLAN_LIMIT or 403
+ * FORBIDDEN. The pending ops are KEPT (never dropped — zero data loss) and
+ * parked without a retry timer; the next enqueue/flush retries them (e.g.
+ * after an upgrade). The UI shows an inline plan-limit explanation.
+ */
+export type PlanLimitEvent = {
+  status: 402 | 403;
+  message: string;
+  /** §13 capability from the 402 body, when present (e.g. notifyEmailsLimit). */
+  capability: string | null;
+};
 
 export type AutosaveOptions = {
   transport: DocumentTransport;
@@ -144,6 +161,8 @@ export type AutosaveOptions = {
    * parked and the UI should show the re-auth dialog.
    */
   onUnauthenticated?: (event: UnauthenticatedEvent) => void;
+
+  /**
    * §13/§14 hard limit — a flush was refused because the document body JSON
    * is over the ~1 MB cap (checked ONLY on growth batches, so pure deletes
    * always go through and let the user shrink the document back under the
@@ -151,6 +170,10 @@ export type AutosaveOptions = {
    * flushNow / reconnect retries it.
    */
   onLimitExceeded?: (event: LimitExceededEvent) => void;
+
+  /** §14 — the batch was refused with 402/403; surface an inline
+   * plan-limit explanation (never a dead-end error). */
+  onPlanLimit?: (event: PlanLimitEvent) => void;
   /** After any conflict resolution — the UI clears its undo history (§7.3.4). */
   onConflictResolved?: (mode: ConflictMode) => void;
   schedule?: (fn: () => void, ms: number) => () => void;
@@ -636,6 +659,21 @@ export class AutosaveController {
       return false;
     }
 
+    // §14: plan refusals are NOT transient — keep the ops (zero data loss)
+    // and park without a retry timer (retrying a 402 would just churn). The
+    // queue restarts on the next enqueue / flushNow / online event, so an
+    // upgrade mid-session unblocks the very next flush.
+    if (err instanceof PlanLimitError || err instanceof ForbiddenError) {
+      this.pending.unshift(...batch);
+      this.emit("error", err.message);
+      this.options.onPlanLimit?.({
+        status: err.status === 402 ? 402 : 403,
+        message: err.message,
+        capability: err instanceof PlanLimitError ? err.capability : null,
+      });
+      return false;
+    }
+
     if (isNetworkFailure(err)) {
       // §7.1: fetch failure — keep the queue and wait for reconnect.
       this.pending.unshift(...batch);
@@ -748,5 +786,5 @@ function defaultSchedule(fn: () => void, ms: number): () => void {
 }
 
 // Re-export so UI code can `instanceof` without importing transport directly.
-export { ConflictError, OpRejectedError, UnauthenticatedError };
+export { ConflictError, ForbiddenError, OpRejectedError, PlanLimitError, UnauthenticatedError };
 export type { DocumentEnvelope };

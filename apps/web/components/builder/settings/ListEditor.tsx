@@ -1,20 +1,30 @@
 'use client';
 
 // Email list editor (builder spec §6.6 Notifications): add on Enter, remove
-// with ×, validated inline, capped (max 10 — entitlement unknown client-side,
-// §24 note). The cap error is surfaced inline; a field-level error never
-// blocks autosave (§6.6) — it only styles the input and shows a message.
+// with ×, validated inline, capped at the §24 notifyEmailsLimit entitlement
+// (max prop; falls back to the §6.6 document cap of 10 when the entitlement
+// is unknown). The cap error is surfaced inline WITH the actual limit; a
+// field-level error never blocks autosave (§6.6) — it only styles the input
+// and shows a message.
 
 import { useState, type KeyboardEvent } from "react";
 import { FF_SET_INPUT_CLASS } from "./FieldRow";
 import { MAX_NOTIFY_EMAILS, validateEmailDraft, type EmailDraftResult } from "./settings-helpers";
 
-const DRAFT_REASON_MESSAGE: Record<Exclude<EmailDraftResult, { ok: true }>["reason"], string> = {
-  empty: "Enter an email address.",
-  invalid: "That doesn't look like a valid email address.",
-  duplicate: "That address is already on the list.",
-  limit: `Maximum of ${MAX_NOTIFY_EMAILS} recipients reached.`,
-};
+// §24 limit copy — shows the EFFECTIVE cap (notifyEmailsLimit entitlement),
+// not the §6.6 document default (follow-up #8).
+function draftReasonMessage(reason: Exclude<EmailDraftResult, { ok: true }>["reason"], max: number): string {
+  switch (reason) {
+    case "empty":
+      return "Enter an email address.";
+    case "invalid":
+      return "That doesn't look like a valid email address.";
+    case "duplicate":
+      return "That address is already on the list.";
+    case "limit":
+      return `Plan limit reached: notifications are limited to ${max} on your plan.`;
+  }
+}
 
 export function EmailListEditor({
   emails,
@@ -38,7 +48,8 @@ export function EmailListEditor({
   const commit = (): void => {
     const result = validateEmailDraft(draft, emails, max);
     if (!result.ok) {
-      setError(result.reason === "empty" && draft.trim() === "" && !atLimit ? null : DRAFT_REASON_MESSAGE[result.reason]);
+      const message = draftReasonMessage(result.reason, max);
+      setError(result.reason === "empty" && draft.trim() === "" && !atLimit ? null : message);
       return;
     }
     setError(null);

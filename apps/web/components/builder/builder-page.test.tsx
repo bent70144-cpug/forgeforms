@@ -13,6 +13,7 @@ import { createSaveStatusStore } from "./save-indicator";
 import { canUndo, emptyHistory } from "@/lib/builder/history";
 import { emptyBody } from "@/lib/builder/ops";
 import { editorReducer, initialEditorState, type EditorState } from "@/lib/builder/store";
+import { planLimitNoticeText } from "@/lib/builder/wiring";
 import type { DocumentEnvelope } from "@/lib/bridge";
 
 const envelope: DocumentEnvelope = {
@@ -101,6 +102,35 @@ describe("<BuilderShell> (loaded state)", () => {
     expect(
       renderLoaded(endings, h(BuilderShell, { saveStatusStore: createSaveStatusStore() })),
     ).toContain('data-testid="endings-panel"');
+  });
+
+  // §14 (follow-up #8): 402/403 plan-limit answers surface in the SAME
+  // dismissable shell notice as the 422 rollback notice — never a dead end.
+  it("renders the §14 plan-limit notice copy in the shell notice (402/403)", () => {
+    const notice = planLimitNoticeText(
+      { status: 402, capability: "notifyEmailsLimit" },
+      { notifyEmailsLimit: 1 },
+    );
+    const html = renderLoaded(
+      loadedState(),
+      h(BuilderShell, {
+        saveStatusStore: createSaveStatusStore(),
+        bannerKind: "none",
+        notice,
+      }),
+    );
+    expect(html).toContain('data-testid="builder-notice"');
+    expect(html).toContain("Plan limit reached: notifications are limited to 1 on your plan");
+
+    const forbidden = renderLoaded(
+      loadedState(),
+      h(BuilderShell, {
+        saveStatusStore: createSaveStatusStore(),
+        bannerKind: "none",
+        notice: planLimitNoticeText({ status: 403 }),
+      }),
+    );
+    expect(forbidden).toContain("Not allowed on this plan");
   });
 
   it("flags blocks with a missing label with an issue badge (§8.1 block level)", () => {

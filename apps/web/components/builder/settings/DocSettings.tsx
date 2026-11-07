@@ -8,10 +8,14 @@
 //   • validation errors are per-field local state — they style the field and
 //     show a message but NEVER block the (draft) autosave.
 //
-// §24 plan gates: the builder client has no entitlements surface (the GET
-// envelope carries no permissions — verified against lib/bridge.ts +
-// app/api/v1/documents/[id]/route.ts), so `showBranding` renders as a STATIC
-// gate: switch locked on + disabled + the §24 inline note "Available on Pro".
+// §24 plan gates (follow-up #8): the GET envelope now carries the §24
+// `entitlements` surface (resolved server-side via billing can()) and the
+// builder store holds it in state. Gates are REAL:
+//   • showBranding — locked ON + disabled + "Pro feature" note when
+//     removeBranding is false (entitlement unknown → stays gated);
+//   • notify emails — max = notifyEmailsLimit (replaces the hardcoded 10);
+//   • file-upload plan cap — surfaced on the block settings (BlockSettings);
+//   • redirect endings — gated on customRedirect (EndingsPanel).
 // No upgrade modals anywhere (§24 forbids them inside the builder).
 
 import { useState } from "react";
@@ -56,6 +60,10 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
   const { state, dispatch } = useBuilder();
   const [tab, setTab] = useState<DocSettingsTab>(initialTab ?? "general");
   const settings = state.body.settings;
+  // §24 entitlements (null = unknown → conservative free gates).
+  const entitlements = state.entitlements;
+  const brandingAllowed = entitlements?.removeBranding === true;
+  const notifyMax = entitlements?.notifyEmailsLimit ?? MAX_NOTIFY_EMAILS;
 
   // --- debounced text patches (op builders run at push time) ---------------
   const pushMetaTitle = useDebouncedPatch(
@@ -197,13 +205,15 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
               <ToggleRow
                 label="Show FormForge branding"
                 checked={settings.showBranding}
-                // §24 static gate: no entitlements surface client-side yet →
-                // the switch is locked ON and disabled with an inline note.
-                disabled
-                onChange={() => undefined}
+                // §24 real gate: without the removeBranding entitlement the
+                // switch stays locked ON (the badge is required on free).
+                disabled={!brandingAllowed}
+                onChange={(next) => updateSettings({ showBranding: next })}
                 testId="ff-set-branding"
               />
-              <InlineNote testId="ff-set-branding-note">Available on Pro</InlineNote>
+              {!brandingAllowed && (
+                <InlineNote testId="ff-set-branding-note">Pro feature</InlineNote>
+              )}
             </div>
             <ToggleRow
               label="Captcha"
@@ -262,7 +272,7 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
           <SettingsSection title="Notifications" testId="ff-set-notifications">
             <EmailListEditor
               emails={settings.notifyEmails}
-              max={MAX_NOTIFY_EMAILS}
+              max={notifyMax}
               onAdd={(email) =>
                 updateSettings({ notifyEmails: [...settings.notifyEmails, email] })
               }
@@ -274,9 +284,10 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 })
               }
             />
-            <InlineNote>
-              Recipients get an email after every completed submission (§24: free plans are
-              capped at 1 — plan checks arrive with billing integration).
+            <InlineNote testId="ff-set-notify-note">
+              {notifyMax < MAX_NOTIFY_EMAILS
+                ? `Your plan allows ${notifyMax} recipient${notifyMax === 1 ? "" : "s"} per form — Pro raises the cap to ${MAX_NOTIFY_EMAILS}.`
+                : "Recipients get an email after every completed submission."}
             </InlineNote>
             <button type="button" disabled title="Coming soon" className="ff-set-btn" data-testid="ff-set-send-test-email">
               Send test email

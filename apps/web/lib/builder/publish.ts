@@ -593,6 +593,14 @@ export type PublishResult =
     }
   | { ok: false; reason: "conflict" }
   | { ok: false; reason: "validation"; issues: ValidationIssue[] }
+  /** §14/§13: publish refused by the plan (402 PLAN_LIMIT / 403 FORBIDDEN). */
+  | {
+      ok: false;
+      reason: "plan-limit";
+      status: 402 | 403;
+      message: string;
+      capability: string | null;
+    }
   | { ok: false; reason: "error"; message: string };
 
 /** Minimal fetch seam so tests stub responses without a network. */
@@ -658,12 +666,42 @@ export async function publishDocument(
     };
   }
 
+  // §14 plan-limit explanation: 402 PLAN_LIMIT / 403 FORBIDDEN carry the §4
+  // error envelope; the caller surfaces an inline notice (never a dead end).
+  if (res.status === 402 || res.status === 403) {
+    const errorRecord = (json?.error ?? undefined) as UnknownRecord | undefined;
+    const message =
+      typeof errorRecord?.message === "string"
+        ? errorRecord.message
+        : `Publish failed with status ${res.status}.`;
+    return {
+      ok: false,
+      reason: "plan-limit",
+      status: res.status,
+      message,
+      capability: capabilityFromDetails(errorRecord?.details),
+    };
+  }
+
   const errorRecord = (json?.error ?? undefined) as UnknownRecord | undefined;
   const message =
     typeof errorRecord?.message === "string"
       ? errorRecord.message
       : `Publish failed with status ${res.status}.`;
   return { ok: false, reason: "error", message };
+}
+
+/** `details: [{ path: 'capability', message: 'customRedirect' }]` → value. */
+function capabilityFromDetails(details: unknown): string | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    const record =
+      typeof item === "object" && item !== null
+        ? (item as { path?: unknown; message?: unknown })
+        : undefined;
+    if (record?.path === "capability" && typeof record.message === "string") return record.message;
+  }
+  return null;
 }
 
 async function readJson(res: Pick<Response, "json">): Promise<unknown> {

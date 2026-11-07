@@ -6,7 +6,7 @@
 // the reducer is pure and portable to a zustand store unchanged if the team
 // later adopts the pinned stack.
 
-import type { DocumentEnvelope, DocumentStatus } from "../bridge";
+import type { BuilderEntitlements, DocumentEnvelope, DocumentStatus } from "../bridge";
 import { mergeCoalescedEntry } from "./coalesce";
 import { emptyHistory, popRedo, popUndo, pushEntry, type History } from "./history";
 import { checkInsertLimits, type LimitViolation } from "./limits";
@@ -50,6 +50,9 @@ export type EditorState = {
    * never set it (history only revisits states that already passed the guard).
    */
   limitsViolation: LimitViolation | null;
+  /** §24 builder entitlements (follow-up #8) — from the GET envelope; null
+   * until loaded (and for mocks) → surfaces keep their conservative gates. */
+  entitlements: BuilderEntitlements | null;
 };
 
 export type EditorAction =
@@ -99,6 +102,7 @@ export function initialEditorState(docId: string): EditorState {
     emit: null,
     emitNonce: 0,
     limitsViolation: null,
+    entitlements: null,
   };
 }
 
@@ -128,6 +132,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         body: action.envelope.body,
         docStatus: action.envelope.status,
         rev: action.envelope.rev,
+        entitlements: action.envelope.entitlements ?? null,
         history: emptyHistory(),
         selection: null,
       };
@@ -275,6 +280,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           body: action.envelope.body,
           docStatus: action.envelope.status,
           rev: action.envelope.rev,
+          entitlements: action.envelope.entitlements ?? state.entitlements,
           history: emptyHistory(),
           save: "saved",
           limitsViolation: null, // server replacement makes any refusal stale

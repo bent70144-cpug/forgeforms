@@ -6,9 +6,10 @@ import {
   type AutosaveStatus,
   type ConflictEvent,
   type OpRejectedEvent,
+  type PlanLimitEvent,
   type RebasedEvent,
 } from "./autosave";
-import { ConflictError, MockTransport, OpRejectedError, TransportError, UnauthenticatedError, seedEnvelope } from "./transport";
+import { ConflictError, ForbiddenError, MockTransport, OpRejectedError, PlanLimitError, TransportError, UnauthenticatedError, seedEnvelope } from "./transport";
 import type { OfflineQueuePort, PendingBatchRecord } from "./offline";
 
 type Call = { baseRev: number; ops: readonly Op[] };
@@ -670,6 +671,83 @@ describe("AutosaveController", () => {
     ]);
     expect(c.acks).toEqual([2]);
     expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    controller.destroy();
+  });
+
+  // §14 plan-limit answers (follow-up #8): 402/403 keep the ops (zero data
+  // loss), park WITHOUT a retry timer, and fire onPlanLimit so the UI can
+  // explain inline — never a dead-end error, never backoff churn.
+  it("keeps the batch and fires onPlanLimit on 402 PLAN_LIMIT (§14, parked)", async () => {
+    const { transport, patches } = recordedTransport(env(), [
+      () => {
+        throw new PlanLimitError('Plan limit reached for "notifyEmailsLimit" — upgrade to pro.', "notifyEmailsLimit", "pro");
+      },
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const planLimits: PlanLimitEvent[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onPlanLimit: (event) => void planLimits.push(event),
+    });
+
+    const batch: Op[] = [{ op: "settings.update", patch: { notifyEmails: ["a@b.co"] } }];
+    controller.enqueue(batch);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(planLimits).toHaveLength(1);
+    expect(planLimits[0]).toEqual({
+      status: 402,
+      message: 'Plan limit reached for "notifyEmailsLimit" — upgrade to pro.',
+      capability: "notifyEmailsLimit",
+    });
+    expect(controller.pendingCount).toBe(1); // kept, never dropped
+    expect(c.statuses[c.statuses.length - 1]).toBe("error");
+
+    // Parked: no transient backoff churn while the plan blocks the save.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(patches.length).toBe(1);
+
+    // The next flush trigger retries the SAME batch (e.g. after an upgrade).
+    controller.enqueue([{ op: "meta.update", patch: { title: "nudge" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops).toEqual([...batch, { op: "meta.update", patch: { title: "nudge" } }]);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    controller.destroy();
+  });
+
+  it("fires onPlanLimit with status 403 and null capability on FORBIDDEN (§14)", async () => {
+    const { transport, patches } = recordedTransport(env(), [
+      () => {
+        throw new ForbiddenError("Not allowed for this credential");
+      },
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const planLimits: PlanLimitEvent[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onPlanLimit: (event) => void planLimits.push(event),
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(planLimits).toHaveLength(1);
+    expect(planLimits[0]?.status).toBe(403);
+    expect(planLimits[0]?.capability).toBeNull();
+    expect(controller.pendingCount).toBe(1); // kept
+    await vi.advanceTimersByTimeAsync(60_000); // parked, no churn
+    expect(patches.length).toBe(1);
     controller.destroy();
   });
 

@@ -8,7 +8,7 @@
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { DocumentEnvelope } from "@/lib/bridge";
+import type { BuilderEntitlements, DocumentEnvelope } from "@/lib/bridge";
 import { emptyBody } from "@/lib/builder/ops";
 import { editorReducer, initialEditorState, type EditorState } from "@/lib/builder/store";
 import { BuilderProvider } from "./context";
@@ -35,6 +35,7 @@ const ruleToEnd1 = {
 function envelopeWith(
   endings: Array<typeof ending1 | typeof ending2>,
   rules: Array<typeof ruleToEnd1> = [ruleToEnd1],
+  entitlements?: BuilderEntitlements,
 ): DocumentEnvelope {
   return {
     id: "doc1",
@@ -42,9 +43,26 @@ function envelopeWith(
     title: "T",
     status: "draft",
     type: "form",
+    ...(entitlements ? { entitlements } : {}),
     body: { ...emptyBody("form"), endings, logic: { rules } },
   };
 }
+
+const FREE_ENTITLEMENTS: BuilderEntitlements = {
+  plan: "free",
+  removeBranding: false,
+  fileUploadMaxMb: 10,
+  customRedirect: false,
+  notifyEmailsLimit: 1,
+};
+
+const PRO_ENTITLEMENTS: BuilderEntitlements = {
+  plan: "pro",
+  removeBranding: true,
+  fileUploadMaxMb: 10,
+  customRedirect: true,
+  notifyEmailsLimit: 10,
+};
 
 function renderPanel(envelope: DocumentEnvelope): string {
   const state: EditorState = editorReducer(initialEditorState("doc1"), {
@@ -93,7 +111,28 @@ describe("<EndingsPanel> (static render)", () => {
   it("keeps the redirect input ENABLED with the §24 Pro note (entitlement unknown)", () => {
     const html = renderPanel(envelopeWith([ending1]));
     expect(html).toContain("Redirect endings require Pro");
-    expect(html).not.toMatch(/id="ff-ending-redirect"[^>]*disabled/);
+    // `\sdisabled` — a real disabled attribute, NOT `aria-disabled="false"`.
+    expect(html).not.toMatch(/id="ff-ending-redirect"[^>]*\sdisabled/);
+    expect(html).toMatch(/id="ff-ending-redirect"[^>]*aria-disabled="false"/);
+  });
+
+  // §24 real gates (follow-up #8): customRedirect false → disabled + note;
+  // true → editable, note dropped.
+  it("DISABLES the redirect input with the inline note on free (customRedirect=false)", () => {
+    const html = renderPanel(envelopeWith([ending1], [], FREE_ENTITLEMENTS));
+    expect(html).toContain("Redirect endings require Pro");
+    expect(html).toMatch(/id="ff-ending-redirect"[^>]*disabled/);
+    expect(html).toMatch(/id="ff-ending-redirect"[^>]*aria-disabled="true"/);
+  });
+
+  it("ENABLES the redirect input without the note when customRedirect is entitled", () => {
+    const html = renderPanel(envelopeWith([ending1], [], PRO_ENTITLEMENTS));
+    expect(html).not.toContain("Redirect endings require Pro");
+    const field = html.match(/<input[^>]*id="ff-ending-redirect"[^>]*>/)?.[0] ?? "";
+    // `disabled=""` — the real disabled attribute (aria-disabled="false" is
+    // the explicit not-gated marker, not a disabled control).
+    expect(field).not.toContain('disabled=""');
+    expect(field).toContain('aria-disabled="false"');
   });
 
   it("delete is enabled with 2 endings and no confirm strip yet", () => {

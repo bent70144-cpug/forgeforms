@@ -89,6 +89,30 @@ export class OpRejectedError extends TransportError {
   }
 }
 
+/**
+ * `402 PLAN_LIMIT` (§13/§14) — the workspace's plan cannot do this. Carries
+ * the §13 capability + cheapest satisfying plan when the §4 error details
+ * include them (planLimitError's `{ path: 'capability' | 'requiredPlan' }`).
+ */
+export class PlanLimitError extends TransportError {
+  constructor(
+    message: string,
+    public readonly capability: string | null,
+    public readonly requiredPlan: string | null,
+  ) {
+    super("PLAN_LIMIT", message, 402);
+    this.name = "PlanLimitError";
+  }
+}
+
+/** `403 FORBIDDEN` (§14) — not allowed for this credential/plan. */
+export class ForbiddenError extends TransportError {
+  constructor(message: string) {
+    super("FORBIDDEN", message, 403);
+    this.name = "ForbiddenError";
+  }
+}
+
 type ErrorBody = { error?: { code?: string; message?: string; details?: unknown } };
 
 /** `ops[3].id` → 3 (the §4 detail path is where the current server buries it). */
@@ -147,6 +171,16 @@ function isAuthRequired(status: number, code: string, message: string): boolean 
   return status === 403 && code === "FORBIDDEN" && /^Authentication required\b/.test(message);
 }
 
+/** `details: [{ path: 'capability', message: 'customRedirect' }]` → value. */
+function detailValue(details: unknown, path: string): string | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    const record = typeof item === "object" && item !== null ? (item as { path?: unknown; message?: unknown }) : undefined;
+    if (record?.path === path && typeof record.message === "string") return record.message;
+  }
+  return null;
+}
+
 async function parseError(res: Response): Promise<TransportError> {
   let code = "INTERNAL";
   let message = `Request failed with ${res.status}`;
@@ -161,6 +195,16 @@ async function parseError(res: Response): Promise<TransportError> {
   }
   if (isAuthRequired(res.status, code, message)) {
     return new UnauthenticatedError(code, message, res.status, details);
+}
+
+  // §14 inline plan-limit explanations: 402 PLAN_LIMIT and 403 FORBIDDEN get
+  // typed errors so the autosave controller can park + explain (never retry
+  // them like transient failures).
+  if (res.status === 402 || code === "PLAN_LIMIT") {
+    return new PlanLimitError(message, detailValue(details, "capability"), detailValue(details, "requiredPlan"));
+  }
+  if (res.status === 403 || code === "FORBIDDEN") {
+    return new ForbiddenError(message);
   }
   return new TransportError(code, message, res.status, details);
 }

@@ -9,8 +9,10 @@ import { emptyBody, type Op } from "./ops";
 import {
   ApiTransport,
   ConflictError,
+  ForbiddenError,
   MockTransport,
   OpRejectedError,
+  PlanLimitError,
   TransportError,
   UnauthenticatedError,
   seedEnvelope,
@@ -181,6 +183,7 @@ describe("ApiTransport.patch", () => {
 
   it("keeps a scope-missing FORBIDDEN (403) as a plain TransportError", async () => {
     // A viewer hitting docs:write is NOT re-authable — no re-auth prompt.
+    // (follow-up #8: answered with ForbiddenError, which still extends TransportError.)
     const { fn } = fetchFake([
       jsonResponse(403, {
         error: { code: "FORBIDDEN", message: "Missing required scope: docs:write" },
@@ -192,6 +195,55 @@ describe("ApiTransport.patch", () => {
 
     expect(err).toBeInstanceOf(TransportError);
     expect(err).not.toBeInstanceOf(UnauthenticatedError);
+  });
+
+  // §14 plan-limit answers (follow-up #8): 402 PLAN_LIMIT / 403 FORBIDDEN get
+  // typed errors so the autosave controller explains instead of dead-ending.
+  it("maps 402 PLAN_LIMIT to PlanLimitError carrying capability + requiredPlan", async () => {
+    const { fn } = fetchFake([
+      jsonResponse(402, {
+        error: {
+          code: "PLAN_LIMIT",
+          message: "Plan limit reached",
+          details: [
+            { path: "capability", message: "notifyEmailsLimit" },
+            { path: "requiredPlan", message: "pro" },
+            { path: "need", message: "2" },
+          ],
+        },
+      }),
+    ]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(PlanLimitError);
+    expect((err as PlanLimitError).status).toBe(402);
+    expect((err as PlanLimitError).code).toBe("PLAN_LIMIT");
+    expect((err as PlanLimitError).capability).toBe("notifyEmailsLimit");
+    expect((err as PlanLimitError).requiredPlan).toBe("pro");
+  });
+
+  it("maps a bare 402 (no details) to PlanLimitError with null capability", async () => {
+    const { fn } = fetchFake([jsonResponse(402, { error: { message: "nope" } })]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(PlanLimitError);
+    expect((err as PlanLimitError).capability).toBeNull();
+    expect((err as PlanLimitError).requiredPlan).toBeNull();
+  });
+
+  it("maps 403 FORBIDDEN to ForbiddenError", async () => {
+    const { fn } = fetchFake([jsonResponse(403, { error: { code: "FORBIDDEN", message: "read-only" } })]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ForbiddenError);
+    expect((err as ForbiddenError).status).toBe(403);
+    expect((err as ForbiddenError).code).toBe("FORBIDDEN");
   });
 });
 

@@ -13,6 +13,7 @@ import {
   bannerKindFor,
   countRecoveryEdits,
   planCopyBlocks,
+  planLimitNoticeText,
   planPasteOps,
   planRecovery,
   rejectionNoticeText,
@@ -207,6 +208,45 @@ describe("rejectionNoticeText (§14)", () => {
       "One change was rejected: Parent block was deleted",
     );
     expect(rejectionNoticeText({ code: "INVALID", message: "  " })).toBe("One change was rejected: INVALID");
+  });
+});
+
+describe("planLimitNoticeText (§14 402/403 — follow-up #8)", () => {
+  it("402 with notifyEmailsLimit cites the client's plan limit", () => {
+    expect(
+      planLimitNoticeText(
+        { status: 402, message: "Plan limit reached", capability: "notifyEmailsLimit" },
+        { notifyEmailsLimit: 1 },
+      ),
+    ).toBe("Plan limit reached: notifications are limited to 1 on your plan");
+  });
+
+  it("402 with fileUploadMaxMb cites the client's plan cap", () => {
+    expect(
+      planLimitNoticeText({ status: 402, capability: "fileUploadMaxMb" }, { fileUploadMaxMb: 10 }),
+    ).toBe("Plan limit reached: file uploads are capped at 10 MB on your plan");
+  });
+
+  it("402 with a known capability but no client limit falls back to the subject", () => {
+    expect(planLimitNoticeText({ status: 402, capability: "customRedirect" })).toBe(
+      "Plan limit reached: redirect endings are limited on your plan",
+    );
+    expect(planLimitNoticeText({ status: 402, capability: "seats" })).toBe(
+      "Plan limit reached: team seats are limited on your plan",
+    );
+  });
+
+  it("402 without a capability falls back to the server message", () => {
+    expect(planLimitNoticeText({ status: 402, message: "Upgrade to Pro for analytics" })).toBe(
+      "Plan limit reached: Upgrade to Pro for analytics",
+    );
+    expect(planLimitNoticeText({ status: 402, message: "  " })).toBe(
+      "Plan limit reached: this action is not available on your plan",
+    );
+  });
+
+  it("403 is never a dead end: a plain, actionable line", () => {
+    expect(planLimitNoticeText({ status: 403, message: "whatever" })).toBe("Not allowed on this plan");
   });
 });
 

@@ -357,6 +357,47 @@ describe("editorReducer — server reconciliation", () => {
     expect(next.body.type).toBe("page");
     expect(next.save).toBe("saved");
   });
+
+  // §24 builder entitlements (follow-up #8): `loaded` stores the envelope's
+  // entitlements surface; a missing one (mocks) stays null → conservative gates.
+  it("loaded stores the §24 entitlements from the envelope (null when absent)", () => {
+    const pro = {
+      plan: "pro" as const,
+      removeBranding: true,
+      fileUploadMaxMb: 10,
+      customRedirect: true,
+      notifyEmailsLimit: 10,
+    };
+    const withEnts = editorReducer(initialEditorState("doc1"), {
+      type: "loaded",
+      envelope: {
+        id: "doc1",
+        rev: 1,
+        title: "T",
+        status: "draft",
+        type: "form",
+        body: emptyBody("form"),
+        entitlements: pro,
+      },
+      mode: "api",
+    });
+    expect(withEnts.entitlements).toEqual(pro);
+
+    const withoutEnts = editorReducer(initialEditorState("doc1"), {
+      type: "loaded",
+      envelope: {
+        id: "doc1",
+        rev: 1,
+        title: "T",
+        status: "draft",
+        type: "form",
+        body: emptyBody("form"),
+      },
+      mode: "mock",
+    });
+    expect(withoutEnts.entitlements).toBeNull();
+    expect(initialEditorState("doc2").entitlements).toBeNull();
+  });
 });
 
 describe("editorReducer — selection & misc", () => {
