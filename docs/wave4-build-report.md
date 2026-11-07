@@ -8,6 +8,12 @@ the package is supposed to deliver; the **Result** fields are intentionally
 (pass/fail per gate, commit range, and any deviations from the expected
 file list).
 
+## Integration result (lead session)
+
+- **Merge order:** W1 → W2 → W9 → W7 → W8 → W3 → W4 → W10 → W11 → W12 → W5 → W6 → W13, each as a `--no-ff` merge commit into `agent/build-wave4`; conflicts resolved keep-both (W2/W7/W9 overlaps in `transport.ts`/`autosave.ts`/`store.ts`/`BuilderPage.tsx`, W10+W12 add/add on `question-editor-kit.test.tsx`, W7/W12 on `SettingsPanel.test.tsx`, W1/W8 telemetry seams merged into single handlers).
+- **Integration gate (all packages):** typecheck clean across the workspace · core 975 · schema 85 · db 86 (+17 skipped — need Postgres) · mcp 43 · worker 45 · blocks 356 · renderer 186 (≤120 KB budget gate included) · **web 1039 — total 2,765 passing** (pre-wave baseline 2,450, +315). Root `pnpm lint` clean.
+- **Known pre-existing flake:** `lib/builder/property-roundtrip.test.ts` fast-check "≥100 random ops" can land at 95 ops under parallel load (passes in isolation; generator slack, tracked as a follow-up).
+
 ## How this wave was run
 
 - **Worktree per agent.** Every agent works in its own git worktree off the
@@ -62,7 +68,7 @@ file list).
   (`wiring.test.ts`, `RestorePrompt.test.tsx`).
 - **Verification command:** `pnpm --filter @formforge/web test -- wiring RestorePrompt autosave && pnpm --filter @formforge/web typecheck`
 - **E2E case:** `builder.spec.ts` describe 11 (self-skips until this merges).
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w1-conflict-flow`, commit `4306525`. Merged (91ca5f0). planRecovery now returns restore/conflict/discard; stale+ops routes into the §7.3 ConflictDialog via staleConflictEvent; fetch-failure keeps the discard-stale fallback. 6 files, +210/−48. Web suite 853/853 at branch time; integration re-verified.
 
 ## W2 — 401 re-auth prompt in the autosave loop
 
@@ -81,7 +87,7 @@ file list).
   `autosave.test.ts` / component test.
 - **Verification command:** `pnpm --filter @formforge/web test -- autosave && pnpm --filter @formforge/web typecheck`
 - **E2E case:** `builder.spec.ts` describe 12 (self-skips until this merges).
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w2-reauth-401`, commit `0e09ea0`. Merged. UnauthenticatedError (401 or §4 "Authentication required" 403) parks the queue with ops kept; ReauthDialog with sign-in link + resume-after-session-check. 10 files incl. new ReauthDialog. Web suite 866/866 at branch time; integration re-verified.
 
 ## W3 — publish-gate codes FORM_EMBED_MISSING + MISSING_ASSET
 
@@ -99,7 +105,7 @@ file list).
   `apps/web/components/builder/IssuesList.tsx`, `PublishControl.tsx` +
   `publish.test.ts` / `IssuesList.test.tsx`.
 - **Verification command:** `pnpm --filter @formforge/web test -- publish IssuesList && pnpm --filter @formforge/web typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w3-publish-codes`, commit `e60e188`. Merged. FORM_EMBED_MISSING (missing/unpublished/self-embed target) + MISSING_ASSET (resolver miss incl. ogImageAssetId) emitted server-side in publish/snapshot, carried via 422 details {code, blockId} into the Issues drawer. 9 files. Core 964 + web 855 at branch time; integration re-verified.
 
 ## W4 — slug availability endpoint + taken suggestion
 
@@ -119,7 +125,7 @@ file list).
   `settings-helpers.ts` (+ settings tests).
 - **Verification command:** `pnpm --filter @formforge/web test -- settings slug && pnpm --filter @formforge/web typecheck`
 - **E2E case:** `builder.spec.ts` describe 13 (self-skips until this merges).
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w4-slug-check`, commit `a568944`. Merged. GET /api/v1/documents/[id]/slug-check?q=… (docs:read, workspace-scoped, excludes self) + createSlugProbe/useSlugAvailability (300 ms debounce) + DocSettings "taken → use suggestion" inline action. Route is [id] not [docId] (Next.js dynamic-segment constraint). 9 files. Core 966 + web 864 at branch time; integration re-verified.
 
 ## W5 — text block registry def + rich text editor
 
@@ -139,7 +145,7 @@ file list).
   sanitizer wiring in `packages/core`, registry consumers in
   `apps/web/components/builder/`.
 - **Verification command:** `pnpm --filter @formforge/blocks test && pnpm --filter @formforge/web test -- BlockPicker Canvas && pnpm typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w5-text-block`, commit `cbdf1e7`. Merged. text block registered with Tiptap JSON richText; lazy Tiptap editor (bold/italic/strike/lists/link/clear); renderer renders sanitizer-derived HTML only. Tiptap deps added to packages/blocks (the wave's only lockfile change). Renderer budget gate: 15.8 KB gzip vs 120 KB. Blocks 296 + renderer 186 + web 850 at branch time; integration re-verified (blocks 356 total).
 
 ## W6 — dnd-kit pointer/touch drag + drop indicator + auto-scroll
 
@@ -159,7 +165,7 @@ file list).
   component tests.
 - **Verification command:** `pnpm --filter @formforge/web test -- canvas BlockCard && pnpm --filter @formforge/web typecheck`
 - **E2E case:** `builder.spec.ts` describe 15 (self-skips until this merges).
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w6-dnd-drag`, commit `99d0ab5`. Merged. Deviation documented: dnd-kit was NOT a workspace dependency, so the gesture layer uses native Pointer Events in useDragReorder.ts realizing the same contract (8 px activation, drop indicator, rAF edge auto-scroll, capture-phase Esc-cancel, ONE coalesced block.move, announce() seam). 12 files. Web 869/869 at branch time; integration re-verified.
 
 ## W7 — entitlements surface for builder gates + 402/403 explanations
 
@@ -176,7 +182,7 @@ file list).
   new `lib/entitlements` seam), gate consumers in `SettingsPanel`/`DocSettings`,
   `PublishControl.tsx` + tests.
 - **Verification command:** `pnpm --filter @formforge/web test -- entitlements billing SettingsPanel && pnpm --filter @formforge/web typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w7-entitlements`, commit `058114f`. Merged. BuilderEntitlementsSchema on the GET envelope; billing matrix gains customRedirect/notifyEmailsLimit; branding/redirect/notify/file-upload gates resolved client-side; 402→PlanLimitError / 403→ForbiddenError park the queue with inline plan-limit notices. 29 files. Web 878 + core 957 at branch time; integration re-verified (merge conflict with W2/W9 resolved keep-both).
 
 ## W8 — telemetry sink + §15 builder event vocabulary
 
@@ -193,7 +199,7 @@ file list).
 - **Files expected:** `apps/web/lib/telemetry.ts` (+ collector/sink),
   instrumentation in `lib/builder/autosave.ts` / store, `telemetry.test.ts`.
 - **Verification command:** `pnpm --filter @formforge/web test -- telemetry autosave && pnpm --filter @formforge/web typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w8-telemetry`, commit `4a46b5c`. Merged. POST /api/telemetry (session-only, rate-limited, Zod-strict §15 allowlist, structured pino logs, 204); batched client sink (10 s/20 events, sendBeacon pagehide + keepalive fallback); all 12 builder events instrumented at dispatch/transport seams. 11 files. Web 881/881 at branch time; integration re-verified (BuilderPage seams merged with W1/W2/W7 handlers).
 
 ## W9 — 500-block/1 MB client hard limits + virtualized BlocksTree
 
@@ -210,7 +216,7 @@ file list).
 - **Files expected:** `apps/web/lib/builder/ops.ts` or store guard,
   `apps/web/components/builder/BlocksTree.tsx`, `LeftPane.tsx` + tests.
 - **Verification command:** `pnpm --filter @formforge/web test -- BlocksTree ops store && pnpm --filter @formforge/web typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w9-hard-limits`, commit `820aa49`. Merged. checkInsertLimits (500 blocks incl. subtree counting; ~1 MB body-JSON on insert-bearing apply + coalesced flush only) with the required shell notice; BlocksTree windowing (threshold 200, 32 px rows, overscan 8, keyboard/go-to reveal fixed by W9b). 10 files. Web 885/885 at branch time; integration re-verified.
 
 ## W10 — option-list keyboard interactions (§9.3)
 
@@ -228,7 +234,7 @@ file list).
   single-select) or a shared helper under `packages/blocks/src/shared/` +
   editor tests.
 - **Verification command:** `pnpm --filter @formforge/blocks test && pnpm typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w10-option-list`, commit `bd2f93f`. Merged. Enter-adds-below, Backspace-on-empty-delete with min-1 guard, multi-line paste split with 200-cap note, live duplicate-label warning; ids stable while editing. question-editor-kit.tsx +210 and a 396-line jsdom suite. Blocks suite green at branch time; integration re-verified (test file merged add/add with W12's seam tests).
 
 ## W11 — §9.2 editor gaps (dropdown/single-select/rating/columns/form-embed)
 
@@ -242,7 +248,7 @@ file list).
 - **Files expected:** `packages/blocks` editors/renderers for `dropdown`,
   `single-select`, `rating`, `columns`, `form-embed` + tests.
 - **Verification command:** `pnpm --filter @formforge/blocks test && pnpm --filter @formforge/renderer test && pnpm typecheck`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w11-editor-gaps`, commit `9e386f6`. Merged. Dropdown bulk-paste (parsePastedOptions, 200-cap, dedupe), single-select displayMode list/grid/picture, rating icon "number", columns ratios + stackOrder (scoped mobile media query), form-embed layout/heightMode/fixedHeight. All schemas backward-compatible (.optional/.default). 19 files, +20 tests. Blocks 283 at branch time; integration re-verified.
 
 ## W12 — asset picker modal (upload/library) + §9.1 question image field
 
@@ -259,7 +265,7 @@ file list).
   `BlockSettings.tsx` image field wiring, `apps/web/lib/assets` client.
 - **Verification command:** `pnpm --filter @formforge/web test -- AssetPicker BlockSettings && pnpm --filter @formforge/web typecheck`
 - **E2E case:** `builder.spec.ts` describe 14 (self-skips until this merges).
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w12-asset-picker`, commit `f9d75af`. Merged. AssetPicker modal (Upload presign→PUT→confirm with progress/scan-pending + Library list gated on scan status + §10 alt prompt); GET /api/v1/assets; image row in GenericQuestionFields via setAssetPickerOpener/pickImageAsset seam; gallery picker; OG picker enabled (schema supports ogImageAssetId). 19 files. Web 888 + blocks 273 at branch time; integration re-verified (add/add test file merged with W10).
 
 ## W13 — docs + e2e attempt (this package)
 
@@ -278,7 +284,7 @@ file list).
 - **Files changed:** `apps/web/e2e/builder.spec.ts`,
   `apps/web/e2e/README.md`, `docs/builder-audit.md`, this file, `README.md`.
 - **Verification command:** `pnpm --filter @formforge/web typecheck && pnpm --filter @formforge/web exec playwright test -c e2e/playwright.config.ts e2e/builder.spec.ts --list`
-- **Result:** _(empty — fill after merge verification)_
+- **Result:** ✅ merged — branch `agent/w13-docs-e2e`, commit `03457e3`. Merged. 5 new hermetic e2e describes (stale conflict, re-auth, slug, picker, drag) with runtime-skip guards; audit wave-4 section + README wave-4 bullets + this report. E2E could not execute in the sandbox: Playwright chromium installed OK but no docker → no Postgres → no session (see E2E status below).
 
 ### E2E status (W13 sandbox attempt)
 
