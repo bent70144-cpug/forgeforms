@@ -129,11 +129,172 @@ describe('publishDocument', () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe('VALIDATION');
-    expect(result.error.details.some((d) => d.path === 'blocks[1].props.assetId')).toBe(true);
+    // B7 follow-up #4: the MISSING_ASSET §8.1 code + owning block id ride on
+    // the §4 details so the builder's Issues drawer can group the 422 issue.
+    expect(result.error.details).toContainEqual({
+      path: 'blocks[1].props.assetId',
+      message: 'Asset not found: ast_1',
+      code: 'MISSING_ASSET',
+      blockId: 'b2',
+    });
     // nothing went live — not even a version row
     expect(await harness.deps.versions.listByDocument('ws_a', 'doc_1')).toHaveLength(0);
     const doc = await harness.deps.documents.getById('ws_a', 'doc_1');
     expect(doc?.status).toBe('draft');
+  });
+
+  it('emits MISSING_ASSET for gallery entries and nested asset props too', async () => {
+    const draft = makeDraft({
+      blocks: [
+        {
+          id: 'g1',
+          kind: 'gallery',
+          props: { assetIds: ['ast_1', 'ast_gone'] },
+        },
+        {
+          id: 'wrap',
+          kind: 'section',
+          props: {},
+          children: [{ id: 'img2', kind: 'image', props: { imageAssetId: 'ast_also_gone' } }],
+        },
+      ],
+    });
+    const harness = await makeHarness({
+      document: makeDocument(draft),
+      assets: fakeAssets({ ast_1: 'https://cdn.test/ast_1' }),
+    });
+    const { makePublishDocument } = await import('../publish');
+    const result = await makePublishDocument(harness.deps)(makeCtx(), 'doc_1');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.details).toContainEqual({
+      path: 'blocks[0].props.assetIds[1]',
+      message: 'Asset not found: ast_gone',
+      code: 'MISSING_ASSET',
+      blockId: 'g1',
+    });
+    expect(result.error.details).toContainEqual({
+      path: 'blocks[1][0].props.imageAssetId',
+      message: 'Asset not found: ast_also_gone',
+      code: 'MISSING_ASSET',
+      blockId: 'img2',
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // §8.1 FORM_EMBED_MISSING (B7 follow-up #4) — form-embed target checks
+  // ---------------------------------------------------------------------------
+
+  const EMBED_TARGET = 'doc_2222222222222222222222'; // doc_ + 22 base58 chars
+
+  it('blocks publish when a form-embed target document does not exist (FORM_EMBED_MISSING)', async () => {
+    const draft = makeDraft({
+      blocks: [
+        { id: 'emb1', kind: 'form-embed', props: { documentId: EMBED_TARGET } },
+        { id: 'emb2', kind: 'form-embed', props: { documentId: EMBED_TARGET } },
+      ],
+    });
+    const harness = await makeHarness({ document: makeDocument(draft) });
+    const { makePublishDocument } = await import('../publish');
+    const result = await makePublishDocument(harness.deps)(makeCtx(), 'doc_1');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('VALIDATION');
+    // one issue PER broken block, each carrying the stable §8.1 code + block id
+    expect(result.error.details).toHaveLength(2);
+    expect(result.error.details[0]).toEqual({
+      path: 'blocks[0].props.documentId',
+      message: `The embedded form "${EMBED_TARGET}" no longer exists (deleted or moved out of this workspace).`,
+      code: 'FORM_EMBED_MISSING',
+      blockId: 'emb1',
+    });
+    expect(result.error.details[1]).toMatchObject({ code: 'FORM_EMBED_MISSING', blockId: 'emb2' });
+    // the invalid draft wrote nothing
+    expect(await harness.deps.versions.listByDocument('ws_a', 'doc_1')).toHaveLength(0);
+    expect(harness.purged.tags).toHaveLength(0);
+  });
+
+  it('blocks publish when a form-embed target is not published (nested path form)', async () => {
+    const draft = makeDraft({
+      blocks: [
+        {
+          id: 'wrap',
+          kind: 'section',
+          props: {},
+          children: [{ id: 'emb1', kind: 'form-embed', props: { documentId: EMBED_TARGET } }],
+        },
+      ],
+    });
+    const harness = await makeHarness({
+      document: makeDocument(draft),
+      // the target exists but is still a draft → live iframe would 410
+    });
+    harness.store.put(makeDocument(makeDraft(), { id: EMBED_TARGET, status: 'draft' }));
+    const { makePublishDocument } = await import('../publish');
+    const result = await makePublishDocument(harness.deps)(makeCtx(), 'doc_1');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.details[0]).toMatchObject({
+      code: 'FORM_EMBED_MISSING',
+      blockId: 'emb1',
+      path: 'blocks[0][0].props.documentId',
+    });
+    expect(result.error.details[0]?.message).toContain('not published');
+  });
+
+  it('blocks a self-embedding form (FORM_EMBED_MISSING)', async () => {
+    const draft = makeDraft({
+      blocks: [{ id: 'emb1', kind: 'form-embed', props: { documentId: 'doc_1' } }],
+    });
+    const harness = await makeHarness({ document: makeDocument(draft) });
+    const { makePublishDocument } = await import('../publish');
+    const result = await makePublishDocument(harness.deps)(makeCtx(), 'doc_1');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.details[0]).toMatchObject({
+      code: 'FORM_EMBED_MISSING',
+      blockId: 'emb1',
+    });
+    expect(result.error.details[0]?.message).toContain('embed itself');
+  });
+
+  it('allows a form-embed pointing at a published document in the same workspace', async () => {
+    const draft = makeDraft({
+      blocks: [{ id: 'emb1', kind: 'form-embed', props: { documentId: EMBED_TARGET } }],
+    });
+    const harness = await makeHarness({ document: makeDocument(draft) });
+    harness.store.put(
+      makeDocument(makeDraft(), {
+        id: EMBED_TARGET,
+        slug: 'target-form',
+        status: 'published',
+        publishedVersionId: 'ver_t1',
+      }),
+    );
+    const { makePublishDocument } = await import('../publish');
+    const result = await makePublishDocument(harness.deps)(makeCtx(), 'doc_1');
+    expect(result.ok).toBe(true);
+  });
+
+  it('does not leak cross-workspace documents into the embed check (tenant isolation)', async () => {
+    const draft = makeDraft({
+      blocks: [{ id: 'emb1', kind: 'form-embed', props: { documentId: EMBED_TARGET } }],
+    });
+    const harness = await makeHarness({ document: makeDocument(draft) });
+    // same id, DIFFERENT workspace → invisible to ws_a's publish
+    harness.store.put(
+      makeDocument(makeDraft(), {
+        id: EMBED_TARGET,
+        workspaceId: 'ws_b',
+        status: 'published',
+        publishedVersionId: 'ver_t1',
+      }),
+    );
+    const { makePublishDocument } = await import('../publish');
+    const result = await makePublishDocument(harness.deps)(makeCtx(), 'doc_1');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.details[0]).toMatchObject({ code: 'FORM_EMBED_MISSING' });
   });
 
   it('rejects cross-workspace publishes (tenant isolation)', async () => {

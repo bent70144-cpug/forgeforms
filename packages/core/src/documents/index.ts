@@ -43,9 +43,9 @@ export type {
   SnapshotsRepo,
   DocumentVersionsRepo,
 } from './ports';
-export { docTag, routeKey, snapshotCacheKeys, snapshotKey } from './ports';
+export { docTag, PUBLISH_ISSUE_CODES, routeKey, snapshotCacheKeys, snapshotKey } from './ports';
 
-export { makePublishDocument, ordinalOf, type PublishDocument } from './publish';
+export { makePublishDocument, ordinalOf, collectEmbedTargetIssues, type PublishDocument } from './publish';
 export {
   makeUnpublishDocument,
   type UnpublishDocument,
