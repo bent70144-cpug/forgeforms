@@ -6,13 +6,20 @@ import { QuestionPropsBase } from "../shared/question-props";
 import { rawParam, type UrlParams } from "../shared/prefill";
 import { OptionList, findOption, knownOptionIds, type Option } from "../shared/option-list";
 
+// §9.2 display modes: `list` is the classic vertical radio stack; `grid` lays
+// the same radios out on a grid; `picture` renders label cards (image slots
+// light up once the §10 asset picker can attach images to options).
+export const SelectDisplayMode = z.enum(["list", "grid", "picture"]);
+
 export const SingleSelectProps = QuestionPropsBase.extend({
   label: z.string().min(1).max(1000),
   options: OptionList,
   allowOther: z.boolean().default(false),
   randomize: z.boolean().default(false),
+  displayMode: SelectDisplayMode.default("list"),
 });
 
+export type SelectDisplayMode = z.infer<typeof SelectDisplayMode>;
 export type SingleSelectProps = z.infer<typeof SingleSelectProps>;
 
 // §7.2 "Answer value: { optionId } or { other: string }" — a union, exactly
@@ -70,5 +77,6 @@ export const singleSelectDefaultProps = (): SingleSelectProps => ({
   options: singleSelectDefaultOptions(),
   allowOther: false,
   randomize: false,
+  displayMode: "list",
   required: false,
 });

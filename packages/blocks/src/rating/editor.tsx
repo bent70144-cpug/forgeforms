@@ -10,6 +10,7 @@ const ICON_LABELS: Record<RatingIcon, string> = {
   star: "Stars",
   heart: "Hearts",
   thumbs: "Thumbs",
+  number: "Numbers",
 };
 
 export const RatingEditor: FC<

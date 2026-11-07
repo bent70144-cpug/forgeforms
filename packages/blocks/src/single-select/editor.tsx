@@ -7,7 +7,14 @@ import {
   OptionsFields,
 } from "../shared/question-editor-kit";
 import { SingleSelectRender } from "./render";
+import { SelectDisplayMode } from "./schema";
 import type { SingleSelectProps } from "./schema";
+
+const DISPLAY_MODE_LABELS: Record<SelectDisplayMode, string> = {
+  list: "List",
+  grid: "Grid",
+  picture: "Picture",
+};
 
 export const SingleSelectEditor: FC<
   EditorProps<SingleSelectProps> & { urlParams?: Record<string, string> }
@@ -51,6 +58,23 @@ export const SingleSelectEditor: FC<
           onChange={(event) => onChange({ ...props, randomize: event.target.checked })}
         />
         <span>Randomize</span>
+      </label>
+      <label className="ff-editor__field">
+        <span>Display mode</span>
+        <select
+          value={props.displayMode ?? "list"}
+          disabled={disabled}
+          onChange={(event) => {
+            const parsed = SelectDisplayMode.safeParse(event.target.value);
+            if (parsed.success) onChange({ ...props, displayMode: parsed.data });
+          }}
+        >
+          {SelectDisplayMode.options.map((mode) => (
+            <option key={mode} value={mode}>
+              {DISPLAY_MODE_LABELS[mode]}
+            </option>
+          ))}
+        </select>
       </label>
       <GenericQuestionFields
         props={props}
