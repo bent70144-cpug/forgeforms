@@ -42,8 +42,10 @@ export {
   OptionsFields,
   OptionalNumberField,
   QuestionShell,
+  pickImageAsset,
+  setAssetPickerOpener,
 } from "./shared/question-editor-kit";
-export type { GenericQuestionPatch } from "./shared/question-editor-kit";
+export type { AssetPickResult, AssetPickerOpener, GenericQuestionPatch } from "./shared/question-editor-kit";
 
 // --- T21 image adapter seam (T16 conformance surface) ------------------------
 export { Img } from "./shared/img";
