@@ -2522,3 +2522,14 @@ fieldset:disabled .ff-th-input {
   border: 0;
   pointer-events: none;
 }
+
+/* .ff-drag-source — a canvas card while it is being pointer-dragged (§6.2
+   follow-up #7, applied/removed by useDragReorder): dimmed in place while
+   the drop indicator line (Canvas) previews the destination. Deliberately
+   transition-free so the global prefers-reduced-motion collapse is not
+   needed; the class never affects focus or live regions. */
+.ff-drag-source {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
