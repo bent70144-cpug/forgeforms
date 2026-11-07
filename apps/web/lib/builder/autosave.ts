@@ -27,6 +27,7 @@ import type { Block, DocumentBody, DocumentEnvelope } from "../bridge";
 import { applyOpsBestEffort, type EditableDoc, type Op } from "./ops";
 import { ConflictError, type DocumentTransport, type PatchResult, OpRejectedError } from "./transport";
 import type { OfflineQueuePort } from "./offline";
+import { batchImpliesGrowth, estimateBodyJsonChars, isBodyOverLimit } from "./limits";
 
 /**
  * Save-state machine statuses. `offline` (spec §3.1/§7.1) means "edits are
@@ -59,6 +60,13 @@ export type ConflictMode = "mine" | "theirs";
 
 /** One op rejected by a 422 (§14) — the UI marks the block and toasts. */
 export type OpRejectedEvent = { op: Op; index: number; code: string; message: string };
+
+/**
+ * §13/§14 hard limit hit at flush time (follow-up #10): the local document
+ * body is over the ~1 MB JSON cap, so the growth batch is refused BEFORE it
+ * is sent (the server would answer 413 anyway). The batch stays queued.
+ */
+export type LimitExceededEvent = { kind: "bytes"; chars: number };
 
 export type AutosaveOptions = {
   transport: DocumentTransport;
@@ -98,6 +106,14 @@ export type AutosaveOptions = {
   onConflict?: (event: ConflictEvent) => void;
   /** §14 — one op was rejected with a 422; roll it back locally. */
   onOpRejected?: (event: OpRejectedEvent) => void;
+  /**
+   * §13/§14 hard limit — a flush was refused because the document body JSON
+   * is over the ~1 MB cap (checked ONLY on growth batches, so pure deletes
+   * always go through and let the user shrink the document back under the
+   * cap). The queue is parked like the offline state; the next enqueue /
+   * flushNow / reconnect retries it.
+   */
+  onLimitExceeded?: (event: LimitExceededEvent) => void;
   /** After any conflict resolution — the UI clears its undo history (§7.3.4). */
   onConflictResolved?: (mode: ConflictMode) => void;
   schedule?: (fn: () => void, ms: number) => () => void;
@@ -438,6 +454,22 @@ export class AutosaveController {
           return;
         }
         const batch = this.pending.splice(0, this.pending.length);
+        // §13/§14 hard limit (follow-up #10): before assembling the PATCH
+        // batch, refuse it when the local body is already over the ~1 MB cap
+        // AND the batch can grow the document further. The whole-body estimate
+        // runs HERE (once per coalesced batch) — never per keystroke (§13).
+        // Pure-removal batches always send so the user can delete their way
+        // back under the cap. Parking mirrors the §7.1 offline behavior.
+        const localDoc = this.options.snapshotDoc?.() ?? null;
+        if (localDoc && batchImpliesGrowth(batch) && isBodyOverLimit(localDoc.body)) {
+          this.pending.unshift(...batch);
+          this.emit(
+            "error",
+            "Document too large to save — over the 1 MB limit; delete blocks or shorten content",
+          );
+          this.options.onLimitExceeded?.({ kind: "bytes", chars: estimateBodyJsonChars(localDoc.body) });
+          return;
+        }
         this.emit("saving");
         let res: PatchResult;
         try {

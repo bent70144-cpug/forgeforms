@@ -13,6 +13,7 @@
 import type { Block } from "../bridge";
 import type { PendingBatchRecord } from "./offline";
 import { createOfflineQueue, type OfflineQueuePort } from "./offline";
+import { BODY_LIMIT_NOTICE } from "./limits";
 import { pasteBlocksToOps } from "./clipboard";
 import { findBlock, type Op } from "./ops";
 import type { EditorState } from "./store";
@@ -121,6 +122,15 @@ export function bannerKindFor(archived: boolean, multitabSeen: boolean): "archiv
 export function rejectionNoticeText(event: Pick<OpRejectedEvent, "code" | "message">): string {
   const detail = typeof event.message === "string" && event.message.trim().length > 0 ? event.message : event.code;
   return `One change was rejected: ${detail}`;
+}
+
+/**
+ * §13/§14 hard-limit notice copy (follow-up #10): the 1 MB flush refusal.
+ * Single source of truth so the autosave controller's status message and the
+ * shell notice stay in sync.
+ */
+export function limitExceededNoticeText(): string {
+  return BODY_LIMIT_NOTICE;
 }
 
 // ---------------------------------------------------------------------------
