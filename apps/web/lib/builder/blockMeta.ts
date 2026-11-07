@@ -1,11 +1,11 @@
 // Builder-side block catalog (palette + inspector metadata).
 //
 // SPEC-NOTE: the real per-kind schemas/editors/renderers live in
-// packages/blocks (T09+). Until that registry is importable, the builder keeps
-// its own lightweight descriptors (kinds, families, default props, inspector
-// fields) mirroring spec §7.2. When packages/blocks lands, swap the palette
-// + inspector sources to the registry and delete this file.
+// packages/blocks (T09+). This catalog keeps the builder-side descriptors
+// (kinds, families, default props, palette hints) mirroring spec §7.2 —
+// settings/canvas rendering already come from the registry.
 
+import { plainTextFromRichText, textDefaultProps } from "@formforge/blocks";
 import type { Block, DocumentType } from "../bridge";
 import { newId } from "./id";
 
@@ -73,9 +73,12 @@ export const BLOCK_CATALOG: BlockMeta[] = [
     icon: "¶",
     hint: "A rich text paragraph",
     primaryProp: "richText",
-    fields: [{ key: "richText", label: "Content", type: "textarea" }],
-    // SPEC-NOTE: stored as a plain string until the Tiptap JSON shape (T09) lands.
-    defaultProps: () => ({ richText: "Write something…" }),
+    // Rich text is edited through the registry's Tiptap editor (§9.4), not a
+    // generic field — fields stay empty so no plain-text inspector input is
+    // offered for it.
+    fields: [],
+    // §9.4: richText is Tiptap JSON (sanitized to allowlist HTML at render/save).
+    defaultProps: () => textDefaultProps(),
   },
   {
     kind: "image",
@@ -407,7 +410,12 @@ export function blockDisplayLabel(block: Block): string {
   const meta = getBlockMeta(block.kind);
   const key = meta?.primaryProp;
   const raw = key ? block.props[key] : undefined;
-  if (typeof raw === "string" && raw.trim().length > 0) {
+  if (key === "richText") {
+    // §9.4: the primary prop is Tiptap JSON (or a legacy sanitized HTML string)
+    // — label with its plain text, never raw markup.
+    const text = plainTextFromRichText(raw);
+    if (text !== "") return text.length > 42 ? `${text.slice(0, 42)}…` : text;
+  } else if (typeof raw === "string" && raw.trim().length > 0) {
     return raw.length > 42 ? `${raw.slice(0, 42)}…` : raw;
   }
   return meta?.label ?? block.kind;
