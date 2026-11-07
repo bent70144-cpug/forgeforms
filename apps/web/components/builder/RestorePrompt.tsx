@@ -11,8 +11,11 @@
 //                     enqueues them; the controller's own ack clears the
 //                     stored record on 200 (no manual clearQueue — a manual
 //                     enqueue here would double-send).
-// - "discard-stale" → the record predates the loaded rev (the document moved
-//                     on elsewhere). Per §7.2 we do not merge: Discard-only
+// - "discard-stale" → the record predates the loaded rev and could NOT be
+//                     routed into the §7.3 conflict flow (follow-up #2 makes
+//                     that flow the default for stale batches with ops; this
+//                     variant remains as the fallback for when the server-doc
+//                     fetch fails). Per §7.2 we do not merge: Discard-only
 //                     with an explanatory note.
 // Discard removes the stored record immediately (offline.discardPending).
 

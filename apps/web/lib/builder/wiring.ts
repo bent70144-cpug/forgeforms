@@ -3,53 +3,86 @@
 // unit-testable in plain node (no DOM, no effects).
 //
 // Contents:
-// - planRecovery        §7.2 — what to do with a stored offline batch on load
+// - planRecovery        §7.2/§7.3 — what to do with a stored offline batch on
+//                         load (stale batches with ops route into the §7.3
+//                         conflict flow, follow-up #2)
+// - staleConflictEvent  §7.3 — the ConflictEvent for a stale offline batch
 // - planCopyBlocks      §6.4 — the subtree a Cmd/Ctrl+C copies
 // - planPasteOps        §6.4 — where a paste inserts + its re-id'd ops
 // - bannerKindFor       §7.4 vs §14 — archived always wins over multitab
 // - rejectionNoticeText §14  — copy for the "one change was rejected" notice
 // - sharedOfflineQueue  §22.2 — HMR-safe module singleton (globalThis cache)
 
-import type { Block } from "../bridge";
+import type { Block, DocumentEnvelope } from "../bridge";
 import type { PendingBatchRecord } from "./offline";
 import { createOfflineQueue, type OfflineQueuePort } from "./offline";
 import { pasteBlocksToOps } from "./clipboard";
 import { findBlock, type Op } from "./ops";
 import type { EditorState } from "./store";
-import type { OpRejectedEvent } from "./autosave";
+import type { ConflictEvent, OpRejectedEvent } from "./autosave";
 
 // ---------------------------------------------------------------------------
-// §7.2 recovery planning
+// §7.2 recovery planning (+ §7.3 conflict routing, follow-up #2)
 // ---------------------------------------------------------------------------
 
-export type RecoveryPlan = "restore" | "discard-stale";
+export type RecoveryPlan = "restore" | "conflict" | "discard";
 
 /**
- * Decide what the RestorePrompt offers for a stored §22.2 record:
- * - `"restore"`       → record.baseRev matches the loaded envelope rev and
- *                       there is at least one op: offer Restore/Discard.
- * - `"discard-stale"` → the record was written against an OLDER rev (the
- *                       document moved on — another device saved since).
- *                       Per §7.2 we do not attempt a merge: Discard-only
- *                       prompt (the load path logs a console warning).
- * - `null`            → nothing worth prompting for (no record, a future rev
- *                       — nonsense state recoverPending already filters — or
- *                       an empty op list).
+ * Decide what the load flow does with a stored §22.2 record (§7.2 + §7.3):
+ * - `"restore"`  → record.baseRev matches the loaded envelope rev and there
+ *                  is at least one op: offer Restore/Discard (RestorePrompt);
+ *                  Restore dispatches the ops through the normal apply path.
+ * - `"conflict"` → the record was written against an OLDER rev (the document
+ *                  moved on — another device saved since) but still holds
+ *                  ops: route it into the §7.3 conflict flow (follow-up #2)
+ *                  instead of the old Discard-only prompt — the caller
+ *                  fetches the current server document and opens the SAME
+ *                  ConflictDialog a live 409 raises (local pending ops vs
+ *                  server doc; `staleConflictEvent` builds the event). If
+ *                  that fetch fails, the caller falls back to the old
+ *                  Discard-only prompt (RestorePrompt "discard-stale").
+ * - `"discard"`  → a stale record with NO ops: dead weight that can never
+ *                  apply again — clear the stored record silently (no
+ *                  prompt, nothing to merge or restore).
+ * - `null`       → nothing to do (no record, an empty matching-rev record —
+ *                  harmless —, or a future rev — nonsense; recoverPending
+ *                  drops these).
  */
 export function planRecovery(
   record: PendingBatchRecord | null | undefined,
   serverRev: number,
 ): RecoveryPlan | null {
   if (!record) return null;
-  if (!Array.isArray(record.ops) || record.ops.length === 0) return null;
+  if (!Array.isArray(record.ops) || record.ops.length === 0) {
+    // Nothing to restore or merge: an empty matching-rev record is harmless,
+    // a stale one can never apply again — drop it quietly.
+    return record.baseRev < serverRev ? "discard" : null;
+  }
   if (record.baseRev === serverRev) return "restore";
-  if (record.baseRev < serverRev) return "discard-stale";
+  if (record.baseRev < serverRev) return "conflict";
   return null; // baseRev > serverRev — nonsense; recoverPending drops these
 }
 
 /** Human count for the prompt: "Restore unsaved changes (N edits)?" */
 export function countRecoveryEdits(ops: readonly Op[]): number {
   return ops.length;
+}
+
+/**
+ * The §7.3 ConflictEvent for a stale §22.2 record (follow-up #2): the local
+ * pending ops vs the freshly fetched server document. BuilderPage feeds it
+ * into the same ConflictDialog + resolveConflict flow a live 409 uses.
+ */
+export function staleConflictEvent(
+  record: PendingBatchRecord,
+  envelope: DocumentEnvelope,
+): ConflictEvent {
+  return {
+    rev: envelope.rev,
+    serverDoc: { meta: { title: envelope.title, slug: envelope.slug }, body: envelope.body },
+    serverBody: envelope.body,
+    pendingOps: [...record.ops],
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -20,7 +20,10 @@
 //   7. pagehide → flushNow; beforeunload → beacon flush + §7.1 guard
 //   8. "ff:force-save" → flushNow; "ff:open-preview" → controlled preview
 //   9. after load → §7.2 recoverPending → RestorePrompt (restore re-enters
-//      through the normal apply path; discard removes the stored record)
+//      through the normal apply path; discard removes the stored record);
+//      a STALE batch with ops routes into the §7.3 conflict flow instead
+//      (follow-up #2 — same ConflictDialog as a 409; a failed server-doc
+//      fetch falls back to the Discard-only prompt)
 //  10. §7.4 multitab channel → ContextualBanner kind="multitab"
 //
 // PICKER DOUBLE-OPEN NOTE: "ff:open-picker" is emitted by LeftPane, canvas
@@ -42,6 +45,7 @@ import {
   flushViaBeacon,
   recoverPending,
   shouldGuardUnload,
+  type PendingBatchRecord,
 } from "@/lib/builder/offline";
 import { createMultitabChannel, type MultitabChannel } from "@/lib/builder/multitab";
 import type { Op } from "@/lib/builder/ops";
@@ -50,6 +54,7 @@ import {
   planRecovery,
   rejectionNoticeText,
   sharedOfflineQueue,
+  staleConflictEvent,
 } from "@/lib/builder/wiring";
 import { BuilderProvider, useBuilder } from "./context";
 import { BuilderShell } from "./BuilderShell";
@@ -118,6 +123,10 @@ function BuilderSession({
   latest.current = { state };
   const recoveryRef = useRef(recovery);
   recoveryRef.current = recovery;
+  // The ConflictEvent routed from a stale §22.2 batch (follow-up #2): lets
+  // resolveConflict tell a recovery conflict (ops NOT yet applied locally)
+  // apart from a live 409 conflict (ops already applied locally).
+  const recoveryConflictRef = useRef<ConflictEvent | null>(null);
 
   // --- wave-3 overlays (mounted ONCE, inside the provider) -------------------
   const picker = useBlockPicker();
@@ -127,6 +136,7 @@ function BuilderSession({
   // --- load (mirrors LogicBuilder: createTransport + mock dev toggle) -------
   useEffect(() => {
     let disposed = false;
+    recoveryConflictRef.current = null; // a fresh load invalidates any recovery conflict
     void (async () => {
       try {
         let envelope: DocumentEnvelope;
@@ -145,27 +155,69 @@ function BuilderSession({
         setEnvelopeArchived((envelope.status as string) === "archived");
 
         // §7.2 recovery: an offline batch may have survived the last session.
-        // planRecovery decides Restore vs stale-Discard (never auto-merges).
+        // planRecovery routes it: matching rev → Restore prompt; a stale batch
+        // with ops → the §7.3 conflict flow (follow-up #2); a stale empty
+        // record → silent discard.
         void (async () => {
           try {
             const found = await recoverPending(docId, envelope.rev, sharedOfflineQueue());
             if (disposed) return;
-            const plan = planRecovery(found?.record ?? null, envelope.rev);
-            if (!plan || !found) return;
-            if (plan === "discard-stale") {
-              console.warn(
-                `[formforge:builder] offline batch for ${docId} was written against rev ${found.record.baseRev}, ` +
-                  `server is at rev ${envelope.rev} — offering Discard only`,
-              );
+            const record = found?.record ?? null;
+            const plan = planRecovery(record, envelope.rev);
+            if (!plan || !found || !record) return;
+            // The old §7.2 fallback prompt (fetch failure / no loader seam).
+            const offerDiscardStale = (stale: PendingBatchRecord) => {
               setRecovery({
-                request: { kind: "discard-stale", editCount: found.record.ops.length },
+                request: { kind: "discard-stale", editCount: stale.ops.length },
                 ops: [],
               });
+            };
+            if (plan === "conflict") {
+              // §7.3 (follow-up #2): a stale batch with ops goes through the
+              // SAME conflict flow as a 409 — fetch the current server
+              // document and open ConflictDialog (local pending ops vs server
+              // doc). If the fetch fails, fall back to the old Discard-only
+              // prompt rather than losing the batch.
+              const transport = transportRef.current;
+              const fetchDoc = loadDocument ?? (transport ? (id: string) => transport.load(id) : null);
+              if (!fetchDoc) {
+                offerDiscardStale(record);
+                return;
+              }
+              try {
+                const fresh = await fetchDoc(docId);
+                if (disposed) return;
+                const event = staleConflictEvent(record, fresh);
+                recoveryConflictRef.current = event;
+                setConflict(event);
+                // Mirror the §7.3.3 status a live 409 raises.
+                const at = Date.now();
+                saveStatusStore.emit("conflict", { at, message: "Edited elsewhere — review your changes" });
+                dispatch({ type: "saveStatus", status: "conflict", at });
+              } catch (err) {
+                if (disposed) return;
+                console.warn(
+                  `[formforge:builder] offline batch for ${docId} was written against rev ${record.baseRev}, ` +
+                    `server is at rev ${envelope.rev} and the server document could not be fetched ` +
+                    `(${err instanceof Error ? err.message : "unknown error"}) — offering Discard only`,
+                );
+                offerDiscardStale(record);
+              }
+              return;
+            }
+            if (plan === "discard") {
+              // A stale record without ops can never apply again — clear it
+              // quietly (nothing the user could merge or restore).
+              console.warn(
+                `[formforge:builder] offline batch for ${docId} was written against rev ${record.baseRev}, ` +
+                  `server is at rev ${envelope.rev} and holds no ops — discarding silently`,
+              );
+              void discardStoredPending(docId, sharedOfflineQueue());
               return;
             }
             setRecovery({
-              request: { kind: "restore", editCount: found.record.ops.length },
-              ops: found.record.ops,
+              request: { kind: "restore", editCount: record.ops.length },
+              ops: record.ops,
             });
           } catch {
             // Fail-open: recovery is best-effort; the builder works without it.
@@ -178,7 +230,7 @@ function BuilderSession({
     return () => {
       disposed = true;
     };
-  }, [docId, dispatch, loadDocument, retryToken]);
+  }, [docId, dispatch, loadDocument, retryToken, saveStatusStore]);
 
   // --- controller lifecycle: created once per loaded document ---------------
   useEffect(() => {
@@ -210,8 +262,12 @@ function BuilderSession({
         channelRef.current?.announceRev(rev);
       },
       // §7.3.3 rebase failed — the dialog takes over (queue parked inside
-      // the controller; local pending ops stay mirrored to IndexedDB).
-      onConflict: (event) => setConflict(event),
+      // the controller; local pending ops stay mirrored to IndexedDB). A
+      // live 409 replaces any recovery-routed conflict (follow-up #2).
+      onConflict: (event) => {
+        recoveryConflictRef.current = null;
+        setConflict(event);
+      },
       // §14: exactly one op was rolled back — surface a dismissable notice.
       onOpRejected: ({ code, message }: OpRejectedEvent) => {
         console.warn(`[formforge:builder] op rejected by the server (422 ${code}): ${message}`);
@@ -293,10 +349,35 @@ function BuilderSession({
   }, [docId]);
 
   // --- wave-3 overlay callbacks ------------------------------------------------
-  const resolveConflict = useCallback((mode: ConflictMode) => {
-    setConflict(null);
-    void controllerRef.current?.resolveConflict(mode);
-  }, []);
+  const resolveConflict = useCallback(
+    (mode: ConflictMode) => {
+      const recoveryEvent = recoveryConflictRef.current;
+      recoveryConflictRef.current = null;
+      setConflict(null);
+      if (!recoveryEvent) {
+        void controllerRef.current?.resolveConflict(mode);
+        return;
+      }
+      // §7.2→§7.3 recovery conflict (follow-up #2): the controller never saw
+      // these ops, so resolution differs slightly from a live 409.
+      if (mode === "mine") {
+        // "Keep mine": the 409 flow's pending ops are already applied
+        // locally — a recovered batch is not. Apply through the NORMAL store
+        // path (same as §7.2 Restore): the emit wiring enqueues the ops, the
+        // controller sends them against its rev, and a mid-flight 409 runs
+        // the controller's own §7.3 rebase/dialog. The stored record clears
+        // on the ack — never before the ops are safely on the server.
+        dispatch({ type: "apply", ops: [...recoveryEvent.pendingOps], label: "Restore unsaved changes" });
+        return;
+      }
+      // "Use theirs": drop the stored batch (§7.2 Discard) and, when the
+      // autosave loop is live, adopt the fetched server document + align the
+      // controller rev through the SAME resolveConflict path a 409 uses.
+      void discardStoredPending(docId, sharedOfflineQueue());
+      void controllerRef.current?.resolveConflict("theirs", recoveryEvent);
+    },
+    [dispatch, docId],
+  );
 
   const restorePending = useCallback(() => {
     const current = recoveryRef.current;
