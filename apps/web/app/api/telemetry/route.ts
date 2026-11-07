@@ -25,42 +25,20 @@
 //     §4 JSON error the client sink swallows.
 
 import { createLogger } from "@formforge/core";
-import { createInMemoryRateLimiter, type RateLimiter } from "@formforge/core/identity";
 import type { Ctx } from "@formforge/core/api";
 import { TelemetryBatchSchema } from "@formforge/schema/api";
 import { authenticate } from "../v1/_lib/auth";
 import { handleApiError, jsonError } from "../v1/_lib/respond";
+import {
+  TELEMETRY_RATE_LIMIT_PER_MINUTE,
+  getTelemetryRateLimiter,
+} from "@/lib/telemetry/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Batches are tiny `{event, props}` pairs — 64 KB is generous. */
 const MAX_PAYLOAD_BYTES = 64 * 1024;
-
-export const TELEMETRY_RATE_LIMIT_PER_MINUTE = 60;
-
-// ---------------------------------------------------------------------------
-// Per-workspace+user rate limiter (identity helper — same shape as the auth
-// limiters; tests build fresh instances via createTelemetryRateLimiter()).
-// ---------------------------------------------------------------------------
-
-export function createTelemetryRateLimiter(): RateLimiter {
-  return createInMemoryRateLimiter({
-    limit: TELEMETRY_RATE_LIMIT_PER_MINUTE,
-    windowMs: 60_000,
-  });
-}
-
-let limiterSingleton: RateLimiter | null = null;
-function getTelemetryRateLimiter(): RateLimiter {
-  limiterSingleton ??= createTelemetryRateLimiter();
-  return limiterSingleton;
-}
-
-/** Test seam: drop the singleton so rate-limit tests start a fresh window. */
-export function resetTelemetryRateLimiter(): void {
-  limiterSingleton = null;
-}
 
 /** Rate-limit key principal (session-only route → the user id). */
 function principalId(ctx: Ctx): string {

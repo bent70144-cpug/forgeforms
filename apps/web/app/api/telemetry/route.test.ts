@@ -13,10 +13,10 @@ vi.mock("@/lib/auth/session", () => ({
 
 import { getCurrentSession } from "@/lib/auth/session";
 import {
-  POST,
   TELEMETRY_RATE_LIMIT_PER_MINUTE,
   resetTelemetryRateLimiter,
-} from "./route";
+} from "@/lib/telemetry/rate-limit";
+import { POST } from "./route";
 
 const OWNER_SESSION = {
   session: {
