@@ -134,3 +134,13 @@ export {
   type CrudDeps,
   type PatchDocumentInput,
 } from './crud';
+
+// Follow-up #5 (builder-audit §6.6/§14) — slug availability probe service.
+export {
+  isValidSlugFormat,
+  makeCheckSlugAvailable,
+  SLUG_FORMAT,
+  SLUG_FORMAT_MESSAGE,
+  type SlugCheckDeps,
+  type SlugCheckResult,
+} from './slug-check';
