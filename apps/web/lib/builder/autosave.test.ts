@@ -924,6 +924,91 @@ describe("AutosaveController", () => {
     await vi.advanceTimersByTimeAsync(2000);
     expect(patches.length).toBe(0);
   });
+
+  // §13/§14 hard limits (follow-up #10): the flush refuses growth batches
+  // when the local body is over the ~1 MB JSON cap; pure deletes always go.
+  describe("hard limits — 1 MB body gate at flush", () => {
+    const oversizeBody = (): DocumentEnvelope["body"] => ({
+      ...emptyBody("form"),
+      blocks: [
+        { id: "a", kind: "short-text", props: { label: "x".repeat(1_000_001) } },
+      ],
+    });
+
+    function controllerWithOversizeDoc(events: {
+      statuses: AutosaveStatus[];
+      limits: Array<{ kind: string; chars: number }>;
+    }) {
+      const { transport, patches } = recordedTransport(env({ body: oversizeBody() }), [() => ({ rev: 2 })]);
+      const controller = new AutosaveController({
+        transport: transport as unknown as MockTransport,
+        docId: "doc1",
+        initialRev: 1,
+        snapshotDoc: () => ({ meta: { title: "Doc" }, body: oversizeBody() }),
+        onStatus: (s) => void events.statuses.push(s),
+        onLimitExceeded: (e) => void events.limits.push(e),
+      });
+      return { controller, patches };
+    }
+
+    it("refuses a GROWTH batch before sending: queue parked, error status, onLimitExceeded", async () => {
+      const events = { statuses: [] as AutosaveStatus[], limits: [] as Array<{ kind: string; chars: number }> };
+      const { controller, patches } = controllerWithOversizeDoc(events);
+
+      controller.enqueue([{ op: "meta.update", patch: { title: "grow?" } }]);
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(patches.length).toBe(0); // never sent — the server would 413
+      expect(controller.pendingCount).toBe(1); // parked like the offline state
+      expect(events.statuses).toContain("error");
+      expect(events.limits.length).toBe(1);
+      expect(events.limits[0]?.kind).toBe("bytes");
+      expect(events.limits[0]?.chars).toBeGreaterThan(1_000_000);
+      controller.destroy();
+    });
+
+    it("retries the parked batch on the next flush after the doc shrinks under the cap", async () => {
+      const events = { statuses: [] as AutosaveStatus[], limits: [] as Array<{ kind: string; chars: number }> };
+      const { transport } = recordedTransport(env(), [() => ({ rev: 2 })]);
+      let oversized = true;
+      const controller = new AutosaveController({
+        transport: transport as unknown as MockTransport,
+        docId: "doc1",
+        initialRev: 1,
+        snapshotDoc: () => ({
+          meta: { title: "Doc" },
+          body: oversized
+            ? oversizeBody()
+            : { ...emptyBody("form"), blocks: [{ id: "a", kind: "short-text", props: {} }] },
+        }),
+        onLimitExceeded: (e) => void events.limits.push(e),
+      });
+
+      controller.enqueue([{ op: "meta.update", patch: { title: "grow?" } }]);
+      await vi.advanceTimersByTimeAsync(600);
+      expect(events.limits.length).toBe(1);
+
+      // User deletes the huge content → next flush passes.
+      oversized = false;
+      await controller.flushNow();
+      expect(events.limits.length).toBe(1); // no additional refusal
+      expect(controller.pendingCount).toBe(0);
+      controller.destroy();
+    });
+
+    it("always sends pure-removal batches so the user can delete their way back under the cap", async () => {
+      const events = { statuses: [] as AutosaveStatus[], limits: [] as Array<{ kind: string; chars: number }> };
+      const { controller, patches } = controllerWithOversizeDoc(events);
+
+      controller.enqueue([{ op: "block.remove", id: "a" }]);
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(patches.length).toBe(1); // the delete went through
+      expect(events.limits.length).toBe(0);
+      expect(controller.pendingCount).toBe(0);
+      controller.destroy();
+    });
+  });
 });
 
 describe("MockTransport", () => {

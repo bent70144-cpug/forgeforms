@@ -38,6 +38,7 @@ import {
   AutosaveController,
   type ConflictEvent,
   type ConflictMode,
+  type LimitExceededEvent,
   type OpRejectedEvent,
   type UnauthenticatedEvent,
 } from "@/lib/builder/autosave";
@@ -54,6 +55,7 @@ import { createMultitabChannel, type MultitabChannel } from "@/lib/builder/multi
 import type { Op } from "@/lib/builder/ops";
 import {
   bannerKindFor,
+  limitExceededNoticeText,
   planRecovery,
   rejectionNoticeText,
   sharedOfflineQueue,
@@ -283,6 +285,14 @@ function BuilderSession({
         console.warn(`[formforge:builder] op rejected by the server (422 ${code}): ${message}`);
         setRejectNotice(rejectionNoticeText({ code, message }));
       },
+      // §13/§14 hard limit: a flush was refused client-side (body over ~1 MB).
+      // The queue stays parked (offline-like) until the user deletes content.
+      onLimitExceeded: ({ chars }: LimitExceededEvent) => {
+        console.warn(
+          `[formforge:builder] flush refused: document body JSON ~${chars} chars exceeds the 1 MB cap`,
+        );
+        setRejectNotice(limitExceededNoticeText());
+      },
       // §7.3.4: history was already reset by the `reconciled` dispatch —
       // nothing else to clear here.
       onConflictResolved: () => {},
@@ -302,6 +312,16 @@ function BuilderSession({
     controllerRef.current?.enqueue(emit.ops);
     dispatch({ type: "emitDone", nonce: emit.nonce });
   }, [state.emit, dispatch]);
+
+  // --- §13/§14 hard limits: surface reducer refusals on the shell notice ----
+  // The reducer refuses insert-bearing applies that would push the document
+  // past 500 blocks / the ~1 MB body cap and records the reason — never
+  // silent (§14). The notice rides the same dismissable slot as the 422
+  // rollback; the next successful apply clears the violation in the store.
+  const limitsViolation = state.limitsViolation;
+  useEffect(() => {
+    if (limitsViolation) setRejectNotice(limitsViolation.notice);
+  }, [limitsViolation]);
 
   // --- §7.4 multitab channel (banner + rev announcements) --------------------
   useEffect(() => {
