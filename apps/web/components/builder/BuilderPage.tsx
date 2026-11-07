@@ -16,7 +16,9 @@
 //   4. controller.onAck → { type: "ackRev", rev } + multitab.announceRev
 //   5. controller.onRebased → { type: "reconciled" } (silent 409 rebase adopt,
 //      history reset) + multitab.announceRev
-//   6. controller.onConflict → ConflictDialog; onOpRejected → shell notice
+//   6. controller.onConflict → ConflictDialog; onOpRejected → shell notice;
+//      onUnauthenticated → ReauthDialog (§7.1 follow-up #3: 401 re-auth —
+//      resume re-checks /api/auth/session, dismiss parks until manual retry)
 //   7. pagehide → flushNow; beforeunload → beacon flush + §7.1 guard
 //   8. "ff:force-save" → flushNow; "ff:open-preview" → controlled preview
 //   9. after load → §7.2 recoverPending → RestorePrompt (restore re-enters
@@ -34,6 +36,7 @@ import {
   type ConflictEvent,
   type ConflictMode,
   type OpRejectedEvent,
+  type UnauthenticatedEvent,
 } from "@/lib/builder/autosave";
 import { createTransport, type DocumentTransport } from "@/lib/builder/transport";
 import type { DocumentEnvelope } from "@/lib/bridge";
@@ -59,6 +62,7 @@ import { SHORTCUT_EVENTS, ShortcutsHelpDialog, useShortcuts } from "./useShortcu
 import { useClipboardShortcuts } from "./useClipboardShortcuts";
 import { UndoToast } from "./UndoToast";
 import { ConflictDialog } from "./ConflictDialog";
+import { ReauthDialog } from "./ReauthDialog";
 import { RestorePrompt, type RestoreRequest } from "./RestorePrompt";
 import type { BannerKind } from "./ContextualBanner";
 import { createSaveStatusStore, type SaveStatusStore } from "./save-indicator";
@@ -103,6 +107,7 @@ function BuilderSession({
   const [multitabSeen, setMultitabSeen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [conflict, setConflict] = useState<ConflictEvent | null>(null);
+  const [reauth, setReauth] = useState<UnauthenticatedEvent | null>(null);
   const [recovery, setRecovery] = useState<RecoveryState | null>(null);
   const [rejectNotice, setRejectNotice] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
@@ -212,6 +217,9 @@ function BuilderSession({
       // §7.3.3 rebase failed — the dialog takes over (queue parked inside
       // the controller; local pending ops stay mirrored to IndexedDB).
       onConflict: (event) => setConflict(event),
+      // §7.1 follow-up #3 — session expired: park + prompt. Pending ops stay
+      // in the controller queue (and the IndexedDB mirror) until resume.
+      onUnauthenticated: (event) => setReauth(event),
       // §14: exactly one op was rolled back — surface a dismissable notice.
       onOpRejected: ({ code, message }: OpRejectedEvent) => {
         console.warn(`[formforge:builder] op rejected by the server (422 ${code}): ${message}`);
@@ -296,6 +304,19 @@ function BuilderSession({
   const resolveConflict = useCallback((mode: ConflictMode) => {
     setConflict(null);
     void controllerRef.current?.resolveConflict(mode);
+  }, []);
+
+  // §7.1 follow-up #3: re-check the session and flush the kept queue. The
+  // dialog closes only on success — a failed check re-parks and re-raises.
+  const resumeAfterReauth = useCallback((): Promise<boolean> => {
+    return controllerRef.current?.resumeAfterReauth() ?? Promise.resolve(false);
+  }, []);
+
+  // Dismiss parks the queue (ops kept) until the next manual retry — a still
+  // expired session re-raises the dialog on that attempt.
+  const dismissReauth = useCallback(() => {
+    setReauth(null);
+    controllerRef.current?.dismissReauth();
   }, []);
 
   const restorePending = useCallback(() => {
@@ -392,6 +413,7 @@ function BuilderSession({
       <ShortcutsHelpDialog open={helpOpen} onClose={closeHelp} />
       <UndoToast />
       <ConflictDialog conflict={conflict} onResolve={resolveConflict} />
+      <ReauthDialog prompt={reauth} onResume={resumeAfterReauth} onDismiss={dismissReauth} />
       <RestorePrompt
         request={recovery?.request ?? null}
         onRestore={restorePending}

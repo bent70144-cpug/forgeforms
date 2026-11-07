@@ -39,6 +39,8 @@ describe('saveStatusLabel', () => {
     expect(saveStatusLabel('error', 'Too many conflicting edits — reload from the server')).toBe(
       'Save failed: Too many conflicting edits — reload from the server',
     );
+    // §7.1 follow-up #3: the re-auth park is its own chip state.
+    expect(saveStatusLabel('unauthenticated')).toBe('Sign-in required');
   });
 });
 
@@ -64,5 +66,13 @@ describe('<SaveIndicator>', () => {
     const store = createSaveStatusStore();
     store.emit('saving', { at: 1 });
     expect(renderToStaticMarkup(h(SaveIndicator, { store }))).toContain('Saving…');
+  });
+
+  it('renders the unauthenticated (re-auth) state with an error tone', () => {
+    const store = createSaveStatusStore();
+    store.emit('unauthenticated', { at: 1, message: 'Session expired — sign in to keep saving' });
+    const html = renderToStaticMarkup(h(SaveIndicator, { store }));
+    expect(html).toContain('Sign-in required');
+    expect(html).toContain('ff-save-chip--error');
   });
 });
