@@ -19,7 +19,12 @@ import { findBlock, type Op } from "./ops";
 export type CanvasActions = {
   readonly select: (id: string | null) => void;
   readonly insert: (kind: string, index: number, parentId: string | null) => void;
-  readonly move: (id: string, delta: number) => void;
+  /**
+   * Move `id` `delta` slots within its own list (§5.2 arrows, Alt+↑/↓, and —
+   * since §6.2 follow-up #7 — pointer drag drops, which pass an explicit
+   * `label` for the undo entry instead of "Move up"/"Move down").
+   */
+  readonly move: (id: string, delta: number, opts?: { label?: string }) => void;
   readonly duplicate: (id: string) => void;
   readonly remove: (id: string) => void;
   readonly convert: (id: string, toKind: string) => void;

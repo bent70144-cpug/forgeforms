@@ -33,6 +33,7 @@ import { BlockCard } from "./BlockCard";
 import { EmptyCanvasState } from "./EmptyCanvasState";
 import { useBuilder } from "./context";
 import { InsertionRow } from "./InsertionRow";
+import { useDragReorder } from "./useDragReorder";
 
 /** Theme radius token → CSS length (§14.3 preview parity). */
 const RADIUS_TOKEN_PX: Record<Theme["radius"], string> = {
@@ -173,13 +174,22 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
   );
 
   const move = useCallback(
-    (id: string, delta: number) => {
+    (id: string, delta: number, opts?: { label?: string }) => {
       const current = stateRef.current.body.blocks;
       const op = moveByOffset(current, id, delta);
       if (!op) return;
-      dispatch({ type: "apply", ops: [op], label: delta < 0 ? "Move up" : "Move down" });
-      // §12/§6.2 live announcement — same message for the toolbar arrows as
-      // for the Alt+↑/↓ keyboard path (see useShortcuts).
+      // §3.3: all block.move dispatches share the move:<id> coalescing key
+      // (keyboard repeat; a drag drop right after a keyboard move), so one
+      // history entry + ONE outgoing op per gesture run.
+      dispatch({
+        type: "apply",
+        ops: [op],
+        label: opts?.label ?? (delta < 0 ? "Move up" : "Move down"),
+        coalesce: { key: `move:${id}`, at: Date.now() },
+      });
+      // §12/§6.2 live announcement — same message for the toolbar arrows,
+      // the Alt+↑/↓ keyboard path (see useShortcuts) and the drag drop
+      // ("<label> moved to position N of M").
       const found = findBlock(current, id);
       if (found) {
         announce(
@@ -267,6 +277,11 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
   const referencedIds = useMemo(() => logicReferencedIds(body.logic.rules), [body.logic.rules]);
   const themeStyle = useMemo(() => canvasThemeVars(body.theme), [body.theme]);
 
+  // §6.2 follow-up #7: delegated pointer/touch drag reordering — the toolbar
+  // ⠿ handle starts the gesture; on drop exactly ONE block.move op goes
+  // through actions.move (coalescing + undo grouping + announce all reused).
+  const { drag } = useDragReorder({ rootRef, actions });
+
   const blocks = body.blocks;
   const isEmpty = blocks.length === 0;
 
@@ -281,9 +296,20 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
       style={{ ...themeStyle, fontFamily: "var(--ff-font-body)", color: "var(--ff-fg)" }}
     >
       <div
-        className="mx-auto w-full max-w-[720px] px-4 py-8 sm:px-6"
+        className="relative mx-auto w-full max-w-[720px] px-4 py-8 sm:px-6"
         onClick={(event) => deselectAtRoot(event, select)}
       >
+        {/* §6.2 drop indicator — absolutely positioned inside the content
+            column (no layout shift); pointer-events-none, aria-hidden. */}
+        {drag ? (
+          <div
+            aria-hidden="true"
+            data-testid="drop-indicator"
+            data-drop-slot={drag.dropSlot}
+            className="pointer-events-none absolute inset-x-4 z-20 h-0.5 rounded-full bg-[color:var(--ff-primary)]"
+            style={{ top: drag.indicatorTop }}
+          />
+        ) : null}
         <StartScreenCard type={body.type} onOpen={() => select(null)} />
 
         {isEmpty ? (
@@ -297,6 +323,7 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
                   block={block}
                   depth={0}
                   index={index}
+                  parentId={null}
                   siblingCount={blocks.length}
                   selected={block.id === selection}
                   selectedId={selection}
