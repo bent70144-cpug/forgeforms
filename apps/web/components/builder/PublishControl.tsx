@@ -36,6 +36,7 @@ import {
   publishDocument,
   type ValidationIssue,
 } from "@/lib/builder/publish";
+import { track } from "@/lib/telemetry";
 
 /** §7.5: "state this in the UI once". */
 const DRAFT_HINT = "Edits are saved as a draft. Publish to update the live form.";
@@ -92,6 +93,9 @@ export function PublishControl() {
   const onPublish = async () => {
     setConflictNote(false);
     setErrorMessage(null);
+    // §15 publish_attempt: one event per click with the BLOCKING issue count
+    // (0 = a real publish POST follows; >0 = gated locally by the §8.1 list).
+    track("publish_attempt", { issues: blocking });
     // Flush semantics: gate locally first — blocking issues open the list.
     if (blocking > 0) {
       setDrawerOpen(true);
@@ -106,6 +110,7 @@ export function PublishControl() {
         setDrawerOpen(false);
         setLiveUrl(result.url ?? null);
         dispatch({ type: "docStatus", status: "published" });
+        track("publish_ok");
       } else if (result.reason === "conflict") {
         // §22.1: "409 → flush pending ops first". The autosave controller
         // (wave 1/3) listens for this window event; keep the note until the

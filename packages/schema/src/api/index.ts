@@ -10,3 +10,4 @@ export * from './domains';
 export * from './assets';
 export * from './openapi';
 export * from './spec';
+export * from './telemetry';
