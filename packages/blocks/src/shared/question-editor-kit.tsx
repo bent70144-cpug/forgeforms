@@ -5,6 +5,7 @@
 import { useState, type ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import type { Option } from "./option-list";
+import { MAX_OPTIONS } from "./option-list";
 import type { UrlParams } from "./prefill";
 
 /**
@@ -458,6 +459,86 @@ export function OptionsFields({
       <button type="button" disabled={disabled || atCap} onClick={add}>
         Add option
       </button>
+    </div>
+  );
+}
+
+/**
+ * §9.2 dropdown bulk-paste: turn a pasted newline-separated list into options.
+ *
+ * Pure editor-plane helper (no renderer change): lines are trimmed, blank lines
+ * dropped, labels deduplicated against the existing options and within the
+ * paste itself (case-sensitive exact match, mirroring findOption's exactness),
+ * and ids are minted with the same stable scheme as "Add option". The merged
+ * list is hard-capped at the shared MAX_OPTIONS limit so the result is always
+ * OptionList-valid.
+ */
+export function parsePastedOptions(text: string, existing: readonly Option[] = []): Option[] {
+  const seen = new Set(existing.map((option) => option.label));
+  const merged: Option[] = [...existing];
+  for (const rawLine of text.split(/\r?\n/)) {
+    if (merged.length >= MAX_OPTIONS) break;
+    const label = rawLine.trim();
+    if (label === "" || seen.has(label)) continue;
+    seen.add(label);
+    merged.push({ id: nextOptionId(merged), label });
+  }
+  return merged;
+}
+
+/**
+ * §9.2 dropdown bulk-paste editor control: a "Paste options" disclosure with a
+ * textarea (one option per line) and an apply button that merges the parsed
+ * lines into the current options. Shared so other select-kind editors can
+ * adopt it later; dropdown ships it first.
+ */
+export function PasteOptionsFields({
+  options,
+  onOptionsChange,
+  disabled,
+}: {
+  options: Option[];
+  onOptionsChange: (next: Option[]) => void;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const merged = parsePastedOptions(text, options);
+  const newCount = merged.length - options.length;
+  return (
+    <div className="ff-editor__paste" data-paste-options>
+      <button
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        Paste options
+      </button>
+      {open ? (
+        <>
+          <textarea
+            className="ff-editor__paste-input"
+            aria-label="Paste options, one per line"
+            placeholder={"One option per line, e.g.\nRed\nGreen\nBlue"}
+            rows={6}
+            value={text}
+            disabled={disabled}
+            onChange={(event) => setText(event.target.value)}
+          />
+          <button
+            type="button"
+            disabled={disabled || newCount === 0}
+            onClick={() => {
+              onOptionsChange(merged);
+              setText("");
+              setOpen(false);
+            }}
+          >
+            {`Add ${newCount} ${newCount === 1 ? "option" : "options"}`}
+          </button>
+        </>
+      ) : null}
     </div>
   );
 }

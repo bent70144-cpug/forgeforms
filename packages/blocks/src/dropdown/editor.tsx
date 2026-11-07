@@ -5,6 +5,7 @@ import {
   CanvasPreview,
   GenericQuestionFields,
   OptionsFields,
+  PasteOptionsFields,
 } from "../shared/question-editor-kit";
 import { DropdownRender } from "./render";
 import type { DropdownProps } from "./schema";
@@ -29,6 +30,12 @@ export const DropdownEditor: FC<
       <div className="ff-editor__field">
         <span>Options</span>
         <OptionsFields
+          options={props.options}
+          onOptionsChange={(options) => onChange({ ...props, options })}
+          disabled={disabled}
+        />
+        {/* §9.2 bulk-paste: add many options at once from a pasted list. */}
+        <PasteOptionsFields
           options={props.options}
           onOptionsChange={(options) => onChange({ ...props, options })}
           disabled={disabled}

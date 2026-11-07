@@ -65,6 +65,7 @@ import {
 import { shuffledOptions } from "./shared/option-list";
 import { getBlockDef } from "./registry";
 import { paramsFromSearch, prefillFor } from "./shared/prefill";
+import { parsePastedOptions } from "./shared/question-editor-kit";
 // Importing the block modules registers them (spec §7.1 import-time registry).
 import "./email";
 import "./number";
@@ -202,11 +203,24 @@ describe("single-select block (§7.2: options, allowOther, randomize → {option
   const base = singleSelectDefaultProps();
   const firstId = base.options[0]?.id ?? "";
 
-  it("parses defaultProps with allowOther/randomize defaults", () => {
+  it("parses defaultProps with allowOther/randomize/displayMode defaults", () => {
     const props = SingleSelectProps.parse(singleSelectDefaultProps());
     expect(props.allowOther).toBe(false);
     expect(props.randomize).toBe(false);
+    expect(props.displayMode).toBe("list");
     expect(props.options).toHaveLength(2);
+  });
+
+  it("§9.2 displayMode: old docs parse unchanged and get the list default", () => {
+    // An old stored document carries no displayMode key at all.
+    const legacy: unknown = { label: "L", options: base.options, allowOther: true };
+    const parsed = SingleSelectProps.parse(legacy);
+    expect(parsed.displayMode).toBe("list");
+    expect(parsed.allowOther).toBe(true);
+    // New docs can opt into grid/picture; anything else is rejected.
+    expect(SingleSelectProps.safeParse({ ...base, displayMode: "grid" }).success).toBe(true);
+    expect(SingleSelectProps.safeParse({ ...base, displayMode: "picture" }).success).toBe(true);
+    expect(SingleSelectProps.safeParse({ ...base, displayMode: "carousel" }).success).toBe(false);
   });
 
   it("rejects an option without id/label and empty option lists", () => {
@@ -398,6 +412,36 @@ describe("dropdown block (§7.2: options, searchable → {optionId})", () => {
   });
 });
 
+describe("§9.2 dropdown bulk-paste (parsePastedOptions)", () => {
+  const base = dropdownDefaultProps();
+
+  it("splits lines, trims, drops blanks, and mints stable ids", () => {
+    const merged = parsePastedOptions("  Red  \n\nGreen\nBlue\n", []);
+    expect(merged.map((option) => option.label)).toEqual(["Red", "Green", "Blue"]);
+    expect(new Set(merged.map((option) => option.id)).size).toBe(3);
+    expect(merged.every((option) => option.id.startsWith("opt_"))).toBe(true);
+  });
+
+  it("merges into existing options and dedupes exact labels", () => {
+    const merged = parsePastedOptions("Option 1\nTeal\nTeal\n", base.options);
+    expect(merged.map((option) => option.label)).toEqual(["Option 1", "Option 2", "Teal"]);
+    expect(DropdownProps.parse({ ...base, options: merged }).options).toHaveLength(3);
+  });
+
+  it("caps the merged list at the shared 200-option limit", () => {
+    const existing = base.options;
+    const pasted = Array.from({ length: 210 }, (_, i) => `Choice ${i + 1}`).join("\n");
+    const merged = parsePastedOptions(pasted, existing);
+    expect(merged).toHaveLength(200); // OptionList max(200)
+    expect(() => DropdownProps.parse({ ...base, options: merged })).not.toThrow();
+  });
+
+  it("a paste that yields nothing keeps the current options untouched", () => {
+    expect(parsePastedOptions("\n  \n", base.options)).toEqual(base.options);
+    expect(parsePastedOptions("Option 1\n", base.options)).toEqual(base.options);
+  });
+});
+
 describe("rating block (§7.2: scale 3–10, icon → number)", () => {
   const base = ratingDefaultProps();
 
@@ -410,14 +454,19 @@ describe("rating block (§7.2: scale 3–10, icon → number)", () => {
     });
   });
 
-  it("scale honors the 3–10 bounds; icon is a fixed enum", () => {
+  it("scale honors the 3–10 bounds; icon is a fixed enum incl. §9.2 'number'", () => {
     expect(RatingProps.safeParse({ label: "L", scale: 3 }).success).toBe(true);
     expect(RatingProps.safeParse({ label: "L", scale: 10 }).success).toBe(true);
     expect(RatingProps.safeParse({ label: "L", scale: 2 }).success).toBe(false);
     expect(RatingProps.safeParse({ label: "L", scale: 11 }).success).toBe(false);
     expect(RatingProps.safeParse({ label: "L", scale: 5.5 }).success).toBe(false);
-    expect(RatingIcon.options).toEqual(["star", "heart", "thumbs"]);
+    expect(RatingIcon.options).toEqual(["star", "heart", "thumbs", "number"]);
     expect(RatingProps.safeParse({ label: "L", icon: "coin" }).success).toBe(false);
+  });
+
+  it("§9.2 icon 'number' parses and older icons keep their glyph meaning", () => {
+    expect(RatingProps.parse({ ...base, icon: "number" }).icon).toBe("number");
+    expect(RatingProps.parse({ label: "L", icon: "thumbs" }).icon).toBe("thumbs");
   });
 
   it("answerSchema accepts integers only", () => {

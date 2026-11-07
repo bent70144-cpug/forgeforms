@@ -6,11 +6,13 @@ import { QuestionShell } from "../shared/question-editor-kit";
 import { prefillRating, ratingScale } from "./schema";
 import type { RatingAnswer, RatingIcon, RatingProps } from "./schema";
 
-// Glyphs per §7.2 `icon`; unknown values fall back to the raw string.
+// Glyphs per §7.2 `icon`; unknown values fall back to the raw string. The
+// `number` variant renders bare numeric buttons — no glyph at all.
 const GLYPHS: Record<RatingIcon, string> = {
   star: "★",
   heart: "♥",
   thumbs: "👍",
+  number: "",
 };
 
 export const RatingRender: FC<RenderProps<RatingProps, RatingAnswer>> = ({
@@ -48,7 +50,10 @@ export const RatingRender: FC<RenderProps<RatingProps, RatingAnswer>> = ({
             disabled={disabled}
             onClick={() => onAnswer?.(n)}
           >
-            <span aria-hidden="true">{glyph}</span>
+            {/* §9.2 `number` icon variant: bare numeric buttons, no glyph. */}
+            {props.icon === "number" ? null : (
+              <span aria-hidden="true">{glyph}</span>
+            )}
             <span aria-hidden="true">{n}</span>
           </button>
         ))}
