@@ -49,6 +49,26 @@ Milestones (builder build plan):
 
 Notes: the store intentionally mirrors the spec's pinned Zustand+Immer shape as a plain React reducer (zero-dependency policy — see the audit), reordering is keyboard-first (pointer/touch drag is tracked in the audit's follow-ups), and plan gates render as static inline notes until entitlements are resolved client-side.
 
+### Wave 4 (agent build)
+
+The builder audit's open follow-ups are being closed by a parallel agent wave: 13 packages, one git worktree + branch each, coordinated by the lead integrator (scope per package and post-merge verification live in [`docs/wave4-build-report.md`](./docs/wave4-build-report.md); the audit tracks them in [`docs/builder-audit.md`](./docs/builder-audit.md), section "Wave 4 update"):
+
+- **W1** — stale offline batches route into the §7.3 conflict flow (`agent/w1-conflict-flow`)
+- **W2** — 401 re-auth prompt in the autosave loop (`agent/w2-reauth-401`)
+- **W3** — publish-gate codes `FORM_EMBED_MISSING` + `MISSING_ASSET` (`agent/w3-publish-codes`)
+- **W4** — slug availability endpoint + taken-slug suggestion (`agent/w4-slug-check`)
+- **W5** — `text` block registry def + rich text editor, Tiptap-or-fallback (`agent/w5-text-block`)
+- **W6** — dnd-kit pointer/touch drag + drop indicator + auto-scroll (`agent/w6-dnd-drag`)
+- **W7** — entitlements surface for builder gates + 402/403 inline explanations (`agent/w7-entitlements`)
+- **W8** — telemetry sink + §15 builder event vocabulary (`agent/w8-telemetry`)
+- **W9** — 500-block / 1 MB client hard limits + virtualized blocks tree (`agent/w9-hard-limits`)
+- **W10** — option-list keyboard interactions: Enter-add, Backspace-delete, paste-split, duplicate warning (`agent/w10-option-list`)
+- **W11** — §9.2 editor gaps: dropdown bulk-paste, single-select display-mode, rating number icon, columns ratios/stack order, form-embed layout/height modes (`agent/w11-editor-gaps`)
+- **W12** — asset picker modal (upload/library) + question image field (`agent/w12-asset-picker`)
+- **W13** — wave docs + e2e attempt and spec cases for the wave-4 behaviors (`agent/w13-docs-e2e`)
+
+All packages are *in flight — pending integration*; statuses will be re-audited after the wave merges.
+
 ### Builder tests
 
 ```bash

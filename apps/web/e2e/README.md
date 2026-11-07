@@ -83,6 +83,52 @@ pnpm --filter @formforge/web exec playwright test -c e2e/playwright.config.ts e2
   control opens the Theme panel yet (`setPanel("theme")` has no call site),
   so the theme test self-skips until the right-pane opener lands.
 
+### Wave 4 cases (W13, describes 11–15)
+
+`builder.spec.ts` gained five hermetic cases covering the wave-4 agent
+packages. Each names its prerequisite branch in the file header and in the
+test title, and **self-skips at runtime** while that branch is not merged
+(the theme-test pattern: detect the prerequisite UI → `test.skip` with the
+missing-prerequisite reason), so the suite stays meaningful before and after
+the wave merges:
+
+11. **stale-batch conflict dialog** — W1 `agent/w1-conflict-flow`: seeds a
+    §22.2 IndexedDB record (`formforge_builder` v1 / `pending_batches`) via
+    `addInitScript` written against rev 1 while the served envelope is rev 2,
+    then expects the §7.3 conflict dialog (Escape is a no-op, "Use theirs"
+    clears the stored record). Against the current build the stale record
+    routes to the §7.2 discard-only RestorePrompt → skip reason says so.
+12. **401 re-auth prompt** — W2 `agent/w2-reauth-401`: route-intercepts every
+    PATCH with `401 UNAUTHORIZED`, triggers an inline edit and expects the
+    re-auth prompt (selector breadth: likely testids + `role=dialog` naming).
+13. **slug taken suggestion** — W4 `agent/w4-slug-check`: mocks
+    `GET /api/v1/documents/:id/slug-check` (the path the settings TODO pins),
+    fills the `ff-set-doc-slug` field with a taken slug and expects the
+    "taken" flag plus a clickable `-2` suggestion that fills the field.
+14. **asset picker upload/library** — W12 `agent/w12-asset-picker`: opens the
+    picker from the block editor, mocks `**/api/v1/assets**` (POST upload →
+    ready asset, GET → library list), uploads a 1×1 PNG through the hidden
+    `input[type=file]`, checks the library tab and selects the asset into the
+    §9.1 image field.
+15. **pointer drag reorder** — W6 `agent/w6-dnd-drag`: detects a drag
+    affordance (handle or dnd-kit sortable card), performs a real pointer
+    drag (press → threshold move → settle → release) and asserts the flipped
+    tree order **and** a `block.move` op in the captured autosave PATCH.
+
+Cases 12–14 pin best-effort selectors (testid first, then accessible names)
+because the components are not on the integration branch yet — tighten them
+when the owning branch merges. The a11y specs (`a11y.spec.ts`,
+`a11y-keyboard.spec.ts`) are unchanged: they remain whole-surface gates, and
+none of the wave-4 behaviors needs a new axe/keyboard-sweep assertion.
+
+**Sandbox attempt (wave 4, W13):** chromium installs fine (network OK), but
+the suite still cannot run end-to-end here: `docker` is unavailable, so the
+postgres/redis services never start. Test 1 (real API) fails at register,
+and tests 2–15 redirect to `/login` because `app/(app)/layout.tsx`
+server-side gates `/d/:docId` behind a real session — the hermetic
+route-mocking cannot fake that session. Details in
+[`docs/wave4-build-report.md`](../../../docs/wave4-build-report.md).
+
 ## T28 — accessibility + keyboard sweep (issue #28)
 
 `a11y.spec.ts` and `a11y-keyboard.spec.ts` are the ticket #28 release gate

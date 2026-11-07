@@ -32,6 +32,27 @@
 //   8. theme                — Slate Dark preset (skips until the pane opener lands)
 //   9. keyboard map         — "?" shortcuts dialog, Cmd/Ctrl+K picker
 //  10. a11y spot            — axe scan of the three-pane builder (zero critical)
+//
+// Wave 4 additions (W13, describes 11–15) — e2e cases for the wave-4 agent
+// packages. PREREQUISITES (branch that must merge before the case can pass):
+//   11. stale-batch conflict dialog — agent/w1-conflict-flow (follow-up #2:
+//       stale §22.2 batches → §7.3 conflict flow via wiring.planRecovery).
+//       Detects the dialog at runtime; against the current build (pre-W1) the
+//       stale record routes to the §7.2 discard-only RestorePrompt, so the
+//       case self-skips with that reason until W1 lands.
+//   12. 401 re-auth prompt — agent/w2-reauth-401 (follow-up #3: re-auth
+//       handling in the autosave loop). Skips until the prompt exists.
+//   13. slug taken suggestion — agent/w4-slug-check (follow-up #5: GET
+//       /slug-check availability probe + DocSettings suggestion UI). Skips
+//       until the probe/suggestion UI exists (route here is route-mocked).
+//   14. asset picker upload/library — agent/w12-asset-picker (§10 modal +
+//       §9.1 question image field). Skips until the picker opener exists.
+//   15. pointer drag reorder — agent/w6-dnd-drag (follow-up #7: dnd-kit
+//       §6.2 drag + drop indicator). Skips until a drag affordance exists;
+//       asserts the flipped tree order AND a dispatched block.move op.
+// Cases 12–14 pin best-effort selectors (testid first, then accessible
+// names) because the components are not on this integration branch yet —
+// tighten them when the owning branch merges.
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -52,6 +73,12 @@ import {
 } from "./builder-helpers";
 
 const HERMETIC_DOC_ID = "builder-e2e";
+
+/** Minimal 1×1 transparent PNG for the §10 asset-upload happy path (case 14). */
+const PNG_1PX = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
 
 test.describe.configure({ mode: "serial" });
 
@@ -426,6 +453,334 @@ test.describe("10. a11y spot (axe)", () => {
       `[builder] critical axe violations:\n${summary}\n` +
         `(all impacts present: ${results.violations.map((violation) => `${violation.id}:${violation.impact}`).join(", ")})`,
     ).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Wave 4 cases (W13). Each targets one wave-4 agent package and self-skips at
+// runtime when its prerequisite UI is not on the integration branch yet
+// (same graceful pattern as the theme case above) — see the file-header
+// PREREQUISITES block for the owning branch per case.
+// ---------------------------------------------------------------------------
+
+test.describe("11. stale-batch conflict dialog (§7.2/§7.3 recovery — wave 4 W1)", () => {
+  test.skip(
+    process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1",
+    "hermetic documents-API interception — run in API mode",
+  );
+
+  test("a stale §22.2 offline batch opens the §7.3 conflict dialog; 'Use theirs' clears the record", async ({
+    page,
+  }) => {
+    // Serve the document at rev 2 while the stored batch was written against
+    // rev 1 → wiring.planRecovery sees baseRev < serverRev → the stale path.
+    const envelope: Record<string, unknown> = { ...seedEnvelope(HERMETIC_DOC_ID, contentSeed()), rev: 2 };
+    await mockDocumentsApi(page, HERMETIC_DOC_ID, envelope);
+
+    // Seed the §22.2 IndexedDB record BEFORE any app script runs (the queue
+    // is read during BuilderPage's load effect). Same DB contract as
+    // lib/builder/offline.ts: `formforge_builder` v1 / `pending_batches`.
+    await page.addInitScript(async () => {
+      const record = {
+        docId: "builder-e2e",
+        baseRev: 1,
+        ops: [{ op: "block.update", id: "q_name", props: { label: "Stale offline edit" } }],
+        updatedAt: Date.now(),
+      };
+      const open = indexedDB.open("formforge_builder", 1);
+      open.onupgradeneeded = () => {
+        const db = open.result;
+        if (!db.objectStoreNames.contains("pending_batches")) {
+          db.createObjectStore("pending_batches", { keyPath: "docId" });
+        }
+      };
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        open.onsuccess = () => resolve(open.result);
+        open.onerror = () => reject(open.error);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction("pending_batches", "readwrite");
+        tx.objectStore("pending_batches").put(record);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+    });
+
+    await openBuilder(page, HERMETIC_DOC_ID);
+
+    // Either the §7.3 conflict dialog (wave-4 W1 flow) or the pre-wave §7.2
+    // discard-only prompt must appear — never a silent drop of the record.
+    const conflict = page.getByTestId("conflict-dialog");
+    const restore = page.getByTestId("restore-prompt");
+    await expect(conflict.or(restore)).toBeVisible({ timeout: 10_000 });
+
+    if ((await conflict.count()) === 0) {
+      test.skip(
+        true,
+        "wave-4 W1 (agent/w1-conflict-flow) not merged: stale batches still route to the §7.2 discard-only RestorePrompt",
+      );
+    }
+
+    // §7.3.3: blocking but non-destructive — Escape must NOT dismiss it.
+    await expect(conflict).toContainText("This form was changed in another tab or by someone else.");
+    await page.keyboard.press("Escape");
+    await expect(conflict).toBeVisible();
+
+    // "Use theirs" adopts the server document and deletes the §22.2 record
+    // (offline.ts lifecycle: cleared on resolve — never lost silently).
+    await conflict.getByRole("button", { name: "Use theirs" }).click();
+    await expect(conflict).toBeHidden();
+    const stored = await page.evaluate(async () => {
+      const db = await new Promise<IDBDatabase>((resolve, reject) => {
+        const open = indexedDB.open("formforge_builder", 1);
+        open.onsuccess = () => resolve(open.result);
+        open.onerror = () => reject(open.error);
+      });
+      const value = await new Promise<unknown>((resolve, reject) => {
+        const req = db
+          .transaction("pending_batches", "readonly")
+          .objectStore("pending_batches")
+          .get("builder-e2e");
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      db.close();
+      return value;
+    });
+    expect(stored, "the §22.2 record is cleared after 'Use theirs'").toBeUndefined();
+  });
+});
+
+test.describe("12. 401 re-auth prompt (§7.1 autosave — wave 4 W2)", () => {
+  test.skip(
+    process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1",
+    "hermetic documents-API interception — run in API mode",
+  );
+
+  test("an expired session (401 on autosave) surfaces the re-auth prompt", async ({ page }) => {
+    await openHermetic(page, contentSeed());
+
+    // Every PATCH answers 401 — the session expired mid-edit. Registered
+    // AFTER mockDocumentsApi, so this handler wins (Playwright matches LIFO);
+    // route.fallback() defers the GETs to the seeded handlers.
+    await page.route(`**/api/v1/documents/${HERMETIC_DOC_ID}`, async (route) => {
+      if (route.request().method() === "PATCH") {
+        await route.fulfill({
+          status: 401,
+          json: { error: { code: "UNAUTHORIZED", message: "Session expired" } },
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    // Trigger an edit → the autosave flush (500 ms debounce) → 401.
+    const emailCard = cardsOfKind(page, "email");
+    await emailCard.click();
+    await emailCard.getByTestId("inline-editable").click();
+    const inlineInput = emailCard.getByRole("textbox", { name: "Edit Email text" });
+    await inlineInput.fill("Company email");
+    await inlineInput.press("Enter");
+
+    // Wave-4 W2: the autosave loop must raise a re-auth prompt (not just the
+    // generic "Couldn't save — Retry"). Selector breadth until W2 pins the
+    // component's testid: likely ids + role=dialog naming.
+    const prompt = page
+      .getByTestId("reauth-prompt")
+      .or(page.getByTestId("auth-prompt"))
+      .or(page.getByRole("dialog", { name: /session expired|re-?auth|sign in/i }));
+    await prompt.first().waitFor({ state: "visible", timeout: 15_000 }).catch(() => {});
+    if ((await prompt.count()) === 0) {
+      test.skip(
+        true,
+        "wave-4 W2 (agent/w2-reauth-401) not merged: no re-auth prompt in the autosave loop yet",
+      );
+    }
+    await expect(prompt.first()).toBeVisible();
+  });
+});
+
+test.describe("13. slug availability + taken suggestion (§6.6 — wave 4 W4)", () => {
+  test.skip(
+    process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1",
+    "hermetic documents-API interception — run in API mode",
+  );
+
+  test("typing a taken slug probes availability, flags it and offers the -2 suggestion", async ({
+    page,
+  }) => {
+    await openHermetic(page, contentSeed());
+
+    // W4 route (the settings-helpers TODO pins the path): debounced
+    // availability probe behind the §6.6 slug field. Any slug except the
+    // doc's own is "taken" here.
+    await page.route(`**/api/v1/documents/${HERMETIC_DOC_ID}/slug-check*`, async (route) => {
+      const url = new URL(route.request().url());
+      const slug = url.searchParams.get("slug") ?? "";
+      const taken = slug !== "" && slug !== "builder-e2e-form";
+      await route.fulfill({
+        json: taken
+          ? { slug, available: false, suggestions: [`${slug}-2`] }
+          : { slug, available: true },
+      });
+    });
+
+    // DocSettings (General tab) shows the slug field while nothing is selected.
+    const slugField = page.getByTestId("ff-set-doc-slug");
+    await expect(slugField).toBeVisible();
+    await slugField.fill("winter-campaign");
+
+    // Probe is debounced (~500 ms) and the probe/suggestion UI is W4's —
+    // detect before asserting (theme-case pattern), skip pre-merge.
+    const suggestion = page
+      .getByTestId("slug-suggestion")
+      .or(page.getByRole("button", { name: /winter-campaign-2/ }));
+    await suggestion.first().waitFor({ state: "visible", timeout: 5_000 }).catch(() => {});
+    if ((await suggestion.count()) === 0) {
+      test.skip(
+        true,
+        "wave-4 W4 (agent/w4-slug-check) not merged: no slug availability probe/suggestion UI yet",
+      );
+    }
+
+    await expect(page.getByTestId("doc-settings")).toContainText(/taken|already in use/i);
+    await suggestion.first().click();
+    await expect(slugField).toHaveValue("winter-campaign-2");
+  });
+});
+
+test.describe("14. asset picker upload + library (§10/§9.1 — wave 4 W12)", () => {
+  test.skip(
+    process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1",
+    "hermetic documents-API interception — run in API mode",
+  );
+
+  test("uploading through the asset picker inserts the asset into the question image field", async ({
+    page,
+  }) => {
+    await openHermetic(page, contentSeed());
+
+    // The §9.1 image field lives in the per-question editor (right pane).
+    const emailCard = cardsOfKind(page, "email");
+    await emailCard.click();
+    await expect(page.getByTestId("block-settings")).toBeVisible();
+
+    // W12 opener — testid first, then plausible accessible names.
+    const opener = page
+      .getByTestId("asset-picker-open")
+      .or(
+        page.getByRole("button", {
+          name: /choose image|pick image|add image|upload image|browse (assets|library)/i,
+        }),
+      );
+    if ((await opener.count()) === 0) {
+      test.skip(
+        true,
+        "wave-4 W12 (agent/w12-asset-picker) not merged: no asset picker opener in the block editor yet",
+      );
+    }
+    await opener.first().click();
+    const picker = page.getByRole("dialog", { name: /asset/i });
+    await expect(picker).toBeVisible();
+
+    // Mock the §10 assets API: POST upload → ready asset; GET library → list.
+    // (No S3/MinIO in this mode — the §13 lazy asset-picker never touches a
+    // real bucket in e2e.)
+    const asset = {
+      id: "asset_e2e_1",
+      filename: "e2e-square.png",
+      url: "/uploads/e2e-square.png",
+      width: 1,
+      height: 1,
+      size: PNG_1PX.byteLength,
+      status: "ready",
+    };
+    await page.route("**/api/v1/assets**", async (route) => {
+      const request = route.request();
+      if (request.method() === "POST") {
+        await route.fulfill({ status: 201, json: asset });
+        return;
+      }
+      if (request.method() === "GET") {
+        await route.fulfill({ json: { items: [asset], total: 1 } });
+        return;
+      }
+      await route.fallback();
+    });
+
+    // Upload tab: the hidden <input type="file"> drives the picker without
+    // the OS file dialog (Playwright-recommended upload path).
+    const fileInput = picker.locator('input[type="file"]').first();
+    await fileInput.setInputFiles({
+      name: "e2e-square.png",
+      mimeType: "image/png",
+      buffer: PNG_1PX,
+    });
+
+    // The upload lands in the picker (library grid)…
+    const assetCard = picker.getByText("e2e-square.png").first();
+    await expect(assetCard).toBeVisible({ timeout: 10_000 });
+
+    // …and the Library tab lists it too (§10 upload/library split; the tab
+    // opener is W12's — only assert when it exists).
+    const libraryTab = picker.getByRole("tab", { name: /library/i });
+    if ((await libraryTab.count()) > 0) {
+      await libraryTab.click();
+      await expect(picker.getByText("e2e-square.png").first()).toBeVisible();
+    }
+
+    // Selecting the asset closes the picker and fills the §9.1 image field.
+    const selectable = picker
+      .getByRole("button", { name: /e2e-square\.png/i })
+      .or(assetCard);
+    await selectable.first().click();
+    await expect(picker).toBeHidden();
+    await expect(page.getByTestId("block-settings")).toContainText("e2e-square.png");
+  });
+});
+
+test.describe("15. pointer drag reorder (§6.2 — wave 4 W6)", () => {
+  test.skip(
+    process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1",
+    "hermetic documents-API interception — run in API mode",
+  );
+
+  test("pointer-dragging a block reorders the tree and dispatches block.move", async ({ page }) => {
+    const api = await openHermetic(page, contentSeed());
+    expect(await treeLabels(page)).toEqual(["Full name", "Work email"]);
+
+    // Wave-4 W6: dnd-kit pointer drag. Detect the drag affordance — a
+    // dedicated handle or a dnd-kit sortable card. Nothing to drag pre-merge
+    // → skip (the keyboard Alt+Arrow path stays covered by case 4).
+    const card = cardsOfKind(page, "short-text"); // "Full name" (row 1)
+    const handle = card.locator('[data-testid="drag-handle"], [aria-roledescription="sortable"]');
+    if ((await handle.count()) === 0 && (await card.getAttribute("aria-roledescription")) !== "sortable") {
+      test.skip(
+        true,
+        "wave-4 W6 (agent/w6-dnd-drag) not merged: no pointer drag affordance on block cards yet",
+      );
+    }
+    const source = (await handle.count()) > 0 ? handle.first() : card;
+
+    const from = await source.boundingBox();
+    const to = await cardsOfKind(page, "email").boundingBox(); // drop onto "Work email"
+    if (!from || !to) throw new Error("drag source/target cards not visible");
+
+    // dnd-kit pointer sensor: press, move past the ~8 px activation
+    // threshold, settle over the target (slightly past its midline so an
+    // adjacent swap lands), release.
+    await page.mouse.move(from.x + from.width / 2, from.y + Math.min(from.height / 2, 16));
+    await page.mouse.down();
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 16 });
+    await page.mouse.move(to.x + to.width / 2, to.y + to.height - 4, { steps: 8 });
+    await page.mouse.up();
+
+    expect(await treeLabels(page)).toEqual(["Work email", "Full name"]);
+    // The REAL autosave loop carried the reorder (route-mocked PATCH captured).
+    const patch = api.lastPatch();
+    expect(patch, "the drag dispatched an autosave batch").not.toBeNull();
+    expect(patch?.ops.some((op) => op.op === "block.move")).toBe(true);
   });
 });
 

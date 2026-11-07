@@ -119,3 +119,50 @@ Techniques checklist (§13 "Techniques" list):
 ---
 
 *Audit by wave-3b task 9-b (agent C4). Verification commands at audit time: `pnpm --filter @formforge/web test` → 75 files / 837 tests passed; `pnpm --filter @formforge web typecheck` clean; root `pnpm lint` clean. Every file path cited above was verified to exist (`ls`/`rg`) at audit time.*
+
+---
+
+## Wave 4 update (agent build)
+
+Wave 4 addresses this audit's §4 follow-ups as a **parallel agent build**: 13
+agents, one worktree + branch each (`agent/w1-…` … `agent/w13-…`), all cut from
+the same merge-base commit, coordinated by the lead integrator on
+`agent/build-wave4`. The table below records what each package is *supposed* to
+deliver; every status is **"in flight — pending integration"** — none of the
+PASS/PARTIAL/FAIL statuses above has been flipped by this wave, and the whole
+table will be re-audited against the merged code after the wave lands.
+
+| Agent | Follow-up ref | Scope (one-liner) | Branch | Status |
+|---|---|---|---|---|
+| W1 | §4 #2 | Stale offline batches route into the §7.3 conflict flow (`wiring.planRecovery` + RestorePrompt) | `agent/w1-conflict-flow` | in flight — pending integration |
+| W2 | §4 #3 | 401 re-auth prompt in the autosave loop (§7.1) | `agent/w2-reauth-401` | in flight — pending integration |
+| W3 | §4 #4 | Publish-gate codes `FORM_EMBED_MISSING` + `MISSING_ASSET` (§8.1/B7) | `agent/w3-publish-codes` | in flight — pending integration |
+| W4 | §4 #5 | Slug availability endpoint (`GET /api/v1/documents/:id/slug-check`) + inline "taken" `-2` suggestion (§6.6/§22.1/§14) | `agent/w4-slug-check` | in flight — pending integration |
+| W5 | §4 #6 | `text` block registry def + rich text editor (Tiptap-or-fallback, §9.4/§9.2) | `agent/w5-text-block` | in flight — pending integration |
+| W6 | §4 #7 | dnd-kit pointer/touch drag + drop indicator + auto-scroll (§6.2/§13) | `agent/w6-dnd-drag` | in flight — pending integration |
+| W7 | §4 #8 | Entitlements surface for the builder gates + 402/403 inline explanations (§24/§14) | `agent/w7-entitlements` | in flight — pending integration |
+| W8 | §4 #9 | Telemetry sink + §15 builder event vocabulary (`autosave_ok` first) | `agent/w8-telemetry` | in flight — pending integration |
+| W9 | §4 #10a | 500-block / 1 MB client hard limits + virtualized `BlocksTree` (§13/§14) | `agent/w9-hard-limits` | in flight — pending integration |
+| W10 | §4 #10b | Option-list keyboard interactions: Enter-add, Backspace-delete, paste-split, duplicate warning (§9.3) | `agent/w10-option-list` | in flight — pending integration |
+| W11 | spec gap §9.2 | Dropdown bulk-paste, single-select display-mode, rating number icon, columns ratios/stack order, form-embed layout/height modes | `agent/w11-editor-gaps` | in flight — pending integration |
+| W12 | spec gap §10 (+ §9.1) | Asset picker modal (upload/library) + question image field | `agent/w12-asset-picker` | in flight — pending integration |
+| W13 | §4 #1 (+ docs) | E2E attempt + new e2e spec cases for the wave-4 behaviors + this wave's docs (see [`docs/wave4-build-report.md`](./wave4-build-report.md)) | `agent/w13-docs-e2e` | in flight — pending integration |
+
+Notes:
+
+- **§4 follow-ups 2–10 are addressed by this wave** (#10 is split into 10a =
+  W9 hard limits/virtualization and 10b = W10 option-list keyboard; the §9.2
+  and §10 spec gaps get dedicated packages W11/W12; follow-up #1 — running the
+  e2e suites on a browser-capable runner — is W13's attempt). Follow-up
+  statuses here will be re-audited after the wave merges; until then the
+  §1–§4 statuses above stand exactly as written.
+- W13 also added five e2e cases to `apps/web/e2e/builder.spec.ts`
+  (describes 11–15: stale-batch conflict dialog, 401 re-auth prompt,
+  slug-taken suggestion, asset picker upload/library, pointer-drag reorder).
+  Each case names its prerequisite branch in the file header and self-skips
+  at runtime until that branch merges — see
+  [`apps/web/e2e/README.md`](../apps/web/e2e/README.md) ("Wave 4 cases").
+- W13's sandbox e2e attempt (chromium install OK; `docker` unavailable so the
+  compose services never started; hermetic `/d/:docId` loads still redirect to
+  `/login` because `app/(app)/layout.tsx` gates them server-side) is recorded
+  verbatim in [`docs/wave4-build-report.md`](./wave4-build-report.md).
