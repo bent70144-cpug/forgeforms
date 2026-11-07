@@ -35,6 +35,7 @@ import {
   utcIsoToDatetimeLocal,
   useDebouncedPatch,
   useDraftSync,
+  useSlugAvailability,
 } from "./settings-helpers";
 
 export type DocSettingsTab = "general" | "behavior" | "limits" | "notifications" | "seo";
@@ -99,6 +100,19 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
     ? "Use 3–60 lowercase letters, digits or hyphens — e.g. customer-feedback."
     : null;
 
+  // §6.6/§14 availability probe (follow-up #5): debounced GET slug-check, run
+  // only when the format is valid. The taken note is INLINE — it styles the
+  // field but never blocks the debounced autosave (PATCH re-checks uniqueness).
+  const slugAvailability = useSlugAvailability(state.docId, slugDraft);
+  const takenSuggestion =
+    slugAvailability.status === "taken" ? slugAvailability.suggestion : null;
+  // One-click `-2` suggestion: flows through the SAME debounced slug update
+  // path (pushSlug) — never a direct store write.
+  const applySuggestion = (suggestion: string): void => {
+    setSlugDraft(suggestion);
+    pushSlug(suggestion);
+  };
+
   const seoTitle = settings.seo.title ?? "";
   const seoDescription = settings.seo.description ?? "";
   const [seoTitleDraft, setSeoTitleDraft] = useDraftSync(seoTitle);
@@ -151,9 +165,6 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 hint={SLUG_HINT}
                 error={slugError}
               >
-                {/* TODO(wave 3): add the §6.6 availability probe —
-                    GET /api/v1/documents/:id/slug-check (route missing yet);
-                    on "taken" show an inline error + `-2` variant (§14). */}
                 <input
                   id="ff-set-doc-slug"
                   type="text"
@@ -167,6 +178,26 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                     pushSlug(event.target.value);
                   }}
                 />
+                {slugAvailability.status === "checking" && (
+                  <p className="ff-set-note" data-testid="ff-set-slug-checking">
+                    Checking availability…
+                  </p>
+                )}
+                {slugAvailability.status === "taken" && (
+                  <p className="ff-set-note ff-set-note--error" role="alert" data-testid="ff-set-slug-taken">
+                    “{slugDraft}” is taken in this workspace.{" "}
+                    {takenSuggestion !== null && (
+                      <button
+                        type="button"
+                        className="ff-set-btn"
+                        data-testid="ff-set-slug-suggestion"
+                        onClick={() => applySuggestion(takenSuggestion)}
+                      >
+                        Use {takenSuggestion}
+                      </button>
+                    )}
+                  </p>
+                )}
               </FieldRow>
               <FieldRow label="Language" htmlFor="ff-set-doc-locale">
                 <select

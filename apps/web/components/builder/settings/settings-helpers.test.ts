@@ -5,9 +5,11 @@ import type { Block } from "@formforge/schema";
 import {
   MAX_NOTIFY_EMAILS,
   SLUG_PATTERN,
+  SLUG_PROBE_DEBOUNCE_MS,
   collectPrefillParams,
   copyTextToClipboard,
   createDebouncedSender,
+  createSlugProbe,
   datetimeLocalToUtcIso,
   isValidEmail,
   isValidPrefillParam,
@@ -218,5 +220,138 @@ describe("createDebouncedSender (§13: 300 ms text debounce, latest wins)", () =
     // Cast defeats TS's closure-unaware narrowing (assigned inside vi.fn).
     (callback as unknown as () => void)();
     expect(send).toHaveBeenCalledWith(43);
+  });
+});
+
+describe("createSlugProbe (§6.6/§14 follow-up #5: debounced availability probe)", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function okResponse(body: unknown): Response {
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  it("never fetches for format-invalid slugs (§6.6 format errors stay client-side)", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ available: true }));
+    const onResult = vi.fn();
+    const controller = createSlugProbe("doc1", onResult, { fetchImpl });
+    controller.probe("Nope");
+    controller.probe("ab");
+    controller.probe("");
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(onResult).not.toHaveBeenCalled();
+  });
+
+  it("debounces 300 ms (SLUG_PROBE_DEBOUNCE_MS), latest slug wins, hits the #5 route", async () => {
+    expect(SLUG_PROBE_DEBOUNCE_MS).toBe(300);
+    const fetchImpl = vi.fn(async (_url: RequestInfo | URL, _init?: RequestInit) =>
+      okResponse({ available: true }),
+    );
+    const onResult = vi.fn();
+    const controller = createSlugProbe("doc1", onResult, { fetchImpl });
+    controller.probe("my-form");
+    controller.probe("my-form-2");
+    await vi.advanceTimersByTimeAsync(299);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl.mock.calls[0]?.[0]).toBe("/api/v1/documents/doc1/slug-check?q=my-form-2");
+    expect(onResult).toHaveBeenCalledTimes(1);
+    expect(onResult).toHaveBeenCalledWith("my-form-2", {
+      ok: true,
+      available: true,
+      suggestion: undefined,
+    });
+  });
+
+  it("parses taken + `-2` suggestion; `available` must be strictly true", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ available: false, suggestion: "my-form-2" }));
+    const onResult = vi.fn();
+    createSlugProbe("doc1", onResult, { fetchImpl }).probe("my-form");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onResult).toHaveBeenCalledWith("my-form", {
+      ok: true,
+      available: false,
+      suggestion: "my-form-2",
+    });
+
+    // A truthy-but-non-boolean `available` is NOT available; non-string
+    // suggestions collapse to undefined.
+    const fuzzy = vi.fn(async () => okResponse({ available: "yes", suggestion: 42 }));
+    const onResult2 = vi.fn();
+    createSlugProbe("doc1", onResult2, { fetchImpl: fuzzy }).probe("x-slug");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onResult2).toHaveBeenCalledWith("x-slug", {
+      ok: true,
+      available: false,
+      suggestion: undefined,
+    });
+  });
+
+  it("collapses HTTP/network failures to { ok: false } — never a false 'taken'", async () => {
+    const onResult = vi.fn();
+    const failing = vi.fn(async () => new Response("nope", { status: 500 }));
+    createSlugProbe("doc1", onResult, { fetchImpl: failing }).probe("my-form");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onResult).toHaveBeenCalledWith("my-form", { ok: false });
+
+    const onResult2 = vi.fn();
+    const rejecting = vi.fn(async () => {
+      throw new Error("network down");
+    });
+    createSlugProbe("doc1", onResult2, { fetchImpl: rejecting }).probe("my-form");
+    await vi.advanceTimersByTimeAsync(300);
+    expect(onResult2).toHaveBeenCalledWith("my-form", { ok: false });
+  });
+
+  it("cancel drops the pending probe", async () => {
+    const fetchImpl = vi.fn(async () => okResponse({ available: true }));
+    const onResult = vi.fn();
+    const controller = createSlugProbe("doc1", onResult, { fetchImpl });
+    controller.probe("my-form");
+    controller.cancel();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(onResult).not.toHaveBeenCalled();
+  });
+
+  it("a superseded in-flight response is ignored (generation guard)", async () => {
+    let resolveStale!: (res: Response) => void;
+    const fetchImpl = vi.fn((url: RequestInfo | URL): Promise<Response> => {
+      if (String(url).includes("q=old")) {
+        return new Promise<Response>((resolve) => {
+          resolveStale = resolve;
+        });
+      }
+      return Promise.resolve(okResponse({ available: false, suggestion: "new-slug-2" }));
+    });
+    const onResult = vi.fn();
+    const controller = createSlugProbe("doc1", onResult, { fetchImpl });
+
+    controller.probe("old-slug");
+    await vi.advanceTimersByTimeAsync(300); // request 1 fired, still pending
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+
+    controller.probe("new-slug");
+    await vi.advanceTimersByTimeAsync(300); // request 2 fired AND resolved
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(onResult).toHaveBeenCalledTimes(1);
+    expect(onResult).toHaveBeenCalledWith("new-slug", {
+      ok: true,
+      available: false,
+      suggestion: "new-slug-2",
+    });
+
+    resolveStale(okResponse({ available: false, suggestion: "stale-2" }));
+    await vi.advanceTimersByTimeAsync(0); // flush the stale response chain
+    expect(onResult).toHaveBeenCalledTimes(1); // stale result dropped
   });
 });

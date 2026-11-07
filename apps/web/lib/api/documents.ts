@@ -25,6 +25,7 @@ import {
   err,
   isRevConflict,
   makeArchiveDocument,
+  makeCheckSlugAvailable,
   makeCreateDocument,
   makeDuplicateDocument,
   makeGetDocument,
@@ -194,6 +195,9 @@ export const documentsCrud = {
   archive: (ctx: ApiCtx, id: string) => makeArchiveDocument(getCrudDeps())(toKernelCtx(ctx), id),
   patch: (ctx: ApiCtx, id: string, input: { baseRev: number; ops: readonly WireOp[] }) =>
     makePatchDocument(getCrudDeps())(toKernelCtx(ctx), id, input),
+  /** Follow-up #5: slug availability probe for the builder settings panel. */
+  slugCheck: (ctx: ApiCtx, id: string, slug: string) =>
+    makeCheckSlugAvailable(getCrudDeps())(toKernelCtx(ctx), id, slug),
 };
 
 export { isRevConflict };
