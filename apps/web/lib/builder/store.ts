@@ -14,7 +14,17 @@ import { applyOps, invertOps, findBlock, emptyBody, type EditableDoc, type Op, t
 export type PanelTab = "block" | "document" | "theme" | "endings";
 // "offline" mirrors AutosaveStatus (§7.1: edits continue, queue kept) — added
 // when AutosaveController gained the offline state so the store can carry it.
-export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error" | "offline";
+// "unauthenticated" mirrors the §7.1 follow-up #3 re-auth park (session
+// expired — queue parked, edits keep collecting).
+export type SaveStatus =
+  | "idle"
+  | "dirty"
+  | "saving"
+  | "saved"
+  | "conflict"
+  | "error"
+  | "offline"
+  | "unauthenticated";
 
 export type EditorState = {
   docId: string;

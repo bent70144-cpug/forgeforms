@@ -89,9 +89,19 @@ const UNPUBLISHED_SAVE_STATES: ReadonlySet<string> = new Set([
   "offline",
   "error",
   "conflict",
+  // §7.1 follow-up #3: parked for re-auth — the pending ops are still unsent.
+  "unauthenticated",
 ]);
 
-export type SaveStatusLike = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error" | "offline";
+export type SaveStatusLike =
+  | "idle"
+  | "dirty"
+  | "saving"
+  | "saved"
+  | "conflict"
+  | "error"
+  | "offline"
+  | "unauthenticated";
 
 // ---------------------------------------------------------------------------
 // collectIssues

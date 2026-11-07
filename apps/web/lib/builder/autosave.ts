@@ -16,6 +16,12 @@
 //   failure (TypeError) or `navigator.onLine === false` surfaces the
 //   "offline" status: editing continues, the queue is kept, and a flush is
 //   attempted automatically on the window `online` event.
+// - An expired session (UnauthenticatedError — HTTP 401 or the §4
+//   "Authentication required" 403, follow-up #3) parks the queue like a
+//   conflict: NO backoff retries, pending ops kept (and mirrored), status
+//   "unauthenticated". `resumeAfterReauth()` re-checks the session (injected
+//   `checkSession`, default GET /api/auth/session) and flushes on success;
+//   `dismissReauth()` parks until the next manual retry.
 // - Optionally mirrors the pending queue into the §22.2 IndexedDB offline
 //   queue (debounced 100 ms, cleared on ack / "Use theirs" / discard).
 //
@@ -25,14 +31,30 @@
 
 import type { Block, DocumentBody, DocumentEnvelope } from "../bridge";
 import { applyOpsBestEffort, type EditableDoc, type Op } from "./ops";
-import { ConflictError, type DocumentTransport, type PatchResult, OpRejectedError } from "./transport";
+import {
+  ConflictError,
+  type DocumentTransport,
+  type PatchResult,
+  OpRejectedError,
+  UnauthenticatedError,
+} from "./transport";
 import type { OfflineQueuePort } from "./offline";
 
 /**
  * Save-state machine statuses. `offline` (spec §3.1/§7.1) means "edits are
- * kept locally and will sync when the connection returns".
+ * kept locally and will sync when the connection returns"; `unauthenticated`
+ * (§7.1 follow-up #3) means the session expired — the queue is parked, edits
+ * keep collecting locally, and the UI offers the re-auth prompt.
  */
-export type AutosaveStatus = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error" | "offline";
+export type AutosaveStatus =
+  | "idle"
+  | "dirty"
+  | "saving"
+  | "saved"
+  | "conflict"
+  | "error"
+  | "offline"
+  | "unauthenticated";
 
 export type StatusInfo = { at: number; message?: string };
 
@@ -60,6 +82,13 @@ export type ConflictMode = "mine" | "theirs";
 /** One op rejected by a 422 (§14) — the UI marks the block and toasts. */
 export type OpRejectedEvent = { op: Op; index: number; code: string; message: string };
 
+/**
+ * The session expired (§7.1 follow-up #3) — the UI shows the re-auth dialog.
+ * The queue is parked with the ops kept; nothing is lost while the dialog is
+ * open or dismissed.
+ */
+export type UnauthenticatedEvent = { pendingCount: number };
+
 export type AutosaveOptions = {
   transport: DocumentTransport;
   docId: string;
@@ -82,6 +111,12 @@ export type AutosaveOptions = {
   /** Subscribes to the browser `online` event; returns an unsubscribe fn. */
   addOnlineListener?: (cb: () => void) => () => void;
   /**
+   * §7.1 follow-up #3 — session re-check for the re-auth resume. Default:
+   * GET /api/auth/session (the app's session introspection route — NOT Auth.js
+   * v5's endpoint; see apps/web/auth.config.ts). Resolve `true` = signed in.
+   */
+  checkSession?: () => Promise<boolean>;
+  /**
    * Current local document, when the embedder can provide it. Used to keep
    * correct meta (title/slug) when rebasing from a bare 409 body.
    */
@@ -98,6 +133,11 @@ export type AutosaveOptions = {
   onConflict?: (event: ConflictEvent) => void;
   /** §14 — one op was rejected with a 422; roll it back locally. */
   onOpRejected?: (event: OpRejectedEvent) => void;
+  /**
+   * §7.1 follow-up #3 — a save failed with an expired session; the queue is
+   * parked and the UI should show the re-auth dialog.
+   */
+  onUnauthenticated?: (event: UnauthenticatedEvent) => void;
   /** After any conflict resolution — the UI clears its undo history (§7.3.4). */
   onConflictResolved?: (mode: ConflictMode) => void;
   schedule?: (fn: () => void, ms: number) => () => void;
@@ -134,6 +174,27 @@ const defaultAddOnlineListener = (cb: () => void): (() => void) => {
   return () => window.removeEventListener("online", cb);
 };
 
+/** Status message while parked for re-auth (follow-up #3). */
+const UNAUTHENTICATED_MESSAGE = "Session expired — sign in to keep saving";
+
+/**
+ * Default §7.1 session re-check: GET /api/auth/session answers 200
+ * `{ data: … }` when signed in and the §4 403 error body otherwise (custom
+ * session layer — apps/web/auth.config.ts — not Auth.js v5). A `user` key is
+ * also accepted so a future Auth.js-shaped endpoint keeps working.
+ */
+const defaultCheckSession = async (): Promise<boolean> => {
+  if (typeof fetch !== "function") return false;
+  try {
+    const res = await fetch("/api/auth/session", { headers: { Accept: "application/json" } });
+    if (!res.ok) return false;
+    const body = (await res.json().catch(() => null)) as { data?: unknown; user?: unknown } | null;
+    return body !== null && (body.data !== undefined || body.user !== undefined);
+  } catch {
+    return false;
+  }
+};
+
 /** fetch() network failures surface as TypeError — that's the offline signal. */
 function isNetworkFailure(err: unknown): boolean {
   return err instanceof TypeError;
@@ -163,6 +224,7 @@ export class AutosaveController {
   private readonly schedule: (fn: () => void, ms: number) => () => void;
   private readonly now: () => number;
   private readonly isOnline: () => boolean;
+  private readonly checkSession: () => Promise<boolean>;
   private readonly offlineQueue: OfflineQueuePort | null;
   private readonly validateDoc: (doc: EditableDoc) => boolean;
   private readonly unsubscribeOnline: () => void;
@@ -180,6 +242,8 @@ export class AutosaveController {
   private lastStatus: AutosaveStatus = "idle";
   private savedAt: number | null = null;
   private conflictCtx: ConflictEvent | null = null;
+  /** §7.1 follow-up #3: parked because the session expired. */
+  private unauthenticated = false;
 
   constructor(private readonly options: AutosaveOptions) {
     this.transport = options.transport;
@@ -192,6 +256,7 @@ export class AutosaveController {
     this.schedule = options.schedule ?? defaultSchedule;
     this.now = options.now ?? (() => Date.now());
     this.isOnline = options.isOnline ?? defaultIsOnline;
+    this.checkSession = options.checkSession ?? defaultCheckSession;
     this.offlineQueue = options.offlineQueue ?? null;
     this.validateDoc = options.validateDoc ?? defaultValidateDoc;
     this.unsubscribeOnline = (options.addOnlineListener ?? defaultAddOnlineListener)(() =>
@@ -225,10 +290,23 @@ export class AutosaveController {
     return this.conflictCtx;
   }
 
+  /** True while the queue is parked because the session expired (§7.1 #3). */
+  get isUnauthenticated(): boolean {
+    return this.unauthenticated;
+  }
+
   /** Queue ops for the next (debounced) flush. */
   enqueue(ops: readonly Op[]): void {
     if (this.destroyed || ops.length === 0) return;
     this.pending.push(...ops);
+    if (this.unauthenticated) {
+      // §7.1 re-auth park: keep collecting edits (and the §22.2 mirror) but
+      // hold the unauthenticated status and touch no network — resume() or
+      // the next manual retry flushes them.
+      this.emit("unauthenticated", UNAUTHENTICATED_MESSAGE);
+      this.syncQueue();
+      return;
+    }
     this.emit("dirty");
     if (this.conflictCtx) {
       // Conflict dialog open: keep collecting edits for "Keep mine", but do
@@ -307,6 +385,41 @@ export class AutosaveController {
     await this.flushNow();
   }
 
+  /**
+   * §7.1 follow-up #3 — the user reports they signed in again. Re-checks the
+   * session (injected `checkSession`) and, when it is valid, un-parks the
+   * queue and flushes the kept ops. Resolves `false` (still parked, nothing
+   * sent) when the session is still missing or the flush re-parked.
+   */
+  async resumeAfterReauth(): Promise<boolean> {
+    if (this.destroyed || !this.unauthenticated) return false;
+    const active = await this.checkSession();
+    if (!active || this.destroyed || this.conflictCtx) return false;
+    this.unauthenticated = false;
+    this.retries = 0;
+    if (this.pending.length > 0) {
+      await this.flushNow();
+      // A failed re-auth during the resume flush re-parks (and re-raises the
+      // prompt) — report that instead of claiming success.
+      return !this.unauthenticated;
+    }
+    this.emit("idle");
+    return true;
+  }
+
+  /**
+   * §7.1 follow-up #3 — the user dismissed the re-auth dialog. The queue
+   * stays parked (pending ops kept locally and mirrored): nothing is
+   * scheduled here, so the next manual retry (Cmd+S flushNow, the next edit,
+   * or resumeAfterReauth) re-attempts — and re-raises the prompt if the
+   * session is still expired.
+   */
+  dismissReauth(): void {
+    if (this.destroyed || !this.unauthenticated) return;
+    this.unauthenticated = false;
+    this.emit(this.pending.length > 0 ? "dirty" : "idle");
+  }
+
   destroy(): void {
     this.destroyed = true;
     this.cancelDebounce();
@@ -336,7 +449,8 @@ export class AutosaveController {
 
   /** window `online` (§7.1): reconnect → flush the kept queue automatically. */
   private readonly handleOnline = (): void => {
-    if (this.destroyed || this.conflictCtx) return;
+    // Reconnect does not restore an expired session — keep the re-auth park.
+    if (this.destroyed || this.conflictCtx || this.unauthenticated) return;
     this.retries = 0;
     if (this.pending.length > 0) void this.flushNow();
   };
@@ -428,13 +542,16 @@ export class AutosaveController {
     this.flushing = true;
     try {
       while (this.pending.length > 0 && !this.destroyed) {
-        // §7.1/§7.3 parking: offline, or a conflict awaiting the user's
-        // choice. Deliberately NO retry timer is scheduled here — the queue
-        // restarts via the `online` event, the next enqueue, `flushNow`, or
-        // `resolveConflict`. (Ops that arrive while a request is in flight
-        // are drained by this same loop — it only exits with an empty queue.)
-        if (!this.isOnline() || this.conflictCtx) {
-          if (!this.conflictCtx) this.emit("offline", "Offline — changes are kept on this device");
+        // §7.1/§7.3 parking: offline, a conflict awaiting the user's choice,
+        // or an expired session (follow-up #3). Deliberately NO retry timer
+        // is scheduled here — the queue restarts via the `online` event, the
+        // next enqueue, `flushNow`, `resolveConflict`, or `resumeAfterReauth`.
+        // (Ops that arrive while a request is in flight are drained by this
+        // same loop — it only exits with an empty queue.)
+        if (!this.isOnline() || this.conflictCtx || this.unauthenticated) {
+          if (!this.conflictCtx && !this.unauthenticated) {
+            this.emit("offline", "Offline — changes are kept on this device");
+          }
           return;
         }
         const batch = this.pending.splice(0, this.pending.length);
@@ -477,6 +594,17 @@ export class AutosaveController {
 
     if (err instanceof ConflictError) {
       return this.handleConflict(err, batch);
+    }
+
+    if (err instanceof UnauthenticatedError) {
+      // §7.1 follow-up #3: expired session — park WITHOUT backoff retries,
+      // keep the ops (and the §22.2 mirror), and raise the re-auth prompt.
+      // The queue restarts via resumeAfterReauth / dismissReauth + retry.
+      this.pending.unshift(...batch);
+      this.unauthenticated = true;
+      this.emit("unauthenticated", UNAUTHENTICATED_MESSAGE);
+      this.options.onUnauthenticated?.({ pendingCount: this.pending.length });
+      return false;
     }
 
     if (isNetworkFailure(err)) {
@@ -591,5 +719,5 @@ function defaultSchedule(fn: () => void, ms: number): () => void {
 }
 
 // Re-export so UI code can `instanceof` without importing transport directly.
-export { ConflictError, OpRejectedError };
+export { ConflictError, OpRejectedError, UnauthenticatedError };
 export type { DocumentEnvelope };

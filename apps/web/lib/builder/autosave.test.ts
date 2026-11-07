@@ -8,7 +8,7 @@ import {
   type OpRejectedEvent,
   type RebasedEvent,
 } from "./autosave";
-import { ConflictError, MockTransport, OpRejectedError, TransportError, seedEnvelope } from "./transport";
+import { ConflictError, MockTransport, OpRejectedError, TransportError, UnauthenticatedError, seedEnvelope } from "./transport";
 import type { OfflineQueuePort, PendingBatchRecord } from "./offline";
 
 type Call = { baseRev: number; ops: readonly Op[] };
@@ -714,6 +714,201 @@ describe("AutosaveController", () => {
     await vi.advanceTimersByTimeAsync(700); // 500 debounce + roundtrip
     const elapsed = (controller.lastSavedAt ?? Number.POSITIVE_INFINITY) - t0;
     expect(elapsed).toBeLessThanOrEqual(2000);
+    controller.destroy();
+  });
+
+  it("parks on an unauthenticated save (401 / §4 403) and keeps the ops (§7.1 #3)", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError(
+        "FORBIDDEN",
+        "Authentication required: session cookie or Authorization: Bearer ff_…",
+        403,
+      );
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const raised: number[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onUnauthenticated: ({ pendingCount }) => void raised.push(pendingCount),
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(patches.length).toBe(1);
+    expect(c.statuses).toContain("unauthenticated");
+    expect(controller.status).toBe("unauthenticated");
+    expect(controller.isUnauthenticated).toBe(true);
+    expect(controller.pendingCount).toBe(1); // ops retained
+    expect(raised).toEqual([1]); // prompt raised once
+    expect(c.statuses).not.toContain("offline"); // distinct from the offline park
+
+    // Parked: NO backoff retries while the session is expired.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(patches.length).toBe(1);
+    expect(controller.pendingCount).toBe(1);
+    controller.destroy();
+  });
+
+  it("resumes the queue after a successful session re-check (re-auth)", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError("UNAUTHORIZED", "Session expired", 401);
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const checkSession = vi.fn(async () => true);
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      checkSession,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept through re-auth" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(controller.isUnauthenticated).toBe(true);
+
+    const resumed = await controller.resumeAfterReauth();
+
+    expect(resumed).toBe(true);
+    expect(checkSession).toHaveBeenCalledTimes(1);
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops).toEqual([{ op: "meta.update", patch: { title: "kept through re-auth" } }]);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    expect(controller.isUnauthenticated).toBe(false);
+    controller.destroy();
+  });
+
+  it("stays parked when the session re-check reports still signed out", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError(
+        "FORBIDDEN",
+        "Authentication required: session cookie or Authorization: Bearer ff_…",
+        403,
+      );
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      checkSession: async () => false,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    const resumed = await controller.resumeAfterReauth();
+
+    expect(resumed).toBe(false);
+    expect(patches.length).toBe(1); // no retry without a session
+    expect(controller.pendingCount).toBe(1);
+    expect(controller.status).toBe("unauthenticated");
+    controller.destroy();
+  });
+
+  it("keeps collecting edits while parked (with the §22.2 mirror) and sends them after resume", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError("UNAUTHORIZED", "Session expired", 401);
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const queue = fakeQueue();
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      checkSession: async () => true,
+      offlineQueue: queue.port,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "a" } }]);
+    await vi.advanceTimersByTimeAsync(500); // flush fails with the expired session
+    controller.enqueue([{ op: "meta.update", patch: { title: "b" } }]);
+    await vi.advanceTimersByTimeAsync(5_000); // parked — no network, mirror updated
+
+    expect(patches.length).toBe(1);
+    expect(controller.pendingCount).toBe(2);
+    expect(controller.status).toBe("unauthenticated"); // stays sticky while parked
+    expect(queue.saved.at(-1)?.ops).toEqual([
+      { op: "meta.update", patch: { title: "a" } },
+      { op: "meta.update", patch: { title: "b" } },
+    ]);
+
+    const resumed = await controller.resumeAfterReauth();
+
+    expect(resumed).toBe(true);
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops).toEqual([
+      { op: "meta.update", patch: { title: "a" } },
+      { op: "meta.update", patch: { title: "b" } },
+    ]);
+    expect(queue.cleared).toEqual(["doc1"]); // ack cleared the mirror
+    controller.destroy();
+  });
+
+  it("dismiss parks the queue; the next manual retry re-attempts and re-raises", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError(
+        "FORBIDDEN",
+        "Authentication required: session cookie or Authorization: Bearer ff_…",
+        403,
+      );
+    };
+    const { transport, patches } = recordedTransport(env(), [
+      behavior,
+      behavior,
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const raised: number[] = [];
+    let signedIn = false;
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onUnauthenticated: ({ pendingCount }) => void raised.push(pendingCount),
+      checkSession: async () => signedIn,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(raised).toEqual([1]);
+
+    controller.dismissReauth();
+    expect(controller.isUnauthenticated).toBe(false);
+    expect(controller.status).toBe("dirty"); // ops kept, chip back to unsaved
+    expect(controller.pendingCount).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(60_000); // nothing automatic after dismiss
+    expect(patches.length).toBe(1);
+
+    await controller.flushNow(); // manual retry — session still expired
+    expect(patches.length).toBe(2);
+    expect(controller.status).toBe("unauthenticated");
+    expect(raised).toEqual([1, 1]); // prompt re-raised
+    expect(controller.pendingCount).toBe(1);
+
+    signedIn = true;
+    const resumed = await controller.resumeAfterReauth();
+    expect(resumed).toBe(true);
+    expect(patches.length).toBe(3);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
     controller.destroy();
   });
 
