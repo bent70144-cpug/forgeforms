@@ -89,8 +89,37 @@ export interface CdnPurgeHook {
   purgeKeys(keys: readonly string[]): Promise<void>;
 }
 
-/** Spec §8 step 1 — full draft validation. Empty array = valid. */
-export type DraftValidationIssue = { path: string; message: string };
+/**
+ * Spec §8 step 1 — full draft validation. Empty array = valid.
+ *
+ * `code` / `blockId` (B7 follow-up #4): the two cross-entity publish-gate codes
+ * (FORM_EMBED_MISSING, MISSING_ASSET — see `PUBLISH_ISSUE_CODES`) are emitted
+ * by the publish pipeline itself, which is the only place target-document and
+ * asset existence can be checked. Both fields are optional so validators that
+ * only know `{ path, message }` (schema package, logic engine) stay assignable;
+ * the extra fields ride on the §4 error `details` wire shape verbatim, so the
+ * builder's Issues drawer can group the 422 issues by block (§8.1).
+ */
+export type DraftValidationIssue = {
+  path: string;
+  message: string;
+  /** Stable §8.1 code when the pipeline can classify the issue. */
+  code?: string;
+  /** Owning block id when the issue belongs to a block (drawer "Go to"). */
+  blockId?: string;
+};
+
+/**
+ * §8.1 stable publish-blocking codes emitted by the server publish pipeline
+ * (B7 follow-up #4). The client mirror of this vocabulary lives in
+ * apps/web/lib/builder/publish.ts `ISSUE_CODES` — keep the two in sync.
+ */
+export const PUBLISH_ISSUE_CODES = {
+  /** form-embed block whose target document is missing or not published. */
+  formEmbedMissing: 'FORM_EMBED_MISSING',
+  /** block/SEO asset reference that no longer resolves in the workspace. */
+  missingAsset: 'MISSING_ASSET',
+} as const;
 
 export interface DraftValidator {
   validate(body: unknown): Promise<readonly DraftValidationIssue[]>;

@@ -19,6 +19,15 @@
 //    runs server-side). Every supplement below is marked with a
 //    "client-side supplement" comment at its check.
 //
+// SERVER-ONLY CODES — FORM_EMBED_MISSING + MISSING_ASSET (B7 follow-up #4):
+// neither is collectible client-side (the builder loads no document index or
+// asset index, so embed-target status and asset existence are unknowable in
+// the browser). They are emitted by the server publish pipeline
+// (@formforge/core documents: collectEmbedTargetIssues + the snapshot asset
+// walk) with stable codes + blockId on the §4 422 details; PublishControl
+// merges that list into the drawer via mergeIssues, so both codes block
+// publish and group by block like every local code.
+//
 // Never blocks autosave: field/block-level validation is display-only
 // (§8.1 "Field… never blocks autosave"); this module only feeds UI.
 
@@ -64,6 +73,17 @@ export const ISSUE_CODES = {
   logicCycle: "LOGIC_CYCLE",
   badUrl: "BAD_URL",
   badEmail: "BAD_EMAIL",
+  // B7 follow-up #4 — SERVER-ONLY codes (no client-side supplement):
+  // FORM_EMBED_MISSING and MISSING_ASSET are cross-entity rules only the
+  // publish service can evaluate (the builder loads no document index or
+  // asset index client-side, so target-document and asset existence are
+  // unknowable in the browser). The server emits them with `blockId` on the
+  // §4 422 `details` (packages/core documents pipeline, PUBLISH_ISSUE_CODES);
+  // wireIssueToValidationIssue parses them below and IssuesList groups them
+  // by block exactly like local issues. The constants live here so the
+  // client-side vocabulary matches the wire (tests pin both sides).
+  formEmbedMissing: "FORM_EMBED_MISSING",
+  missingAsset: "MISSING_ASSET",
   // Warning (non-blocking):
   sensitiveField: "SENSITIVE_FIELD",
   // Fallbacks for issues without a §8.1 mapping:
