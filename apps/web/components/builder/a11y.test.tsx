@@ -161,14 +161,19 @@ describe("a11y sweep — icon-only buttons have aria-labels", () => {
     expect(html).toContain('aria-label="More actions"');
   });
 
-  it("keeps the drag handle inert — not a focusable button that does nothing", () => {
+  it("keeps the drag handle out of the a11y tree — pointer-only affordance (§6.2 #7)", () => {
     const html = renderToStaticMarkup(
       h(BlockToolbar, { block, index: 0, siblingCount: 2, referencedByRules: false, actions: NOOP_ACTIONS }),
     );
-    // The handle glyph is inside an aria-hidden span, never a <button>.
+    // Since follow-up #7 the handle carries real pointer listeners
+    // (useDragReorder, delegated in Canvas) but stays aria-hidden and never a
+    // focusable do-nothing <button>: keyboard users reorder with Alt+↑/↓ and
+    // the labelled Move buttons (§18: mobile keeps move buttons too).
     expect(html).toContain('aria-hidden="true"');
     expect(html).toMatch(/<span[^>]*aria-hidden="true"[^>]*>\s*⠿/);
     expect(html).not.toMatch(/<button[^>]*>[^<]*⠿/);
+    expect(html).toContain('data-testid="drag-handle"');
+    expect(html).toContain('data-drag-handle="q1"');
     expect(html).not.toContain('aria-label="Drag');
   });
 

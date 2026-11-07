@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Block } from "../bridge";
 import { emptyBody, type Op } from "./ops";
+import { BLOCK_LIMIT_NOTICE, BODY_LIMIT_NOTICE, MAX_BODY_JSON_CHARS } from "./limits";
 import { BLOCK_CATALOG, blockDisplayLabel, createBlock, getBlockMeta, paletteForType } from "./blockMeta";
 import { editorReducer, initialEditorState, selectedBlock, type EditorState } from "./store";
 
@@ -356,6 +357,47 @@ describe("editorReducer — server reconciliation", () => {
     expect(next.body.type).toBe("page");
     expect(next.save).toBe("saved");
   });
+
+  // §24 builder entitlements (follow-up #8): `loaded` stores the envelope's
+  // entitlements surface; a missing one (mocks) stays null → conservative gates.
+  it("loaded stores the §24 entitlements from the envelope (null when absent)", () => {
+    const pro = {
+      plan: "pro" as const,
+      removeBranding: true,
+      fileUploadMaxMb: 10,
+      customRedirect: true,
+      notifyEmailsLimit: 10,
+    };
+    const withEnts = editorReducer(initialEditorState("doc1"), {
+      type: "loaded",
+      envelope: {
+        id: "doc1",
+        rev: 1,
+        title: "T",
+        status: "draft",
+        type: "form",
+        body: emptyBody("form"),
+        entitlements: pro,
+      },
+      mode: "api",
+    });
+    expect(withEnts.entitlements).toEqual(pro);
+
+    const withoutEnts = editorReducer(initialEditorState("doc1"), {
+      type: "loaded",
+      envelope: {
+        id: "doc1",
+        rev: 1,
+        title: "T",
+        status: "draft",
+        type: "form",
+        body: emptyBody("form"),
+      },
+      mode: "mock",
+    });
+    expect(withoutEnts.entitlements).toBeNull();
+    expect(initialEditorState("doc2").entitlements).toBeNull();
+  });
 });
 
 describe("editorReducer — selection & misc", () => {
@@ -377,6 +419,135 @@ describe("editorReducer — selection & misc", () => {
     const picked = editorReducer(state(), { type: "select", id: "sec" });
     expect(selectedBlock(picked)?.block.id).toBe("sec");
     expect(selectedBlock(state())).toBeNull();
+  });
+});
+
+describe("editorReducer — hard limits (§13/§14, follow-up #10)", () => {
+  const blocksAt = (n: number): Block[] => Array.from({ length: n }, (_, i) => b(`b${i}`));
+  function stateAt(n: number): EditorState {
+    const base = initialEditorState("doc1");
+    return {
+      ...base,
+      ready: true,
+      meta: { title: "Doc" },
+      body: { ...emptyBody("form"), blocks: blocksAt(n) },
+    };
+  }
+  const insertOp = (block: Block, index: number): Op => ({
+    op: "block.insert",
+    parentId: null,
+    index,
+    block,
+  });
+
+  it("refuses the 501st block: doc untouched, nothing emitted, explanatory notice recorded", () => {
+    const s = stateAt(500);
+    const refused = editorReducer(s, {
+      type: "apply",
+      ops: [insertOp(b("new"), 500)],
+      label: "Add block",
+    });
+    expect(refused).not.toBe(s); // the notice must reach the UI
+    expect(refused.body).toBe(s.body); // document unchanged
+    expect(refused.history.past.length).toBe(0); // nothing to undo
+    expect(refused.emit).toBeNull(); // nothing queued for autosave
+    expect(refused.limitsViolation?.kind).toBe("blocks");
+    expect(refused.limitsViolation?.notice).toBe(BLOCK_LIMIT_NOTICE);
+    expect(refused.limitsViolation?.notice).toMatch(/500 blocks/);
+  });
+
+  it("allows the 500th block", () => {
+    const s = stateAt(499);
+    const applied = editorReducer(s, { type: "apply", ops: [insertOp(b("new"), 499)] });
+    expect(applied.body.blocks.length).toBe(500);
+    expect(applied.emit?.ops.length).toBe(1);
+    expect(applied.limitsViolation).toBeNull();
+  });
+
+  it("refuses a paste batch that would cross the cap as ONE refusal", () => {
+    const s = stateAt(497);
+    const refused = editorReducer(s, {
+      type: "apply",
+      ops: [insertOp(b("p1"), 497), insertOp(b("p2"), 498), insertOp(b("p3"), 499), insertOp(b("p4"), 500)],
+      label: "Paste blocks",
+    });
+    expect(refused.body).toBe(s.body);
+    expect(refused.emit).toBeNull();
+    expect(refused.limitsViolation?.kind).toBe("blocks");
+    expect(refused.limitsViolation?.notice).toContain("500 blocks max");
+  });
+
+  it("refuses an insert that would push the body JSON past 1 MB (bytes notice)", () => {
+    const s = stateAt(2);
+    const huge = b("huge", { label: "y".repeat(MAX_BODY_JSON_CHARS) });
+    const refused = editorReducer(s, { type: "apply", ops: [insertOp(huge, 0)] });
+    expect(refused.body).toBe(s.body);
+    expect(refused.emit).toBeNull();
+    expect(refused.limitsViolation?.kind).toBe("bytes");
+    expect(refused.limitsViolation?.notice).toBe(BODY_LIMIT_NOTICE);
+    expect(refused.limitsViolation?.notice).toMatch(/1 MB/);
+  });
+
+  it("typing batches are not gated client-side (the 1 MB gate lives on the autosave flush)", () => {
+    const hugeBody = { ...emptyBody("form"), blocks: [b("a", { label: "x".repeat(MAX_BODY_JSON_CHARS + 5) })] };
+    const s: EditorState = {
+      ...initialEditorState("doc1"),
+      ready: true,
+      meta: { title: "Doc" },
+      body: hugeBody,
+    };
+    const applied = editorReducer(s, {
+      type: "apply",
+      ops: [{ op: "block.update", id: "a", props: { label: "still typing" } }],
+    });
+    expect(applied.body.blocks[0]?.props.label).toBe("still typing");
+    expect(applied.limitsViolation).toBeNull();
+  });
+
+  it("the next successful apply clears a recorded violation", () => {
+    const s = stateAt(500);
+    const refused = editorReducer(s, { type: "apply", ops: [insertOp(b("new"), 500)] });
+    expect(refused.limitsViolation).not.toBeNull();
+    const recovered = editorReducer(refused, {
+      type: "apply",
+      ops: [{ op: "meta.update", patch: { title: "renamed" } }],
+    });
+    expect(recovered.limitsViolation).toBeNull();
+    expect(recovered.meta.title).toBe("renamed");
+  });
+
+  it("the refused insert's select dispatch is a harmless no-op (picker/duplicate flow)", () => {
+    const s = stateAt(500);
+    const refused = editorReducer(s, { type: "apply", ops: [insertOp(b("new"), 500)] });
+    const selected = editorReducer(refused, { type: "select", id: "new" });
+    expect(selected.selection).toBeNull(); // block never existed
+    expect(selected.limitsViolation?.kind).toBe("blocks"); // notice persists
+  });
+
+  it("server-driven replacements clear a stale refusal (reconciled / replaceFromServer)", () => {
+    const s = stateAt(500);
+    const refused = editorReducer(s, { type: "apply", ops: [insertOp(b("new"), 500)] });
+    expect(refused.limitsViolation).not.toBeNull();
+
+    const reconciled = editorReducer(refused, {
+      type: "reconciled",
+      doc: { meta: { title: "Merged" }, body: { ...emptyBody("form"), blocks: blocksAt(3) } },
+      rev: 9,
+    });
+    expect(reconciled.limitsViolation).toBeNull();
+
+    const envelope = {
+      id: "doc1",
+      rev: 10,
+      title: "T",
+      slug: "t",
+      status: "draft" as const,
+      type: "form" as const,
+      body: { ...emptyBody("form"), blocks: blocksAt(2) },
+    };
+    const replaced = editorReducer(reconciled, { type: "replaceFromServer", envelope });
+    expect(replaced.limitsViolation).toBeNull();
+    expect(replaced.body.blocks.length).toBe(2);
   });
 });
 

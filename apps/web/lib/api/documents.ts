@@ -25,6 +25,7 @@ import {
   err,
   isRevConflict,
   makeArchiveDocument,
+  makeCheckSlugAvailable,
   makeCreateDocument,
   makeDuplicateDocument,
   makeGetDocument,
@@ -48,6 +49,7 @@ import {
   type WireOp,
 } from '@formforge/core';
 import { t13LogicCompiler } from './logic-compiler';
+import type { BuilderEntitlements } from './entitlements';
 import type { Ctx as ApiCtx } from '@formforge/core/api';
 import { instantiateTemplate } from '@formforge/core/templates';
 import { DocumentBody, documentIssuesFromZodError } from '@formforge/schema';
@@ -193,6 +195,9 @@ export const documentsCrud = {
   archive: (ctx: ApiCtx, id: string) => makeArchiveDocument(getCrudDeps())(toKernelCtx(ctx), id),
   patch: (ctx: ApiCtx, id: string, input: { baseRev: number; ops: readonly WireOp[] }) =>
     makePatchDocument(getCrudDeps())(toKernelCtx(ctx), id, input),
+  /** Follow-up #5: slug availability probe for the builder settings panel. */
+  slugCheck: (ctx: ApiCtx, id: string, slug: string) =>
+    makeCheckSlugAvailable(getCrudDeps())(toKernelCtx(ctx), id, slug),
 };
 
 export { isRevConflict };
@@ -289,11 +294,17 @@ export function toDocumentDetail(record: DocumentRecord) {
   };
 }
 
-/** GET /documents/{id} builder envelope — `body` is the current draft. */
-export function toDocumentEnvelope(record: DocumentRecord) {
+/** GET /documents/{id} builder envelope — `body` is the current draft.
+ * `entitlements` (§24, follow-up #8) is additive: the builder gate values
+ * resolved via billing for the caller's workspace. */
+export function toDocumentEnvelope(
+  record: DocumentRecord,
+  entitlements?: BuilderEntitlements,
+) {
   return {
     ...toDocumentSummary(record),
     body: record.draft,
     publishedVersionId: record.publishedVersionId,
+    entitlements,
   };
 }

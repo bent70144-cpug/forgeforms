@@ -9,9 +9,12 @@ import { emptyBody, type Op } from "./ops";
 import {
   ApiTransport,
   ConflictError,
+  ForbiddenError,
   MockTransport,
   OpRejectedError,
+  PlanLimitError,
   TransportError,
+  UnauthenticatedError,
   seedEnvelope,
 } from "./transport";
 
@@ -133,6 +136,114 @@ describe("ApiTransport.patch", () => {
     expect(err).toBeInstanceOf(TransportError);
     expect((err as TransportError).code).toBe("INTERNAL");
     expect((err as TransportError).status).toBe(500);
+  });
+
+  // §7.1 follow-up #3: expired credentials must be distinguishable so the
+  // autosave controller can park + prompt instead of retrying.
+  it("maps a plain 401 to UnauthenticatedError (follow-up #3)", async () => {
+    const { fn } = fetchFake([jsonResponse(401, { error: { code: "UNAUTHORIZED", message: "Session expired" } })]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UnauthenticatedError);
+    expect((err as UnauthenticatedError).status).toBe(401);
+    expect((err as UnauthenticatedError).message).toBe("Session expired");
+  });
+
+  it("maps a 401 with a non-JSON body to UnauthenticatedError", async () => {
+    const { fn } = fetchFake([
+      new Response("<html>gateway timeout</html>", { status: 401 }),
+    ]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UnauthenticatedError);
+    expect((err as UnauthenticatedError).status).toBe(401);
+  });
+
+  it("maps the §4 'Authentication required' FORBIDDEN (403) to UnauthenticatedError", async () => {
+    // This app's §4 vocabulary has no 401: session-less requests answer 403
+    // (app/api/v1/_lib/auth.ts) — the exact wire shape the browser sees.
+    const { fn } = fetchFake([
+      jsonResponse(403, {
+        error: { code: "FORBIDDEN", message: "Authentication required: session cookie or Authorization: Bearer ff_…" },
+      }),
+    ]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(UnauthenticatedError);
+    expect(err).toBeInstanceOf(TransportError);
+    expect((err as UnauthenticatedError).status).toBe(403);
+    expect((err as UnauthenticatedError).code).toBe("FORBIDDEN");
+  });
+
+  it("keeps a scope-missing FORBIDDEN (403) as a plain TransportError", async () => {
+    // A viewer hitting docs:write is NOT re-authable — no re-auth prompt.
+    // (follow-up #8: answered with ForbiddenError, which still extends TransportError.)
+    const { fn } = fetchFake([
+      jsonResponse(403, {
+        error: { code: "FORBIDDEN", message: "Missing required scope: docs:write" },
+      }),
+    ]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(TransportError);
+    expect(err).not.toBeInstanceOf(UnauthenticatedError);
+  });
+
+  // §14 plan-limit answers (follow-up #8): 402 PLAN_LIMIT / 403 FORBIDDEN get
+  // typed errors so the autosave controller explains instead of dead-ending.
+  it("maps 402 PLAN_LIMIT to PlanLimitError carrying capability + requiredPlan", async () => {
+    const { fn } = fetchFake([
+      jsonResponse(402, {
+        error: {
+          code: "PLAN_LIMIT",
+          message: "Plan limit reached",
+          details: [
+            { path: "capability", message: "notifyEmailsLimit" },
+            { path: "requiredPlan", message: "pro" },
+            { path: "need", message: "2" },
+          ],
+        },
+      }),
+    ]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(PlanLimitError);
+    expect((err as PlanLimitError).status).toBe(402);
+    expect((err as PlanLimitError).code).toBe("PLAN_LIMIT");
+    expect((err as PlanLimitError).capability).toBe("notifyEmailsLimit");
+    expect((err as PlanLimitError).requiredPlan).toBe("pro");
+  });
+
+  it("maps a bare 402 (no details) to PlanLimitError with null capability", async () => {
+    const { fn } = fetchFake([jsonResponse(402, { error: { message: "nope" } })]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(PlanLimitError);
+    expect((err as PlanLimitError).capability).toBeNull();
+    expect((err as PlanLimitError).requiredPlan).toBeNull();
+  });
+
+  it("maps 403 FORBIDDEN to ForbiddenError", async () => {
+    const { fn } = fetchFake([jsonResponse(403, { error: { code: "FORBIDDEN", message: "read-only" } })]);
+    const transport = new ApiTransport("/api/v1", fn as unknown as typeof fetch);
+
+    const err = await transport.patch("doc1", 1, ops).catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(ForbiddenError);
+    expect((err as ForbiddenError).status).toBe(403);
+    expect((err as ForbiddenError).code).toBe("FORBIDDEN");
   });
 });
 

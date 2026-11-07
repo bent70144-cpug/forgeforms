@@ -20,6 +20,7 @@ import { ratingDefaultProps } from "./rating/schema";
 import { sectionDefaultProps } from "./section/schema";
 import { shortTextDefaultProps } from "./short-text/schema";
 import { singleSelectDefaultProps } from "./single-select/schema";
+import { textDefaultProps } from "./text/schema";
 import { testimonialsDefaultProps } from "./testimonials/schema";
 import { videoDefaultProps } from "./video/schema";
 
@@ -63,6 +64,7 @@ export function parsedValidDocumentBodyFixture() {
 
 export const defaultPropSets = {
   hero: heroDefaultProps,
+  text: textDefaultProps,
   "short-text": shortTextDefaultProps,
   button: buttonDefaultProps,
   // T09 question kinds (§7.2)

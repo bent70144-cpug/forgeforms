@@ -42,6 +42,7 @@ import {
 import {
   AssetConfirmRequestSchema,
   AssetEnvelopeSchema,
+  AssetListResponseSchema,
   AssetPresignRequestSchema,
   AssetSchema,
   ConfirmUploadResponseSchema,
@@ -75,6 +76,7 @@ export const FORMFORGE_API_SCHEMAS = {
   ConfirmUploadResponse: ConfirmUploadResponseSchema,
   Asset: AssetSchema,
   AssetEnvelope: AssetEnvelopeSchema,
+  AssetListResponse: AssetListResponseSchema,
 } as const;
 
 const BEARER: OpenApiSecurityScheme = {
@@ -423,6 +425,23 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
     },
   };
 
+  const assetsListItem: OpenApiPathItem = {
+    get: {
+      operationId: 'listAssets',
+      summary: 'List workspace assets (media picker)',
+      description:
+        'Newest-first workspace media list for the builder asset picker (§10). Signed URLs are issued ONLY for clean/skipped assets (§17); pending/infected rows return `download: null` with their scan status so clients can show state and retry.',
+      tags: ['assets'],
+      'x-required-scope': 'docs:read',
+      security: BEARER_OR_SESSION,
+      responses: {
+        '200': jsonResponse('Workspace assets, newest first (§4 envelope; limit page, no cursor)', 'AssetListResponse'),
+        '403': err('Credential missing the docs:read scope'),
+        '422': err('VALIDATION — invalid query parameters'),
+      },
+    },
+  };
+
   return buildOpenApiDocument({
     title: 'FormForge API',
     version: '1.0.0',
@@ -446,6 +465,7 @@ export function buildFormForgeOpenApi(options?: { serverUrl?: string }): OpenApi
       '/api/v1/tokens': tokensItem,
       '/api/v1/domains': domainsItem,
       '/api/v1/domains/{id}/verify': domainVerifyItem,
+      '/api/v1/assets': assetsListItem,
       '/api/v1/assets/presign': assetsPresignItem,
       '/api/v1/assets/confirm': assetsConfirmItem,
       '/api/v1/assets/{id}': assetIdItem,

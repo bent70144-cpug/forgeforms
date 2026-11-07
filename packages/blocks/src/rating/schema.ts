@@ -5,8 +5,9 @@ import { QuestionPropsBase } from "../shared/question-props";
 import { rawParam, type UrlParams } from "../shared/prefill";
 
 // §7.2 "rating (scale 3–10, icon)". The icon variants mirror the builder
-// palette (star/hearts/thumbs); glyphs are resolved at render time.
-export const RatingIcon = z.enum(["star", "heart", "thumbs"]);
+// palette (star/hearts/thumbs); `number` renders bare numeric buttons. Glyphs
+// are resolved at render time.
+export const RatingIcon = z.enum(["star", "heart", "thumbs", "number"]);
 
 export const RatingProps = QuestionPropsBase.extend({
   label: z.string().min(1).max(1000),

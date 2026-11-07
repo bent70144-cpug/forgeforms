@@ -6,9 +6,10 @@ import {
   type AutosaveStatus,
   type ConflictEvent,
   type OpRejectedEvent,
+  type PlanLimitEvent,
   type RebasedEvent,
 } from "./autosave";
-import { ConflictError, MockTransport, OpRejectedError, TransportError, seedEnvelope } from "./transport";
+import { ConflictError, ForbiddenError, MockTransport, OpRejectedError, PlanLimitError, TransportError, UnauthenticatedError, seedEnvelope } from "./transport";
 import type { OfflineQueuePort, PendingBatchRecord } from "./offline";
 
 type Call = { baseRev: number; ops: readonly Op[] };
@@ -673,6 +674,83 @@ describe("AutosaveController", () => {
     controller.destroy();
   });
 
+  // §14 plan-limit answers (follow-up #8): 402/403 keep the ops (zero data
+  // loss), park WITHOUT a retry timer, and fire onPlanLimit so the UI can
+  // explain inline — never a dead-end error, never backoff churn.
+  it("keeps the batch and fires onPlanLimit on 402 PLAN_LIMIT (§14, parked)", async () => {
+    const { transport, patches } = recordedTransport(env(), [
+      () => {
+        throw new PlanLimitError('Plan limit reached for "notifyEmailsLimit" — upgrade to pro.', "notifyEmailsLimit", "pro");
+      },
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const planLimits: PlanLimitEvent[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onPlanLimit: (event) => void planLimits.push(event),
+    });
+
+    const batch: Op[] = [{ op: "settings.update", patch: { notifyEmails: ["a@b.co"] } }];
+    controller.enqueue(batch);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(planLimits).toHaveLength(1);
+    expect(planLimits[0]).toEqual({
+      status: 402,
+      message: 'Plan limit reached for "notifyEmailsLimit" — upgrade to pro.',
+      capability: "notifyEmailsLimit",
+    });
+    expect(controller.pendingCount).toBe(1); // kept, never dropped
+    expect(c.statuses[c.statuses.length - 1]).toBe("error");
+
+    // Parked: no transient backoff churn while the plan blocks the save.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(patches.length).toBe(1);
+
+    // The next flush trigger retries the SAME batch (e.g. after an upgrade).
+    controller.enqueue([{ op: "meta.update", patch: { title: "nudge" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops).toEqual([...batch, { op: "meta.update", patch: { title: "nudge" } }]);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    controller.destroy();
+  });
+
+  it("fires onPlanLimit with status 403 and null capability on FORBIDDEN (§14)", async () => {
+    const { transport, patches } = recordedTransport(env(), [
+      () => {
+        throw new ForbiddenError("Not allowed for this credential");
+      },
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const planLimits: PlanLimitEvent[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onPlanLimit: (event) => void planLimits.push(event),
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(planLimits).toHaveLength(1);
+    expect(planLimits[0]?.status).toBe(403);
+    expect(planLimits[0]?.capability).toBeNull();
+    expect(controller.pendingCount).toBe(1); // kept
+    await vi.advanceTimersByTimeAsync(60_000); // parked, no churn
+    expect(patches.length).toBe(1);
+    controller.destroy();
+  });
+
   it("mirrors pending ops into the offline queue and clears on ack (§22.2)", async () => {
     const { transport, patches } = recordedTransport(env(), [() => ({ rev: 2 })]);
     const queue = fakeQueue();
@@ -717,6 +795,201 @@ describe("AutosaveController", () => {
     controller.destroy();
   });
 
+  it("parks on an unauthenticated save (401 / §4 403) and keeps the ops (§7.1 #3)", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError(
+        "FORBIDDEN",
+        "Authentication required: session cookie or Authorization: Bearer ff_…",
+        403,
+      );
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const raised: number[] = [];
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onUnauthenticated: ({ pendingCount }) => void raised.push(pendingCount),
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    expect(patches.length).toBe(1);
+    expect(c.statuses).toContain("unauthenticated");
+    expect(controller.status).toBe("unauthenticated");
+    expect(controller.isUnauthenticated).toBe(true);
+    expect(controller.pendingCount).toBe(1); // ops retained
+    expect(raised).toEqual([1]); // prompt raised once
+    expect(c.statuses).not.toContain("offline"); // distinct from the offline park
+
+    // Parked: NO backoff retries while the session is expired.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(patches.length).toBe(1);
+    expect(controller.pendingCount).toBe(1);
+    controller.destroy();
+  });
+
+  it("resumes the queue after a successful session re-check (re-auth)", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError("UNAUTHORIZED", "Session expired", 401);
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const checkSession = vi.fn(async () => true);
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      checkSession,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept through re-auth" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(controller.isUnauthenticated).toBe(true);
+
+    const resumed = await controller.resumeAfterReauth();
+
+    expect(resumed).toBe(true);
+    expect(checkSession).toHaveBeenCalledTimes(1);
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops).toEqual([{ op: "meta.update", patch: { title: "kept through re-auth" } }]);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    expect(controller.isUnauthenticated).toBe(false);
+    controller.destroy();
+  });
+
+  it("stays parked when the session re-check reports still signed out", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError(
+        "FORBIDDEN",
+        "Authentication required: session cookie or Authorization: Bearer ff_…",
+        403,
+      );
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      checkSession: async () => false,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+
+    const resumed = await controller.resumeAfterReauth();
+
+    expect(resumed).toBe(false);
+    expect(patches.length).toBe(1); // no retry without a session
+    expect(controller.pendingCount).toBe(1);
+    expect(controller.status).toBe("unauthenticated");
+    controller.destroy();
+  });
+
+  it("keeps collecting edits while parked (with the §22.2 mirror) and sends them after resume", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError("UNAUTHORIZED", "Session expired", 401);
+    };
+    const { transport, patches } = recordedTransport(env(), [behavior, () => ({ rev: 2 })]);
+    const c = collector();
+    const queue = fakeQueue();
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      checkSession: async () => true,
+      offlineQueue: queue.port,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "a" } }]);
+    await vi.advanceTimersByTimeAsync(500); // flush fails with the expired session
+    controller.enqueue([{ op: "meta.update", patch: { title: "b" } }]);
+    await vi.advanceTimersByTimeAsync(5_000); // parked — no network, mirror updated
+
+    expect(patches.length).toBe(1);
+    expect(controller.pendingCount).toBe(2);
+    expect(controller.status).toBe("unauthenticated"); // stays sticky while parked
+    expect(queue.saved.at(-1)?.ops).toEqual([
+      { op: "meta.update", patch: { title: "a" } },
+      { op: "meta.update", patch: { title: "b" } },
+    ]);
+
+    const resumed = await controller.resumeAfterReauth();
+
+    expect(resumed).toBe(true);
+    expect(patches.length).toBe(2);
+    expect(patches[1]?.ops).toEqual([
+      { op: "meta.update", patch: { title: "a" } },
+      { op: "meta.update", patch: { title: "b" } },
+    ]);
+    expect(queue.cleared).toEqual(["doc1"]); // ack cleared the mirror
+    controller.destroy();
+  });
+
+  it("dismiss parks the queue; the next manual retry re-attempts and re-raises", async () => {
+    const behavior = () => {
+      throw new UnauthenticatedError(
+        "FORBIDDEN",
+        "Authentication required: session cookie or Authorization: Bearer ff_…",
+        403,
+      );
+    };
+    const { transport, patches } = recordedTransport(env(), [
+      behavior,
+      behavior,
+      () => ({ rev: 2 }),
+    ]);
+    const c = collector();
+    const raised: number[] = [];
+    let signedIn = false;
+    const controller = new AutosaveController({
+      transport: transport as unknown as MockTransport & typeof transport,
+      docId: "doc1",
+      initialRev: 1,
+      onStatus: c.onStatus,
+      onAck: c.onAck,
+      onUnauthenticated: ({ pendingCount }) => void raised.push(pendingCount),
+      checkSession: async () => signedIn,
+    });
+
+    controller.enqueue([{ op: "meta.update", patch: { title: "kept" } }]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(raised).toEqual([1]);
+
+    controller.dismissReauth();
+    expect(controller.isUnauthenticated).toBe(false);
+    expect(controller.status).toBe("dirty"); // ops kept, chip back to unsaved
+    expect(controller.pendingCount).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(60_000); // nothing automatic after dismiss
+    expect(patches.length).toBe(1);
+
+    await controller.flushNow(); // manual retry — session still expired
+    expect(patches.length).toBe(2);
+    expect(controller.status).toBe("unauthenticated");
+    expect(raised).toEqual([1, 1]); // prompt re-raised
+    expect(controller.pendingCount).toBe(1);
+
+    signedIn = true;
+    const resumed = await controller.resumeAfterReauth();
+    expect(resumed).toBe(true);
+    expect(patches.length).toBe(3);
+    expect(c.acks).toEqual([2]);
+    expect(c.statuses[c.statuses.length - 1]).toBe("saved");
+    controller.destroy();
+  });
+
   it("ignores enqueues after destroy", async () => {
     const { transport, patches } = recordedTransport(env(), [() => ({ rev: 2 })]);
     const controller = new AutosaveController({
@@ -728,6 +1001,91 @@ describe("AutosaveController", () => {
     controller.enqueue([{ op: "meta.update", patch: { title: "x" } }]);
     await vi.advanceTimersByTimeAsync(2000);
     expect(patches.length).toBe(0);
+  });
+
+  // §13/§14 hard limits (follow-up #10): the flush refuses growth batches
+  // when the local body is over the ~1 MB JSON cap; pure deletes always go.
+  describe("hard limits — 1 MB body gate at flush", () => {
+    const oversizeBody = (): DocumentEnvelope["body"] => ({
+      ...emptyBody("form"),
+      blocks: [
+        { id: "a", kind: "short-text", props: { label: "x".repeat(1_000_001) } },
+      ],
+    });
+
+    function controllerWithOversizeDoc(events: {
+      statuses: AutosaveStatus[];
+      limits: Array<{ kind: string; chars: number }>;
+    }) {
+      const { transport, patches } = recordedTransport(env({ body: oversizeBody() }), [() => ({ rev: 2 })]);
+      const controller = new AutosaveController({
+        transport: transport as unknown as MockTransport,
+        docId: "doc1",
+        initialRev: 1,
+        snapshotDoc: () => ({ meta: { title: "Doc" }, body: oversizeBody() }),
+        onStatus: (s) => void events.statuses.push(s),
+        onLimitExceeded: (e) => void events.limits.push(e),
+      });
+      return { controller, patches };
+    }
+
+    it("refuses a GROWTH batch before sending: queue parked, error status, onLimitExceeded", async () => {
+      const events = { statuses: [] as AutosaveStatus[], limits: [] as Array<{ kind: string; chars: number }> };
+      const { controller, patches } = controllerWithOversizeDoc(events);
+
+      controller.enqueue([{ op: "meta.update", patch: { title: "grow?" } }]);
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(patches.length).toBe(0); // never sent — the server would 413
+      expect(controller.pendingCount).toBe(1); // parked like the offline state
+      expect(events.statuses).toContain("error");
+      expect(events.limits.length).toBe(1);
+      expect(events.limits[0]?.kind).toBe("bytes");
+      expect(events.limits[0]?.chars).toBeGreaterThan(1_000_000);
+      controller.destroy();
+    });
+
+    it("retries the parked batch on the next flush after the doc shrinks under the cap", async () => {
+      const events = { statuses: [] as AutosaveStatus[], limits: [] as Array<{ kind: string; chars: number }> };
+      const { transport } = recordedTransport(env(), [() => ({ rev: 2 })]);
+      let oversized = true;
+      const controller = new AutosaveController({
+        transport: transport as unknown as MockTransport,
+        docId: "doc1",
+        initialRev: 1,
+        snapshotDoc: () => ({
+          meta: { title: "Doc" },
+          body: oversized
+            ? oversizeBody()
+            : { ...emptyBody("form"), blocks: [{ id: "a", kind: "short-text", props: {} }] },
+        }),
+        onLimitExceeded: (e) => void events.limits.push(e),
+      });
+
+      controller.enqueue([{ op: "meta.update", patch: { title: "grow?" } }]);
+      await vi.advanceTimersByTimeAsync(600);
+      expect(events.limits.length).toBe(1);
+
+      // User deletes the huge content → next flush passes.
+      oversized = false;
+      await controller.flushNow();
+      expect(events.limits.length).toBe(1); // no additional refusal
+      expect(controller.pendingCount).toBe(0);
+      controller.destroy();
+    });
+
+    it("always sends pure-removal batches so the user can delete their way back under the cap", async () => {
+      const events = { statuses: [] as AutosaveStatus[], limits: [] as Array<{ kind: string; chars: number }> };
+      const { controller, patches } = controllerWithOversizeDoc(events);
+
+      controller.enqueue([{ op: "block.remove", id: "a" }]);
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(patches.length).toBe(1); // the delete went through
+      expect(events.limits.length).toBe(0);
+      expect(controller.pendingCount).toBe(0);
+      controller.destroy();
+    });
   });
 });
 

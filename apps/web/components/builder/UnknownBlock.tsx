@@ -11,6 +11,8 @@ import { BlockToolbar } from "./BlockToolbar";
 export type UnknownBlockProps = {
   block: Block;
   index: number;
+  /** Container block id, or null for the root list (§6.2 drag targeting). */
+  parentId?: string | null;
   siblingCount: number;
   selected: boolean;
   referencedIds: ReadonlySet<string>;
@@ -20,6 +22,7 @@ export type UnknownBlockProps = {
 function UnknownBlockImpl({
   block,
   index,
+  parentId = null,
   siblingCount,
   selected,
   referencedIds,
@@ -32,6 +35,7 @@ function UnknownBlockImpl({
       data-testid="unknown-block"
       data-block-id={block.id}
       data-block-kind={block.kind}
+      data-block-parent={parentId ?? ""}
       tabIndex={0}
       onClick={(event) => {
         event.stopPropagation();
@@ -47,6 +51,7 @@ function UnknownBlockImpl({
         <BlockToolbar
           block={block}
           index={index}
+          parentId={parentId}
           siblingCount={siblingCount}
           referencedByRules={referencedIds.has(block.id)}
           actions={actions}

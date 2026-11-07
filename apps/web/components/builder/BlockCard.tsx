@@ -30,6 +30,8 @@ export type BlockCardProps = {
   depth: number;
   /** Position in the parent list, for move boundaries + insert indices. */
   index: number;
+  /** Container block id, or null for the root list (§6.2 drag targeting). */
+  parentId?: string | null;
   siblingCount: number;
   /** Whether THIS card is the selected one (chrome + toolbar). */
   selected: boolean;
@@ -71,6 +73,7 @@ function BlockCardImpl({
   block,
   depth,
   index,
+  parentId = null,
   siblingCount,
   selected,
   selectedId,
@@ -94,6 +97,7 @@ function BlockCardImpl({
       <UnknownBlock
         block={block}
         index={index}
+        parentId={parentId}
         siblingCount={siblingCount}
         selected={selected}
         referencedIds={referencedIds}
@@ -135,6 +139,7 @@ function BlockCardImpl({
       data-testid={`block-card-${block.id}`}
       data-block-id={block.id}
       data-block-kind={block.kind}
+      data-block-parent={parentId ?? ""}
       data-depth={depth}
       tabIndex={0}
       onClick={(event) => {
@@ -152,6 +157,7 @@ function BlockCardImpl({
         <BlockToolbar
           block={block}
           index={index}
+          parentId={parentId}
           siblingCount={siblingCount}
           referencedByRules={referencedIds.has(block.id)}
           actions={actions}
@@ -206,6 +212,7 @@ function BlockCardImpl({
                   block={child}
                   depth={depth + 1}
                   index={childIndex}
+                  parentId={block.id}
                   siblingCount={children.length}
                   selected={child.id === selectedId}
                   selectedId={selectedId}

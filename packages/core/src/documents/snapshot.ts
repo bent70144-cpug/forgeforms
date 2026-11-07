@@ -25,6 +25,7 @@ import type {
   LogicCompiler,
   PublishedReadDeps,
 } from './ports';
+import { PUBLISH_ISSUE_CODES } from './ports';
 
 // ---------------------------------------------------------------------------
 // Build
@@ -98,9 +99,13 @@ export async function resolveBlockAssetUrls(
           if (ASSET_ID_PROP.test(key) && typeof value === 'string') {
             const url = await assets.resolve(value);
             if (url === null) {
+              // B7 follow-up #4: stable §8.1 code + owning block id so the
+              // builder's Issues drawer can group the 422 issue per block.
               sink.push({
                 path: `blocks[${blockPath.join('][')}].props.${key}`,
                 message: `Asset not found: ${value}`,
+                code: PUBLISH_ISSUE_CODES.missingAsset,
+                blockId: block.id,
               });
             } else {
               block.props[key] = url;
@@ -114,6 +119,8 @@ export async function resolveBlockAssetUrls(
                 sink.push({
                   path: `blocks[${blockPath.join('][')}].props.${key}[${i}]`,
                   message: `Asset not found: ${id}`,
+                  code: PUBLISH_ISSUE_CODES.missingAsset,
+                  blockId: block.id,
                 });
               } else {
                 urls.push(url);
@@ -168,6 +175,8 @@ export async function buildSnapshot(args: BuildSnapshotArgs): Promise<BuildSnaps
     issues.push({
       path: 'settings.seo.ogImageAssetId',
       message: `Asset not found: ${seo.ogImageAssetId}`,
+      // B7 follow-up #4: document-level MISSING_ASSET (no owning block).
+      code: PUBLISH_ISSUE_CODES.missingAsset,
     });
   }
 

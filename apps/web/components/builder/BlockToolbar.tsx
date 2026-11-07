@@ -1,8 +1,9 @@
 'use client';
 
-// Floating block toolbar on the selected card (builder spec §5.2): drag handle
-// (wave-1 placeholder), move up/down, duplicate, delete (no confirm, §6.4) and
-// a "⋯" details/summary menu with copy / duplicate / convert.
+// Floating block toolbar on the selected card (builder spec §5.2): drag
+// handle (pointer drag via useDragReorder — §6.2 follow-up #7), move up/down,
+// duplicate, delete (no confirm, §6.4) and a "⋯" details/summary menu with
+// copy / duplicate / convert.
 //
 // `limited` renders the §5.4 variant for unknown kinds: Duplicate + Delete
 // only (props are preserved; moving/convert is meaningless for unsupported
@@ -33,6 +34,8 @@ function copyText(text: string): void {
 export type BlockToolbarProps = {
   block: Block;
   index: number;
+  /** Container block id, or null for the root list (§6.2 drag targeting). */
+  parentId?: string | null;
   siblingCount: number;
   referencedByRules: boolean;
   actions: CanvasActions;
@@ -43,6 +46,7 @@ export type BlockToolbarProps = {
 export function BlockToolbar({
   block,
   index,
+  parentId = null,
   siblingCount,
   referencedByRules,
   actions,
@@ -59,12 +63,26 @@ export function BlockToolbar({
       onClick={(event) => event.stopPropagation()}
       className="absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white/95 p-0.5 shadow-lg backdrop-blur"
     >
-      {/* Drag handle — rendered now; dnd wiring (§6.2) is a tracked follow-up
-          (not part of the wave-3 integration milestone). */}
+      {/* Drag handle (§6.2 follow-up #7): real pointer/touch drag via the
+          delegated listeners in useDragReorder (Canvas) — activation after
+          ~8 px keeps taps/clicks/inline edits working; touch-action:none
+          keeps touch scroll from hijacking the gesture. Pointer-only and
+          aria-hidden: keyboard users reorder with Alt+↑/↓ (useShortcuts) or
+          the labelled Move buttons (§18: mobile keeps move buttons). The
+          limited §5.4 variant stays an inert glyph — unknown kinds must not
+          move. */}
       <span
         aria-hidden="true"
-        title="Drag to move (coming soon)"
-        className="flex h-11 w-8 cursor-grab select-none items-center justify-center text-slate-400"
+        title="Drag to move"
+        data-testid="drag-handle"
+        {...(limited
+          ? {}
+          : {
+              "data-drag-handle": block.id,
+              "data-drag-parent": parentId ?? "",
+              "data-drag-index": index,
+            })}
+        className="flex h-11 w-8 cursor-grab touch-none select-none items-center justify-center text-slate-400 active:cursor-grabbing"
       >
         ⠿
       </span>

@@ -8,14 +8,19 @@
 //   • validation errors are per-field local state — they style the field and
 //     show a message but NEVER block the (draft) autosave.
 //
-// §24 plan gates: the builder client has no entitlements surface (the GET
-// envelope carries no permissions — verified against lib/bridge.ts +
-// app/api/v1/documents/[id]/route.ts), so `showBranding` renders as a STATIC
-// gate: switch locked on + disabled + the §24 inline note "Available on Pro".
+// §24 plan gates (follow-up #8): the GET envelope now carries the §24
+// `entitlements` surface (resolved server-side via billing can()) and the
+// builder store holds it in state. Gates are REAL:
+//   • showBranding — locked ON + disabled + "Pro feature" note when
+//     removeBranding is false (entitlement unknown → stays gated);
+//   • notify emails — max = notifyEmailsLimit (replaces the hardcoded 10);
+//   • file-upload plan cap — surfaced on the block settings (BlockSettings);
+//   • redirect endings — gated on customRedirect (EndingsPanel).
 // No upgrade modals anywhere (§24 forbids them inside the builder).
 
 import { useState } from "react";
 import { useBuilder } from "../context";
+import { requestAssetPick } from "../asset-picker-bridge";
 import {
   FF_SET_INPUT_CLASS,
   FieldRow,
@@ -31,6 +36,7 @@ import {
   utcIsoToDatetimeLocal,
   useDebouncedPatch,
   useDraftSync,
+  useSlugAvailability,
 } from "./settings-helpers";
 
 export type DocSettingsTab = "general" | "behavior" | "limits" | "notifications" | "seo";
@@ -56,6 +62,10 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
   const { state, dispatch } = useBuilder();
   const [tab, setTab] = useState<DocSettingsTab>(initialTab ?? "general");
   const settings = state.body.settings;
+  // §24 entitlements (null = unknown → conservative free gates).
+  const entitlements = state.entitlements;
+  const brandingAllowed = entitlements?.removeBranding === true;
+  const notifyMax = entitlements?.notifyEmailsLimit ?? MAX_NOTIFY_EMAILS;
 
   // --- debounced text patches (op builders run at push time) ---------------
   const pushMetaTitle = useDebouncedPatch(
@@ -90,6 +100,19 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
   const slugError = slugDraft !== "" && !isValidSlug(slugDraft)
     ? "Use 3–60 lowercase letters, digits or hyphens — e.g. customer-feedback."
     : null;
+
+  // §6.6/§14 availability probe (follow-up #5): debounced GET slug-check, run
+  // only when the format is valid. The taken note is INLINE — it styles the
+  // field but never blocks the debounced autosave (PATCH re-checks uniqueness).
+  const slugAvailability = useSlugAvailability(state.docId, slugDraft);
+  const takenSuggestion =
+    slugAvailability.status === "taken" ? slugAvailability.suggestion : null;
+  // One-click `-2` suggestion: flows through the SAME debounced slug update
+  // path (pushSlug) — never a direct store write.
+  const applySuggestion = (suggestion: string): void => {
+    setSlugDraft(suggestion);
+    pushSlug(suggestion);
+  };
 
   const seoTitle = settings.seo.title ?? "";
   const seoDescription = settings.seo.description ?? "";
@@ -143,9 +166,6 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 hint={SLUG_HINT}
                 error={slugError}
               >
-                {/* TODO(wave 3): add the §6.6 availability probe —
-                    GET /api/v1/documents/:id/slug-check (route missing yet);
-                    on "taken" show an inline error + `-2` variant (§14). */}
                 <input
                   id="ff-set-doc-slug"
                   type="text"
@@ -159,6 +179,26 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                     pushSlug(event.target.value);
                   }}
                 />
+                {slugAvailability.status === "checking" && (
+                  <p className="ff-set-note" data-testid="ff-set-slug-checking">
+                    Checking availability…
+                  </p>
+                )}
+                {slugAvailability.status === "taken" && (
+                  <p className="ff-set-note ff-set-note--error" role="alert" data-testid="ff-set-slug-taken">
+                    “{slugDraft}” is taken in this workspace.{" "}
+                    {takenSuggestion !== null && (
+                      <button
+                        type="button"
+                        className="ff-set-btn"
+                        data-testid="ff-set-slug-suggestion"
+                        onClick={() => applySuggestion(takenSuggestion)}
+                      >
+                        Use {takenSuggestion}
+                      </button>
+                    )}
+                  </p>
+                )}
               </FieldRow>
               <FieldRow label="Language" htmlFor="ff-set-doc-locale">
                 <select
@@ -197,13 +237,15 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
               <ToggleRow
                 label="Show FormForge branding"
                 checked={settings.showBranding}
-                // §24 static gate: no entitlements surface client-side yet →
-                // the switch is locked ON and disabled with an inline note.
-                disabled
-                onChange={() => undefined}
+                // §24 real gate: without the removeBranding entitlement the
+                // switch stays locked ON (the badge is required on free).
+                disabled={!brandingAllowed}
+                onChange={(next) => updateSettings({ showBranding: next })}
                 testId="ff-set-branding"
               />
-              <InlineNote testId="ff-set-branding-note">Available on Pro</InlineNote>
+              {!brandingAllowed && (
+                <InlineNote testId="ff-set-branding-note">Pro feature</InlineNote>
+              )}
             </div>
             <ToggleRow
               label="Captcha"
@@ -262,7 +304,7 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
           <SettingsSection title="Notifications" testId="ff-set-notifications">
             <EmailListEditor
               emails={settings.notifyEmails}
-              max={MAX_NOTIFY_EMAILS}
+              max={notifyMax}
               onAdd={(email) =>
                 updateSettings({ notifyEmails: [...settings.notifyEmails, email] })
               }
@@ -274,9 +316,10 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 })
               }
             />
-            <InlineNote>
-              Recipients get an email after every completed submission (§24: free plans are
-              capped at 1 — plan checks arrive with billing integration).
+            <InlineNote testId="ff-set-notify-note">
+              {notifyMax < MAX_NOTIFY_EMAILS
+                ? `Your plan allows ${notifyMax} recipient${notifyMax === 1 ? "" : "s"} per form — Pro raises the cap to ${MAX_NOTIFY_EMAILS}.`
+                : "Recipients get an email after every completed submission."}
             </InlineNote>
             <button type="button" disabled title="Coming soon" className="ff-set-btn" data-testid="ff-set-send-test-email">
               Send test email
@@ -312,11 +355,40 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 }}
               />
             </FieldRow>
-            <FieldRow label="Social preview image" htmlFor="ff-set-og-image">
-              {/* §10 asset picker is its own milestone — placeholder only. */}
-              <button type="button" disabled className="ff-set-btn" data-testid="ff-set-og-picker">
-                Image picker coming soon
-              </button>
+            <FieldRow
+              label="Social preview image"
+              htmlFor="ff-set-og-image"
+              hint="Shown when the form is shared — 1200×630 recommended. Uploads go through the asset pipeline (virus-scanned before serving)."
+            >
+              {/* §10 asset picker (W12): DocumentSettings.seo.ogImageAssetId IS in
+                  the settings schema (packages/schema document.ts), so the picker
+                  is ENABLED. ogImageAssetId is a plain string → no alt prompt. */}
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className="ff-set-btn"
+                  data-testid="ff-set-og-picker"
+                  onClick={() => {
+                    void requestAssetPick({ supportsAlt: false }).then((pick) => {
+                      if (!pick) return;
+                      updateSettings({ seo: { ogImageAssetId: pick.assetId } });
+                    });
+                  }}
+                >
+                  {settings.seo.ogImageAssetId ? "Replace image…" : "Choose image…"}
+                </button>
+                {settings.seo.ogImageAssetId ? (
+                  <button
+                    type="button"
+                    className="ff-set-btn"
+                    data-testid="ff-set-og-remove"
+                    // settings.update merges per-key; `null` deletes (§21).
+                    onClick={() => updateSettings({ seo: { ogImageAssetId: null } })}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </FieldRow>
 
             <SocialPreview

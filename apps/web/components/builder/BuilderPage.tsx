@@ -16,11 +16,16 @@
 //   4. controller.onAck → { type: "ackRev", rev } + multitab.announceRev
 //   5. controller.onRebased → { type: "reconciled" } (silent 409 rebase adopt,
 //      history reset) + multitab.announceRev
-//   6. controller.onConflict → ConflictDialog; onOpRejected → shell notice
+//   6. controller.onConflict → ConflictDialog; onOpRejected → shell notice;
+//      onUnauthenticated → ReauthDialog (§7.1 follow-up #3: 401 re-auth —
+//      resume re-checks /api/auth/session, dismiss parks until manual retry)
 //   7. pagehide → flushNow; beforeunload → beacon flush + §7.1 guard
 //   8. "ff:force-save" → flushNow; "ff:open-preview" → controlled preview
 //   9. after load → §7.2 recoverPending → RestorePrompt (restore re-enters
-//      through the normal apply path; discard removes the stored record)
+//      through the normal apply path; discard removes the stored record);
+//      a STALE batch with ops routes into the §7.3 conflict flow instead
+//      (follow-up #2 — same ConflictDialog as a 409; a failed server-doc
+//      fetch falls back to the Discard-only prompt)
 //  10. §7.4 multitab channel → ContextualBanner kind="multitab"
 //
 // PICKER DOUBLE-OPEN NOTE: "ff:open-picker" is emitted by LeftPane, canvas
@@ -28,29 +33,40 @@
 // useBlockPicker's SINGLE window listener, so at worst a duplicate event
 // re-anchors the already-open picker — no dedupe needed.
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AutosaveController,
   type ConflictEvent,
   type ConflictMode,
+  type LimitExceededEvent,
   type OpRejectedEvent,
+  type PlanLimitEvent,
+  type UnauthenticatedEvent,
 } from "@/lib/builder/autosave";
 import { createTransport, type DocumentTransport } from "@/lib/builder/transport";
+import { BUILDER_EVENTS } from "@/lib/builder/canvas-ops";
 import type { DocumentEnvelope } from "@/lib/bridge";
 import {
   discardPending as discardStoredPending,
   flushViaBeacon,
   recoverPending,
   shouldGuardUnload,
+  type PendingBatchRecord,
 } from "@/lib/builder/offline";
 import { createMultitabChannel, type MultitabChannel } from "@/lib/builder/multitab";
 import type { Op } from "@/lib/builder/ops";
 import {
   bannerKindFor,
+  limitExceededNoticeText,
+  planLimitNoticeText,
   planRecovery,
   rejectionNoticeText,
   sharedOfflineQueue,
+  staleConflictEvent,
 } from "@/lib/builder/wiring";
+import { withAutosaveTelemetry } from "@/lib/builder/telemetry-events";
+import { track } from "@/lib/telemetry";
 import { BuilderProvider, useBuilder } from "./context";
 import { BuilderShell } from "./BuilderShell";
 import { BlockPicker } from "./BlockPicker";
@@ -59,9 +75,18 @@ import { SHORTCUT_EVENTS, ShortcutsHelpDialog, useShortcuts } from "./useShortcu
 import { useClipboardShortcuts } from "./useClipboardShortcuts";
 import { UndoToast } from "./UndoToast";
 import { ConflictDialog } from "./ConflictDialog";
+import { ReauthDialog } from "./ReauthDialog";
 import { RestorePrompt, type RestoreRequest } from "./RestorePrompt";
+import { useAssetPicker } from "./useAssetPicker";
 import type { BannerKind } from "./ContextualBanner";
 import { createSaveStatusStore, type SaveStatusStore } from "./save-indicator";
+
+// §10 asset picker — lazy (§13 JS budget): the modal + its transport code
+// never enter the builder route chunk until first open (same posture as the
+// preview renderer's dynamic import).
+const AssetPicker = dynamic(() => import("./AssetPicker").then((m) => m.AssetPicker), {
+  ssr: false,
+});
 
 /** A pending §7.2 recovery: what the prompt shows + the ops Restore applies. */
 type RecoveryState = { request: RestoreRequest; ops: readonly Op[] };
@@ -103,6 +128,7 @@ function BuilderSession({
   const [multitabSeen, setMultitabSeen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [conflict, setConflict] = useState<ConflictEvent | null>(null);
+  const [reauth, setReauth] = useState<UnauthenticatedEvent | null>(null);
   const [recovery, setRecovery] = useState<RecoveryState | null>(null);
   const [rejectNotice, setRejectNotice] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState(0);
@@ -118,22 +144,30 @@ function BuilderSession({
   latest.current = { state };
   const recoveryRef = useRef(recovery);
   recoveryRef.current = recovery;
+  // The ConflictEvent routed from a stale §22.2 batch (follow-up #2): lets
+  // resolveConflict tell a recovery conflict (ops NOT yet applied locally)
+  // apart from a live 409 conflict (ops already applied locally).
+  const recoveryConflictRef = useRef<ConflictEvent | null>(null);
 
   // --- wave-3 overlays (mounted ONCE, inside the provider) -------------------
   const picker = useBlockPicker();
+  const assetPicker = useAssetPicker();
   const { helpOpen, closeHelp } = useShortcuts();
   useClipboardShortcuts();
 
   // --- load (mirrors LogicBuilder: createTransport + mock dev toggle) -------
   useEffect(() => {
     let disposed = false;
+    recoveryConflictRef.current = null; // a fresh load invalidates any recovery conflict
     void (async () => {
       try {
         let envelope: DocumentEnvelope;
         if (loadDocument) {
           envelope = await loadDocument(docId);
         } else {
-          const transport = createTransport();
+          // §15: the transport PATCH is wrapped so autosave completion points
+          // emit autosave_ok {opsCount, ms} / autosave_error {status}.
+          const transport = withAutosaveTelemetry(createTransport());
           transportRef.current = transport;
           envelope = await transport.load(docId);
         }
@@ -141,31 +175,75 @@ function BuilderSession({
         const mode =
           loadDocument || process.env.NEXT_PUBLIC_FF_MOCK_BUILDER === "1" ? "mock" : "api";
         dispatch({ type: "loaded", envelope, mode });
+        // §15: builder session started (ids/counts only — no payload).
+        track("builder_opened");
         // §14: an archived document shows the banner (editing disabled).
         setEnvelopeArchived((envelope.status as string) === "archived");
 
         // §7.2 recovery: an offline batch may have survived the last session.
-        // planRecovery decides Restore vs stale-Discard (never auto-merges).
+        // planRecovery routes it: matching rev → Restore prompt; a stale batch
+        // with ops → the §7.3 conflict flow (follow-up #2); a stale empty
+        // record → silent discard.
         void (async () => {
           try {
             const found = await recoverPending(docId, envelope.rev, sharedOfflineQueue());
             if (disposed) return;
-            const plan = planRecovery(found?.record ?? null, envelope.rev);
-            if (!plan || !found) return;
-            if (plan === "discard-stale") {
-              console.warn(
-                `[formforge:builder] offline batch for ${docId} was written against rev ${found.record.baseRev}, ` +
-                  `server is at rev ${envelope.rev} — offering Discard only`,
-              );
+            const record = found?.record ?? null;
+            const plan = planRecovery(record, envelope.rev);
+            if (!plan || !found || !record) return;
+            // The old §7.2 fallback prompt (fetch failure / no loader seam).
+            const offerDiscardStale = (stale: PendingBatchRecord) => {
               setRecovery({
-                request: { kind: "discard-stale", editCount: found.record.ops.length },
+                request: { kind: "discard-stale", editCount: stale.ops.length },
                 ops: [],
               });
+            };
+            if (plan === "conflict") {
+              // §7.3 (follow-up #2): a stale batch with ops goes through the
+              // SAME conflict flow as a 409 — fetch the current server
+              // document and open ConflictDialog (local pending ops vs server
+              // doc). If the fetch fails, fall back to the old Discard-only
+              // prompt rather than losing the batch.
+              const transport = transportRef.current;
+              const fetchDoc = loadDocument ?? (transport ? (id: string) => transport.load(id) : null);
+              if (!fetchDoc) {
+                offerDiscardStale(record);
+                return;
+              }
+              try {
+                const fresh = await fetchDoc(docId);
+                if (disposed) return;
+                const event = staleConflictEvent(record, fresh);
+                recoveryConflictRef.current = event;
+                setConflict(event);
+                // Mirror the §7.3.3 status a live 409 raises.
+                const at = Date.now();
+                saveStatusStore.emit("conflict", { at, message: "Edited elsewhere — review your changes" });
+                dispatch({ type: "saveStatus", status: "conflict", at });
+              } catch (err) {
+                if (disposed) return;
+                console.warn(
+                  `[formforge:builder] offline batch for ${docId} was written against rev ${record.baseRev}, ` +
+                    `server is at rev ${envelope.rev} and the server document could not be fetched ` +
+                    `(${err instanceof Error ? err.message : "unknown error"}) — offering Discard only`,
+                );
+                offerDiscardStale(record);
+              }
+              return;
+            }
+            if (plan === "discard") {
+              // A stale record without ops can never apply again — clear it
+              // quietly (nothing the user could merge or restore).
+              console.warn(
+                `[formforge:builder] offline batch for ${docId} was written against rev ${record.baseRev}, ` +
+                  `server is at rev ${envelope.rev} and holds no ops — discarding silently`,
+              );
+              void discardStoredPending(docId, sharedOfflineQueue());
               return;
             }
             setRecovery({
-              request: { kind: "restore", editCount: found.record.ops.length },
-              ops: found.record.ops,
+              request: { kind: "restore", editCount: record.ops.length },
+              ops: record.ops,
             });
           } catch {
             // Fail-open: recovery is best-effort; the builder works without it.
@@ -178,7 +256,7 @@ function BuilderSession({
     return () => {
       disposed = true;
     };
-  }, [docId, dispatch, loadDocument, retryToken]);
+  }, [docId, dispatch, loadDocument, retryToken, saveStatusStore]);
 
   // --- controller lifecycle: created once per loaded document ---------------
   useEffect(() => {
@@ -210,16 +288,41 @@ function BuilderSession({
         channelRef.current?.announceRev(rev);
       },
       // §7.3.3 rebase failed — the dialog takes over (queue parked inside
-      // the controller; local pending ops stay mirrored to IndexedDB).
-      onConflict: (event) => setConflict(event),
-      // §14: exactly one op was rolled back — surface a dismissable notice.
+      // the controller; local pending ops stay mirrored to IndexedDB). A
+      // live 409 replaces any recovery-routed conflict (follow-up #2).
+      onConflict: (event) => {
+        recoveryConflictRef.current = null;
+        setConflict(event);
+        // §15: conflict raised, not yet resolved.
+        track("conflict", { resolved: false });
+      },
+      // §7.1 follow-up #3 — session expired: park + prompt. Pending ops stay
+      // in the controller queue (and the IndexedDB mirror) until resume.
+      onUnauthenticated: (event) => setReauth(event),
       onOpRejected: ({ code, message }: OpRejectedEvent) => {
         console.warn(`[formforge:builder] op rejected by the server (422 ${code}): ${message}`);
         setRejectNotice(rejectionNoticeText({ code, message }));
       },
+      // §13/§14 hard limit: a flush was refused client-side (body over ~1 MB).
+      // The queue stays parked (offline-like) until the user deletes content.
+      onLimitExceeded: ({ chars }: LimitExceededEvent) => {
+        console.warn(
+          `[formforge:builder] flush refused: document body JSON ~${chars} chars exceeds the 1 MB cap`,
+        );
+        setRejectNotice(limitExceededNoticeText());
+      },
+
+      // §14 (follow-up #8): the batch was refused with 402/403 — an inline
+      // plan-limit explanation in the SAME shell notice, never a dead end.
+      onPlanLimit: (event: PlanLimitEvent) => {
+        console.warn(
+          `[formforge:builder] save refused by the plan (${event.status}${event.capability ? ` ${event.capability}` : ""}): ${event.message}`,
+        );
+        setRejectNotice(planLimitNoticeText(event, latest.current.state.entitlements));
+      },
       // §7.3.4: history was already reset by the `reconciled` dispatch —
-      // nothing else to clear here.
-      onConflictResolved: () => {},
+      // nothing else to clear here. §15: the conflict was resolved.
+      onConflictResolved: () => track("conflict", { resolved: true }),
     });
     controllerRef.current = controller;
     return () => {
@@ -237,6 +340,16 @@ function BuilderSession({
     dispatch({ type: "emitDone", nonce: emit.nonce });
   }, [state.emit, dispatch]);
 
+  // --- §13/§14 hard limits: surface reducer refusals on the shell notice ----
+  // The reducer refuses insert-bearing applies that would push the document
+  // past 500 blocks / the ~1 MB body cap and records the reason — never
+  // silent (§14). The notice rides the same dismissable slot as the 422
+  // rollback; the next successful apply clears the violation in the store.
+  const limitsViolation = state.limitsViolation;
+  useEffect(() => {
+    if (limitsViolation) setRejectNotice(limitsViolation.notice);
+  }, [limitsViolation]);
+
   // --- §7.4 multitab channel (banner + rev announcements) --------------------
   useEffect(() => {
     // createMultitabChannel posts TAB_OPENED on creation; receiving
@@ -253,18 +366,36 @@ function BuilderSession({
   }, [docId]);
 
   // --- "ff:force-save" (⌘S / publish 409) + "ff:open-preview" (⌘⇧P) ----------
+  // + "ff:plan-limit" (§14 follow-up #8 — publish refused by 402/403).
+  // §15: both preview paths flow through openPreview so preview_opened has a
+  // single emission seam (window event AND TopBar's controlled open).
+  const openPreview = useCallback(() => {
+    setPreviewOpen(true);
+    track("preview_opened");
+  }, []);
+  const onPreviewOpenChange = useCallback((open: boolean) => {
+    setPreviewOpen(open);
+    if (open) track("preview_opened");
+  }, []);
+
   useEffect(() => {
     const onForceSave = () => {
       void controllerRef.current?.flushNow();
     };
-    const onOpenPreview = () => setPreviewOpen(true);
+    const onPlanLimit = (event: Event) => {
+      const detail = (event as CustomEvent<PlanLimitEvent>).detail;
+      if (!detail) return;
+      setRejectNotice(planLimitNoticeText(detail, latest.current.state.entitlements));
+    };
     window.addEventListener(SHORTCUT_EVENTS.forceSave, onForceSave);
-    window.addEventListener(SHORTCUT_EVENTS.openPreview, onOpenPreview);
+    window.addEventListener(SHORTCUT_EVENTS.openPreview, openPreview);
+    window.addEventListener(BUILDER_EVENTS.planLimit, onPlanLimit);
     return () => {
       window.removeEventListener(SHORTCUT_EVENTS.forceSave, onForceSave);
-      window.removeEventListener(SHORTCUT_EVENTS.openPreview, onOpenPreview);
+      window.removeEventListener(SHORTCUT_EVENTS.openPreview, openPreview);
+      window.removeEventListener(BUILDER_EVENTS.planLimit, onPlanLimit);
     };
-  }, []);
+  }, [openPreview]);
 
   // --- zero data loss on reload (§7.1) ----------------------------------------
   useEffect(() => {
@@ -293,9 +424,47 @@ function BuilderSession({
   }, [docId]);
 
   // --- wave-3 overlay callbacks ------------------------------------------------
-  const resolveConflict = useCallback((mode: ConflictMode) => {
-    setConflict(null);
-    void controllerRef.current?.resolveConflict(mode);
+  const resolveConflict = useCallback(
+    (mode: ConflictMode) => {
+      const recoveryEvent = recoveryConflictRef.current;
+      recoveryConflictRef.current = null;
+      setConflict(null);
+      if (!recoveryEvent) {
+        void controllerRef.current?.resolveConflict(mode);
+        return;
+      }
+      // §7.2→§7.3 recovery conflict (follow-up #2): the controller never saw
+      // these ops, so resolution differs slightly from a live 409.
+      if (mode === "mine") {
+        // "Keep mine": the 409 flow's pending ops are already applied
+        // locally — a recovered batch is not. Apply through the NORMAL store
+        // path (same as §7.2 Restore): the emit wiring enqueues the ops, the
+        // controller sends them against its rev, and a mid-flight 409 runs
+        // the controller's own §7.3 rebase/dialog. The stored record clears
+        // on the ack — never before the ops are safely on the server.
+        dispatch({ type: "apply", ops: [...recoveryEvent.pendingOps], label: "Restore unsaved changes" });
+        return;
+      }
+      // "Use theirs": drop the stored batch (§7.2 Discard) and, when the
+      // autosave loop is live, adopt the fetched server document + align the
+      // controller rev through the SAME resolveConflict path a 409 uses.
+      void discardStoredPending(docId, sharedOfflineQueue());
+      void controllerRef.current?.resolveConflict("theirs", recoveryEvent);
+    },
+    [dispatch, docId],
+  );
+
+  // §7.1 follow-up #3: re-check the session and flush the kept queue. The
+  // dialog closes only on success — a failed check re-parks and re-raises.
+  const resumeAfterReauth = useCallback((): Promise<boolean> => {
+    return controllerRef.current?.resumeAfterReauth() ?? Promise.resolve(false);
+  }, []);
+
+  // Dismiss parks the queue (ops kept) until the next manual retry — a still
+  // expired session re-raises the dialog on that attempt.
+  const dismissReauth = useCallback(() => {
+    setReauth(null);
+    controllerRef.current?.dismissReauth();
   }, []);
 
   const restorePending = useCallback(() => {
@@ -378,7 +547,7 @@ function BuilderSession({
         notice={rejectNotice}
         onNoticeDismiss={() => setRejectNotice(null)}
         previewOpen={previewOpen}
-        onPreviewOpenChange={setPreviewOpen}
+        onPreviewOpenChange={onPreviewOpenChange}
       />
 
       {/* Wave-3 overlays — mounted exactly once (single listeners live in
@@ -392,10 +561,19 @@ function BuilderSession({
       <ShortcutsHelpDialog open={helpOpen} onClose={closeHelp} />
       <UndoToast />
       <ConflictDialog conflict={conflict} onResolve={resolveConflict} />
+      <ReauthDialog prompt={reauth} onResume={resumeAfterReauth} onDismiss={dismissReauth} />
       <RestorePrompt
         request={recovery?.request ?? null}
         onRestore={restorePending}
         onDiscard={discardRecovery}
+      />
+      {/* §10 asset picker — ONE modal answering requestAssetPick() from the
+          question-editor-kit seam and the DocSettings OG row. */}
+      <AssetPicker
+        open={assetPicker.request !== null}
+        supportsAlt={assetPicker.request?.supportsAlt === true}
+        onClose={assetPicker.close}
+        onSelect={assetPicker.select}
       />
     </>
   );

@@ -24,6 +24,11 @@ export type {
 
 // Local aliases for the re-exported names this module itself references.
 import type { DocumentBody, DocumentType, Theme } from "@formforge/schema";
+// §24 builder entitlements (follow-up #8) — wire type from the API schema;
+// the GET envelope carries them additively, resolved via billing's can().
+import type { BuilderEntitlements } from "@formforge/schema/api";
+
+export type { BuilderEntitlements };
 
 /** spec §7 theme radius union (derived — schema owns the canonical Theme). */
 export type ThemeRadius = Theme["radius"];
@@ -33,7 +38,9 @@ export type DocumentStatus = "draft" | "published";
 // SPEC-NOTE: envelope shape is the client contract for GET /api/v1/documents/:id
 // (spec §11 "Get draft + metadata"). T07 maps its rows to this shape; the exact
 // server field names may differ slightly (e.g. `{ document: … }` wrapper) and
-// ApiTransport tolerates both.
+// ApiTransport tolerates both. `entitlements` is additive (§24): present on the
+// live API, absent on mocks — consumers must treat a missing value as
+// "unknown" and keep the pre-existing (free/conservative) gate behavior.
 export type DocumentEnvelope = {
   id: string;
   /** Authoritative server revision; PATCH conflicts (409) carry the current one. */
@@ -44,6 +51,7 @@ export type DocumentEnvelope = {
   type: DocumentType;
   body: DocumentBody;
   updatedAt?: string;
+  entitlements?: BuilderEntitlements;
 };
 
 /** Canonical theme token keys ↔ CSS variables (spec §14.3). */

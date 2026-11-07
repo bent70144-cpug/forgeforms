@@ -17,8 +17,8 @@ import { AppError } from "../shared/errors.ts";
 import { err, ok, type Result } from "../shared/result.ts";
 import { canonicalHash } from './hash';
 import { uuidv7 } from './ids';
-import type { DocumentBodyJson, PublishOutcome } from './model';
-import { docTag, snapshotCacheKeys, type PublishPipelineDeps } from './ports';
+import type { BlockJson, DocumentBodyJson, PublishOutcome } from './model';
+import { docTag, PUBLISH_ISSUE_CODES, snapshotCacheKeys, type DraftValidationIssue, type PublishPipelineDeps } from './ports';
 import { buildSnapshot, snapshotEtag } from './snapshot';
 import { scanSensitiveFields } from './sensitive-fields';
 
@@ -52,7 +52,17 @@ export function makePublishDocument(deps: PublishPipelineDeps): PublishDocument 
     const lintIssues = schemaIssues.length === 0
       ? deps.compiler.compile(body.logic?.rules ?? [], body.blocks ?? [], endingIds).issues
       : [];
-    const allIssues = [...schemaIssues, ...lintIssues];
+    // B7 follow-up #4 (§8.1 FORM_EMBED_MISSING): the form-embed target check is
+    // a cross-entity rule — ONLY the server can resolve whether a referenced
+    // document exists and is published inside this workspace (the builder
+    // loads no document index client-side, so there is no client supplement;
+    // the code reaches the Issues drawer through the 422 merge). Gated on the
+    // schema phase like the logic lint: a malformed documentId is already a
+    // schema-level issue and would double-report here.
+    const embedIssues = schemaIssues.length === 0
+      ? await collectEmbedTargetIssues(deps, ctx, body, documentId)
+      : [];
+    const allIssues = [...schemaIssues, ...lintIssues, ...embedIssues];
     if (allIssues.length > 0) {
       return err(new AppError('VALIDATION', 'Draft failed validation', allIssues));
     }
@@ -148,4 +158,95 @@ export function ordinalOf(
 ): number {
   const index = history.findIndex((v) => v.id === versionId);
   return index === -1 ? -1 : index + 1;
+}
+
+// ---------------------------------------------------------------------------
+// §8.1 FORM_EMBED_MISSING — form-embed target check (B7 follow-up #4)
+// ---------------------------------------------------------------------------
+
+const FORM_EMBED_KIND = 'form-embed';
+/** Same depth-first bracket notation the snapshot asset walk emits. */
+const embedPath = (blockPath: ReadonlyArray<number>): string =>
+  `blocks[${blockPath.join('][')}].props.documentId`;
+
+/**
+ * Verify every `form-embed` block's `props.documentId` against THIS workspace:
+ * the target must exist and be published (status='published' with a live
+ * published version) — otherwise the live page ships a broken iframe (spec
+ * §8 step 1 "validate fully"; §8.1 FORM_EMBED_MISSING).
+ *
+ * Deliberately server-side only: `PublishPipelineDeps.documents` is the sole
+ * status source, and publishing a document that embeds a draft (or deleted)
+ * form would 410/404 for every respondent. Self-embeds are always rejected —
+ * the frame would recurse into itself at render time.
+ *
+ * Idempotency note: this runs BEFORE the unchanged-draft reuse gate, so a
+ * draft whose embed target was since unpublished/taken down cannot silently
+ * keep re-publishing a broken live page.
+ */
+export async function collectEmbedTargetIssues(
+  deps: PublishPipelineDeps,
+  ctx: Ctx,
+  body: DocumentBodyJson,
+  selfDocumentId: string,
+): Promise<DraftValidationIssue[]> {
+  const issues: DraftValidationIssue[] = [];
+  /** One repo lookup per distinct target id; the verdict is reused per block. */
+  const verdicts = new Map<string, Omit<DraftValidationIssue, 'path' | 'blockId'> | null>();
+
+  await walk(body.blocks ?? [], []);
+
+  async function walk(blocks: readonly BlockJson[], path: ReadonlyArray<number>): Promise<void> {
+    for (const [index, block] of blocks.entries()) {
+      const blockPath = [...path, index];
+      if (block.kind === FORM_EMBED_KIND) {
+        const targetId = block.props?.['documentId'];
+        if (typeof targetId === 'string' && targetId !== '') {
+          const cached = verdicts.get(targetId);
+          const verdict = cached !== undefined
+            ? cached
+            : await embedTargetIssue(deps, ctx, targetId, selfDocumentId);
+          verdicts.set(targetId, verdict);
+          if (verdict !== null) {
+            issues.push({ ...verdict, path: embedPath(blockPath), blockId: block.id });
+          }
+        }
+      }
+      if (block.children?.length) {
+        await walk(block.children, blockPath);
+      }
+    }
+  }
+
+  return issues;
+}
+
+/** The §8.1 issue for one embed target, or null when the target is publishable. */
+async function embedTargetIssue(
+  deps: PublishPipelineDeps,
+  ctx: Ctx,
+  targetId: string,
+  selfDocumentId: string,
+): Promise<Omit<DraftValidationIssue, 'path' | 'blockId'> | null> {
+  if (targetId === selfDocumentId) {
+    return {
+      code: PUBLISH_ISSUE_CODES.formEmbedMissing,
+      message: 'A form cannot embed itself — the frame would recurse forever.',
+    };
+  }
+  // Tenant-scoped: getById never leaks another workspace's rows (spec §3).
+  const target = await deps.documents.getById(ctx.workspaceId, targetId);
+  if (!target) {
+    return {
+      code: PUBLISH_ISSUE_CODES.formEmbedMissing,
+      message: `The embedded form "${targetId}" no longer exists (deleted or moved out of this workspace).`,
+    };
+  }
+  if (target.status !== 'published' || target.publishedVersionId === null) {
+    return {
+      code: PUBLISH_ISSUE_CODES.formEmbedMissing,
+      message: `The embedded form "${target.title ?? targetId}" is not published — publish it first.`,
+    };
+  }
+  return null;
 }

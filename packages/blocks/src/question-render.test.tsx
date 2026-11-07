@@ -87,6 +87,7 @@ describe("question renders (server-safe, via BlockView)", () => {
       <BlockView block={{ id: "blk_single01", kind: "single-select", props }} />,
     );
     expect(html).toContain('data-block-kind="single-select"');
+    expect(html).toContain('data-display-mode="list"');
     expect((html.match(/type="radio"/g) ?? []).length).toBe(2);
     expect(html).toContain("Option 1");
     expect(html).not.toContain("Other");
@@ -102,6 +103,31 @@ describe("question renders (server-safe, via BlockView)", () => {
     );
     expect(withOther).toContain("Other");
     expect(withOther).toContain('type="text"');
+  });
+
+  it("§9.2 single-select display modes: grid tiles and picture cards keep radio semantics", () => {
+    const base = singleSelectDefaultProps();
+    const grid = markup(
+      <BlockView
+        block={{ id: "blk_single05", kind: "single-select", props: { ...base, displayMode: "grid" } }}
+      />,
+    );
+    expect(grid).toContain('data-display-mode="grid"');
+    expect(grid).toContain("ff-select-options--grid");
+    expect(grid).toContain("display:grid");
+    expect((grid.match(/type="radio"/g) ?? []).length).toBe(2);
+    expect(grid).not.toContain("ff-option__picture");
+
+    const picture = markup(
+      <BlockView
+        block={{ id: "blk_single06", kind: "single-select", props: { ...base, displayMode: "picture" } }}
+      />,
+    );
+    expect(picture).toContain('data-display-mode="picture"');
+    expect(picture).toContain("ff-option--picture");
+    expect(picture).toContain('data-option-picture=""');
+    // Same radio inputs (the answer value is mode-independent).
+    expect((picture.match(/type="radio"/g) ?? []).length).toBe(2);
   });
 
   it("single-select randomize keeps exactly the same option set", () => {
@@ -173,6 +199,23 @@ describe("question renders (server-safe, via BlockView)", () => {
     expect(html).toContain('data-icon="heart"');
     expect((html.match(/♥/g) ?? []).length).toBe(4);
     expect(html).toContain("aria-checked=\"false\"");
+  });
+
+  it("§9.2 rating icon 'number' renders bare numeric buttons (no glyph)", () => {
+    const html = markup(
+      <BlockView
+        block={{
+          id: "blk_rating02",
+          kind: "rating",
+          props: { ...ratingDefaultProps(), scale: 5, icon: "number" },
+        }}
+      />,
+    );
+    expect(html).toContain('data-icon="number"');
+    expect((html.match(/type="button"/g) ?? []).length).toBe(5);
+    expect((html.match(/aria-label="[1-5] out of 5"/g) ?? []).length).toBe(5);
+    expect((html.match(/aria-hidden="true">5</g) ?? []).length).toBe(1);
+    expect(html).not.toContain("★");
   });
 
   it("nps renders 0–10 buttons plus left/right labels and marks the stored score", () => {
@@ -278,11 +321,12 @@ describe("editors: canvas preview + settings (acceptance: canvas preview + setti
     expect(html).toContain("Max length");
   });
 
-  it("single-select editor exposes options, allowOther and randomize", () => {
+  it("single-select editor exposes options, allowOther, randomize and display mode", () => {
     const html = markup(<SingleSelectEditor blockId="blk_single01" props={singleSelectDefaultProps()} onChange={noop} />);
     expect(html).toContain('data-editor-canvas="single-select"');
     expect(html).toContain("Allow other");
     expect(html).toContain("Randomize");
+    expect(html).toContain("Display mode");
     expect(html).toContain("Add option");
   });
 
@@ -293,17 +337,20 @@ describe("editors: canvas preview + settings (acceptance: canvas preview + setti
     expect(html).toContain("Max selections");
   });
 
-  it("dropdown editor exposes options and searchable", () => {
+  it("dropdown editor exposes options, searchable and the §9.2 bulk paste control", () => {
     const html = markup(<DropdownEditor blockId="blk_drop0001" props={dropdownDefaultProps()} onChange={noop} />);
     expect(html).toContain('data-editor-canvas="dropdown"');
     expect(html).toContain("Searchable");
+    expect(html).toContain('data-paste-options="true"');
+    expect(html).toContain("Paste options");
   });
 
-  it("rating editor exposes scale + icon", () => {
+  it("rating editor exposes scale + icon (with the §9.2 number option)", () => {
     const html = markup(<RatingEditor blockId="blk_rating01" props={ratingDefaultProps()} onChange={noop} />);
     expect(html).toContain('data-editor-canvas="rating"');
     expect(html).toContain("Scale");
     expect(html).toContain("Icon");
+    expect(html).toContain('value="number"');
   });
 
   it("nps editor exposes left/right labels", () => {

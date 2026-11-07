@@ -48,12 +48,34 @@ export type CreateDocumentRequest = z.infer<typeof CreateDocumentRequestSchema>;
 export const ListDocumentsResponseSchema = paginated(DocumentSummarySchema);
 
 /**
+ * §24 builder entitlements surface (builder-audit follow-up #8) — resolved
+ * SERVER-side via the billing module's can()/getEntitlements() for the
+ * workspace's plan and carried additively on the builder bootstrap envelope.
+ * Keys mirror the billing capability names (§13 + §24 builder gates).
+ */
+export const BuilderEntitlementsSchema = z.object({
+  plan: z.enum(['free', 'pro', 'business']),
+  /** Render public documents without the FormForge badge. */
+  removeBranding: z.boolean(),
+  /** Max size in MB of a single uploaded file. */
+  fileUploadMaxMb: z.number().int().min(1),
+  /** Redirect endings (endings with a URL target). */
+  customRedirect: z.boolean(),
+  /** Max notification recipients per document. */
+  notifyEmailsLimit: z.number().int().min(1),
+});
+export type BuilderEntitlements = z.infer<typeof BuilderEntitlementsSchema>;
+
+/**
  * GET /api/v1/documents/{id} — the builder envelope (spec §11 "Get draft +
  * metadata"; T08 DocumentTransport contract). `body` is the current draft.
+ * `entitlements` is additive (follow-up #8): present on the live API, absent
+ * on mocks/older envelopes — clients must default to free-plan gates.
  */
 export const DocumentEnvelopeSchema = DocumentSummarySchema.extend({
   body: z.unknown(),
   publishedVersionId: z.string().uuid().nullable(),
+  entitlements: BuilderEntitlementsSchema.optional(),
 });
 export type DocumentEnvelope = z.infer<typeof DocumentEnvelopeSchema>;
 

@@ -155,7 +155,11 @@ describe("<Canvas> (loaded document)", () => {
     expect(html).toContain('aria-label="Duplicate question"');
     expect(html).toContain('aria-label="Delete block"');
     expect(html).toContain('aria-label="More actions"');
-    expect(html).toContain("Drag to move (coming soon)");
+    // §6.2 follow-up #7: the handle is a real pointer-drag handle now — the
+    // gesture lives in useDragReorder (Canvas); keyboard moves are untouched.
+    expect(html).toContain("Drag to move");
+    expect(html).toContain('data-drag-handle="q1"');
+    expect(html).toContain('data-testid="drag-handle"');
   });
 
   it("renders the §5.3 empty state when the document has no blocks", () => {

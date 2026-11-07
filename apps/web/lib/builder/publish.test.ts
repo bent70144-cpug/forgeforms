@@ -242,6 +242,110 @@ describe("collectIssues", () => {
     expect(labels[0]?.blockId).toBe("q2");
   });
 
+  // ---------------------------------------------------------------------------
+  // FORM_EMBED_MISSING + MISSING_ASSET (B7 follow-up #4, §8.1) — server-only
+  // codes: the builder loads no document index or asset index, so target-doc
+  // status and asset existence are ONLY checked by the publish service (§422).
+  // These tests pin that boundary and the wire → drawer grouping.
+  // ---------------------------------------------------------------------------
+
+  const VALID_EMBED_TARGET = "doc_2222222222222222222222"; // doc_ + 22 base58 chars
+
+  it("exposes the two server-only publish-gate codes in the §8.1 table", () => {
+    expect(ISSUE_CODES.formEmbedMissing).toBe("FORM_EMBED_MISSING");
+    expect(ISSUE_CODES.missingAsset).toBe("MISSING_ASSET");
+  });
+
+  it("FORM_EMBED_MISSING: a syntactically valid embed raises NO local issue (server checks the target)", () => {
+    const issues = collectIssues(
+      formBody({
+        blocks: [
+          { id: "q1", kind: "short-text", props: { label: "Your name" } },
+          { id: "emb1", kind: "form-embed", props: { documentId: VALID_EMBED_TARGET } },
+        ],
+      }),
+    );
+    expect(issues).toEqual([]);
+    // even if the target does not exist, the LOCAL gate stays green — the
+    // publish service blocks with the FORM_EMBED_MISSING code at 422 time.
+  });
+
+  it("FORM_EMBED_MISSING: a malformed documentId is a SCHEMA issue, not the server code", () => {
+    const issues = collectIssues(
+      formBody({
+        blocks: [
+          { id: "q1", kind: "short-text", props: { label: "Your name" } },
+          { id: "emb1", kind: "form-embed", props: { documentId: "not-a-doc-id" } },
+        ],
+      }),
+    );
+    const embed = issues.filter((issue) => issue.blockId === "emb1");
+    expect(embed).toHaveLength(1);
+    expect(embed[0]?.code).toBe(ISSUE_CODES.schema); // syntax → schema layer
+    expect(embed[0]?.code).not.toBe(ISSUE_CODES.formEmbedMissing);
+  });
+
+  it("MISSING_ASSET: gallery asset ids are not locally checkable — clean doc unaffected", () => {
+    const body = { ...emptyBody("page"), endings: [] } as DocumentBody;
+    body.blocks = [
+      {
+        id: "g1",
+        kind: "gallery",
+        props: { assetIds: ["ast_sample001", "ast_deleted_999"], layout: "grid", columns: 3 },
+      },
+    ];
+    const issues = collectIssues(body);
+    expect(issues).toEqual([]);
+  });
+
+  it("wire: 422 issues with the server-only codes keep code + blockId + path", async () => {
+    const { fn } = fetchStub(422, {
+      error: {
+        code: "VALIDATION",
+        message: "Draft failed validation",
+        details: [
+          {
+            path: "blocks[0].props.documentId",
+            message: 'The embedded form "doc_x" is not published — publish it first.',
+            code: "FORM_EMBED_MISSING",
+            blockId: "emb1",
+          },
+          {
+            path: "blocks[1].props.assetId",
+            message: "Asset not found: ast_9",
+            code: "MISSING_ASSET",
+            blockId: "img1",
+          },
+        ],
+      },
+    });
+    const result = await publishDocument("doc1", 1, fn);
+    expect(result.ok).toBe(false);
+    if (result.ok || result.reason !== "validation") return;
+    expect(result.issues[0]).toMatchObject({
+      code: ISSUE_CODES.formEmbedMissing,
+      blockId: "emb1",
+      path: "blocks[0].props.documentId",
+      level: "error",
+    });
+    expect(result.issues[1]).toMatchObject({
+      code: ISSUE_CODES.missingAsset,
+      blockId: "img1",
+      path: "blocks[1].props.assetId",
+      level: "error",
+    });
+
+    // The Issues drawer groups server issues by their block exactly like
+    // local ones (§8.1 document level — "grouped by block" happens via
+    // groupIssues on the merged list).
+    const groups = groupIssues(result.issues, (id) =>
+      id === "emb1" ? "Embedded form" : id === "img1" ? "Cover image" : undefined,
+    );
+    expect(groups.map((group) => group.blockId)).toEqual(["emb1", "img1"]);
+    expect(groups[0]?.label).toBe("Embedded form");
+    expect(groups[0]?.issues[0]?.code).toBe("FORM_EMBED_MISSING");
+  });
+
   it("exposes the abuse-policy note constant for warning UI (§8.1)", () => {
     expect(ABUSE_POLICY_NOTE).toContain("card numbers");
   });
@@ -473,6 +577,41 @@ describe("publishDocument", () => {
     const { fn } = fetchStub(500, { error: { code: "INTERNAL", message: "boom" } });
     const result = await publishDocument("doc1", 1, fn);
     expect(result).toEqual({ ok: false, reason: "error", message: "boom" });
+  });
+
+  // §14 plan-limit answers (follow-up #8): 402/403 are NOT generic errors —
+  // the caller surfaces an inline plan-limit explanation in the shell notice.
+  it("maps 402 PLAN_LIMIT to reason plan-limit with the §13 capability", async () => {
+    const { fn } = fetchStub(402, {
+      error: {
+        code: "PLAN_LIMIT",
+        message: "Plan limit reached for \"customRedirect\" — upgrade to pro.",
+        details: [
+          { path: "capability", message: "customRedirect" },
+          { path: "requiredPlan", message: "pro" },
+        ],
+      },
+    });
+    const result = await publishDocument("doc1", 1, fn);
+    expect(result).toEqual({
+      ok: false,
+      reason: "plan-limit",
+      status: 402,
+      message: "Plan limit reached for \"customRedirect\" — upgrade to pro.",
+      capability: "customRedirect",
+    });
+  });
+
+  it("maps 403 FORBIDDEN to reason plan-limit with null capability", async () => {
+    const { fn } = fetchStub(403, { error: { code: "FORBIDDEN", message: "nope" } });
+    const result = await publishDocument("doc1", 1, fn);
+    expect(result).toEqual({
+      ok: false,
+      reason: "plan-limit",
+      status: 403,
+      message: "nope",
+      capability: null,
+    });
   });
 
   it("network failures become a friendly error result (never throw)", async () => {

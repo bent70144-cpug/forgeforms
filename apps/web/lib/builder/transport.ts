@@ -8,6 +8,13 @@
 //   the autosave controller can roll back exactly one op (spec §14). The
 //   current server still answers with the §4 envelope (index buried in
 //   `error.details[].path` as `"ops[3].id"`) — both shapes are parsed.
+// - Expired/absent session credentials map to UnauthenticatedError so the
+//   autosave controller can park the queue and prompt for re-login (§7.1
+//   follow-up #3). Both wire shapes are recognized: a plain HTTP 401, and
+//   this app's §4 "Authentication required" FORBIDDEN (403) — the §4
+//   vocabulary has no 401, so the server answers session-less requests with
+//   403 (see app/api/v1/_lib/auth.ts). A scope-missing FORBIDDEN is NOT
+//   re-authable and stays a plain TransportError.
 // - MockTransport is an in-memory store with simulated latency and a manual
 //   `bumpRev` hook (simulating a concurrent writer) used by the dev toggle and
 //   by the autosave tests.
@@ -53,6 +60,19 @@ export class ConflictError extends TransportError {
 }
 
 /**
+ * Expired/absent credentials (§7.1 follow-up #3) — the autosave controller
+ * parks the queue and raises the re-auth prompt instead of retrying. Raised
+ * for a plain HTTP 401 and for this app's §4 "Authentication required"
+ * FORBIDDEN (403); scope/permission 403s stay plain TransportErrors.
+ */
+export class UnauthenticatedError extends TransportError {
+  constructor(code: string, message: string, status: number, details?: unknown) {
+    super(code, message, status, details);
+    this.name = "UnauthenticatedError";
+  }
+}
+
+/**
  * `422 VALIDATION` — the server rejected exactly one op of the batch
  * (spec §22.1 `{ opIndex, code, message }`, §14 rollback semantics).
  * `opIndex` is `null` when the server answered 422 without a parsable index
@@ -66,6 +86,30 @@ export class OpRejectedError extends TransportError {
   ) {
     super(code, message, 422);
     this.name = "OpRejectedError";
+  }
+}
+
+/**
+ * `402 PLAN_LIMIT` (§13/§14) — the workspace's plan cannot do this. Carries
+ * the §13 capability + cheapest satisfying plan when the §4 error details
+ * include them (planLimitError's `{ path: 'capability' | 'requiredPlan' }`).
+ */
+export class PlanLimitError extends TransportError {
+  constructor(
+    message: string,
+    public readonly capability: string | null,
+    public readonly requiredPlan: string | null,
+  ) {
+    super("PLAN_LIMIT", message, 402);
+    this.name = "PlanLimitError";
+  }
+}
+
+/** `403 FORBIDDEN` (§14) — not allowed for this credential/plan. */
+export class ForbiddenError extends TransportError {
+  constructor(message: string) {
+    super("FORBIDDEN", message, 403);
+    this.name = "ForbiddenError";
   }
 }
 
@@ -114,6 +158,29 @@ async function parseOpRejected(res: Response): Promise<OpRejectedError> {
   return new OpRejectedError(opIndex, code, message);
 }
 
+/**
+ * True when the response means "no (valid) credentials" — re-authable, unlike
+ * a permission failure. HTTP 401 always qualifies; a 403 FORBIDDEN qualifies
+ * only with the server's "Authentication required" message (the §4 vocabulary
+ * has no 401 — see app/api/v1/_lib/auth.ts). Matched on the message prefix,
+ * not on `details` (only the credential path answers without details, and
+ * details shapes are not part of the contract).
+ */
+function isAuthRequired(status: number, code: string, message: string): boolean {
+  if (status === 401) return true;
+  return status === 403 && code === "FORBIDDEN" && /^Authentication required\b/.test(message);
+}
+
+/** `details: [{ path: 'capability', message: 'customRedirect' }]` → value. */
+function detailValue(details: unknown, path: string): string | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    const record = typeof item === "object" && item !== null ? (item as { path?: unknown; message?: unknown }) : undefined;
+    if (record?.path === path && typeof record.message === "string") return record.message;
+  }
+  return null;
+}
+
 async function parseError(res: Response): Promise<TransportError> {
   let code = "INTERNAL";
   let message = `Request failed with ${res.status}`;
@@ -125,6 +192,19 @@ async function parseError(res: Response): Promise<TransportError> {
     details = body.error?.details;
   } catch {
     // non-JSON error body — keep defaults
+  }
+  if (isAuthRequired(res.status, code, message)) {
+    return new UnauthenticatedError(code, message, res.status, details);
+}
+
+  // §14 inline plan-limit explanations: 402 PLAN_LIMIT and 403 FORBIDDEN get
+  // typed errors so the autosave controller can park + explain (never retry
+  // them like transient failures).
+  if (res.status === 402 || code === "PLAN_LIMIT") {
+    return new PlanLimitError(message, detailValue(details, "capability"), detailValue(details, "requiredPlan"));
+  }
+  if (res.status === 403 || code === "FORBIDDEN") {
+    return new ForbiddenError(message);
   }
   return new TransportError(code, message, res.status, details);
 }

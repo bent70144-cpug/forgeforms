@@ -19,12 +19,106 @@ export function isValidSlug(value: string): boolean {
   return SLUG_PATTERN.test(value);
 }
 
-// TODO(wave 3): §6.6 also wants a slug AVAILABILITY check against the server
-// (`GET /api/v1/documents/:id/slug-check?slug=…`, debounced 500 ms). The route
-// does not exist yet (rg slug-check apps/web/app → no match), so the panel
-// ships with client-side FORMAT validation only. When the route lands, add the
-// availability probe in DocSettings next to the format check (§14: on "taken",
-// show an inline error and suggest a `-2` variant).
+// ---------------------------------------------------------------------------
+// Slug availability probe (§6.6/§14, builder-audit follow-up #5): debounced
+// GET /api/v1/documents/:id/slug-check?q=… — taken slugs carry a first-free
+// `-2` suggestion from the server. Availability is an INLINE note only; it
+// never blocks the draft autosave (uniqueness is re-enforced server-side at
+// PATCH time in packages/core documents/crud.ts).
+// ---------------------------------------------------------------------------
+
+/** §6.6 debounces text inputs at 300 ms; the availability probe uses the
+ * same cadence (builder-audit follow-up #5 pins 300 ms, not the older 500). */
+export const SLUG_PROBE_DEBOUNCE_MS = 300;
+
+export type SlugCheckOutcome =
+  | { ok: true; available: boolean; suggestion?: string }
+  | { ok: false }; // network/parse failure → availability unknown, stay quiet (§14)
+
+export type SlugProbeOptions = {
+  /** DI for tests; defaults to the global fetch. */
+  fetchImpl?: typeof fetch;
+  /** Delay between the last keystroke and the probe. Default 300 ms. */
+  debounceMs?: number;
+  /** Injectable timers (like createDebouncedSender) for node-env tests. */
+  schedule?: ScheduleFn;
+  cancelTimer?: CancelFn;
+};
+
+export type SlugProbe = {
+  /** (Re)start the debounced probe for `slug`. Format-invalid slugs are never
+   * sent — their inline error is rendered locally from the format rules. */
+  probe(slug: string): void;
+  /** Drop any pending probe; responses from superseded requests are ignored. */
+  cancel(): void;
+};
+
+/**
+ * Framework-free probe controller (latest slug wins): a 300 ms debounce plus a
+ * generation counter so a stale response can never overwrite a newer result.
+ * Every failure collapses to `{ ok: false }` — an unreachable endpoint must
+ * degrade to "no availability state", never to a false "taken".
+ */
+export function createSlugProbe(
+  docId: string,
+  onResult: (slug: string, outcome: SlugCheckOutcome) => void,
+  options: SlugProbeOptions = {},
+): SlugProbe {
+  const doFetch = options.fetchImpl ?? fetch;
+  const debounceMs = options.debounceMs ?? SLUG_PROBE_DEBOUNCE_MS;
+  const schedule: ScheduleFn = options.schedule ?? ((fn, delay) => setTimeout(fn, delay));
+  const cancelTimer: CancelFn = options.cancelTimer ??
+    ((handle) => clearTimeout(handle as ReturnType<typeof setTimeout>));
+
+  let timer: unknown = null;
+  let generation = 0;
+
+  const clearTimer = (): void => {
+    if (timer !== null) {
+      cancelTimer(timer);
+      timer = null;
+    }
+  };
+
+  return {
+    probe(slug: string): void {
+      generation += 1;
+      clearTimer();
+      if (!isValidSlug(slug)) return; // format errors stay client-side (§6.6)
+      const gen = generation;
+      timer = schedule(() => {
+        timer = null;
+        doFetch(
+          `/api/v1/documents/${encodeURIComponent(docId)}/slug-check?q=${encodeURIComponent(slug)}`,
+          { cache: "no-store" },
+        )
+          .then(async (res) => {
+            if (!res.ok) throw new Error(`slug-check failed (${res.status})`);
+            return (await res.json()) as { available?: unknown; suggestion?: unknown };
+          })
+          .then((body) => {
+            if (gen !== generation) return; // superseded by a newer probe/cancel
+            onResult(slug, {
+              ok: true,
+              available: body.available === true,
+              suggestion:
+                typeof body.suggestion === "string" && body.suggestion !== ""
+                  ? body.suggestion
+                  : undefined,
+            });
+          })
+          .catch(() => {
+            if (gen !== generation) return;
+            onResult(slug, { ok: false });
+          });
+      }, debounceMs);
+    },
+    cancel(): void {
+      generation += 1;
+      clearTimer();
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Emails (§6.6 Notifications: validated list, max 10)
@@ -367,4 +461,51 @@ export function useDebouncedPatch(
       coalesceKey: current.coalesceKey,
     });
   }, []);
+}
+
+// ---------------------------------------------------------------------------
+// useSlugAvailability (§6.6/§14: inline "taken" note + one-click `-2` fix)
+// ---------------------------------------------------------------------------
+
+export type SlugAvailabilityState =
+  | { status: "idle" }
+  | { status: "checking" }
+  | { status: "available" }
+  | { status: "taken"; suggestion: string | null };
+
+/**
+ * Probe `slug` (debounced 300 ms) whenever it changes and the format is valid.
+ * Format-invalid slugs reset to idle — the field itself renders the format
+ * error. Probe failures also reset to idle: availability is informational and
+ * the PATCH-time uniqueness check remains the source of truth (§14 — inline
+ * errors never block autosave).
+ */
+export function useSlugAvailability(docId: string, slug: string): SlugAvailabilityState {
+  const [state, setState] = useState<SlugAvailabilityState>({ status: "idle" });
+  const probeRef = useRef<SlugProbe | null>(null);
+  const slugRef = useRef(slug);
+  slugRef.current = slug;
+
+  useEffect(() => {
+    const probe = createSlugProbe(docId, (probed, outcome) => {
+      if (probed !== slugRef.current) return; // response for an older keystroke
+      if (!outcome.ok) setState({ status: "idle" });
+      else if (outcome.available) setState({ status: "available" });
+      else setState({ status: "taken", suggestion: outcome.suggestion ?? null });
+    });
+    probeRef.current = probe;
+    return () => probe.cancel();
+  }, [docId]);
+
+  useEffect(() => {
+    if (!isValidSlug(slug)) {
+      probeRef.current?.cancel();
+      setState({ status: "idle" });
+      return;
+    }
+    setState({ status: "checking" });
+    probeRef.current?.probe(slug);
+  }, [slug]);
+
+  return state;
 }

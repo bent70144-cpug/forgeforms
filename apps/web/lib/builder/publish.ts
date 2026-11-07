@@ -19,6 +19,15 @@
 //    runs server-side). Every supplement below is marked with a
 //    "client-side supplement" comment at its check.
 //
+// SERVER-ONLY CODES — FORM_EMBED_MISSING + MISSING_ASSET (B7 follow-up #4):
+// neither is collectible client-side (the builder loads no document index or
+// asset index, so embed-target status and asset existence are unknowable in
+// the browser). They are emitted by the server publish pipeline
+// (@formforge/core documents: collectEmbedTargetIssues + the snapshot asset
+// walk) with stable codes + blockId on the §4 422 details; PublishControl
+// merges that list into the drawer via mergeIssues, so both codes block
+// publish and group by block like every local code.
+//
 // Never blocks autosave: field/block-level validation is display-only
 // (§8.1 "Field… never blocks autosave"); this module only feeds UI.
 
@@ -64,6 +73,17 @@ export const ISSUE_CODES = {
   logicCycle: "LOGIC_CYCLE",
   badUrl: "BAD_URL",
   badEmail: "BAD_EMAIL",
+  // B7 follow-up #4 — SERVER-ONLY codes (no client-side supplement):
+  // FORM_EMBED_MISSING and MISSING_ASSET are cross-entity rules only the
+  // publish service can evaluate (the builder loads no document index or
+  // asset index client-side, so target-document and asset existence are
+  // unknowable in the browser). The server emits them with `blockId` on the
+  // §4 422 `details` (packages/core documents pipeline, PUBLISH_ISSUE_CODES);
+  // wireIssueToValidationIssue parses them below and IssuesList groups them
+  // by block exactly like local issues. The constants live here so the
+  // client-side vocabulary matches the wire (tests pin both sides).
+  formEmbedMissing: "FORM_EMBED_MISSING",
+  missingAsset: "MISSING_ASSET",
   // Warning (non-blocking):
   sensitiveField: "SENSITIVE_FIELD",
   // Fallbacks for issues without a §8.1 mapping:
@@ -89,9 +109,19 @@ const UNPUBLISHED_SAVE_STATES: ReadonlySet<string> = new Set([
   "offline",
   "error",
   "conflict",
+  // §7.1 follow-up #3: parked for re-auth — the pending ops are still unsent.
+  "unauthenticated",
 ]);
 
-export type SaveStatusLike = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error" | "offline";
+export type SaveStatusLike =
+  | "idle"
+  | "dirty"
+  | "saving"
+  | "saved"
+  | "conflict"
+  | "error"
+  | "offline"
+  | "unauthenticated";
 
 // ---------------------------------------------------------------------------
 // collectIssues
@@ -583,6 +613,14 @@ export type PublishResult =
     }
   | { ok: false; reason: "conflict" }
   | { ok: false; reason: "validation"; issues: ValidationIssue[] }
+  /** §14/§13: publish refused by the plan (402 PLAN_LIMIT / 403 FORBIDDEN). */
+  | {
+      ok: false;
+      reason: "plan-limit";
+      status: 402 | 403;
+      message: string;
+      capability: string | null;
+    }
   | { ok: false; reason: "error"; message: string };
 
 /** Minimal fetch seam so tests stub responses without a network. */
@@ -648,12 +686,42 @@ export async function publishDocument(
     };
   }
 
+  // §14 plan-limit explanation: 402 PLAN_LIMIT / 403 FORBIDDEN carry the §4
+  // error envelope; the caller surfaces an inline notice (never a dead end).
+  if (res.status === 402 || res.status === 403) {
+    const errorRecord = (json?.error ?? undefined) as UnknownRecord | undefined;
+    const message =
+      typeof errorRecord?.message === "string"
+        ? errorRecord.message
+        : `Publish failed with status ${res.status}.`;
+    return {
+      ok: false,
+      reason: "plan-limit",
+      status: res.status,
+      message,
+      capability: capabilityFromDetails(errorRecord?.details),
+    };
+  }
+
   const errorRecord = (json?.error ?? undefined) as UnknownRecord | undefined;
   const message =
     typeof errorRecord?.message === "string"
       ? errorRecord.message
       : `Publish failed with status ${res.status}.`;
   return { ok: false, reason: "error", message };
+}
+
+/** `details: [{ path: 'capability', message: 'customRedirect' }]` → value. */
+function capabilityFromDetails(details: unknown): string | null {
+  if (!Array.isArray(details)) return null;
+  for (const item of details) {
+    const record =
+      typeof item === "object" && item !== null
+        ? (item as { path?: unknown; message?: unknown })
+        : undefined;
+    if (record?.path === "capability" && typeof record.message === "string") return record.message;
+  }
+  return null;
 }
 
 async function readJson(res: Pick<Response, "json">): Promise<unknown> {

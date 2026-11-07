@@ -19,7 +19,12 @@ import { findBlock, type Op } from "./ops";
 export type CanvasActions = {
   readonly select: (id: string | null) => void;
   readonly insert: (kind: string, index: number, parentId: string | null) => void;
-  readonly move: (id: string, delta: number) => void;
+  /**
+   * Move `id` `delta` slots within its own list (§5.2 arrows, Alt+↑/↓, and —
+   * since §6.2 follow-up #7 — pointer drag drops, which pass an explicit
+   * `label` for the undo entry instead of "Move up"/"Move down").
+   */
+  readonly move: (id: string, delta: number, opts?: { label?: string }) => void;
   readonly duplicate: (id: string) => void;
   readonly remove: (id: string) => void;
   readonly convert: (id: string, toKind: string) => void;
@@ -166,6 +171,11 @@ export type BlockDeletedDetail = { id: string; label: string; hadLogic: boolean 
 export type EditSelectedDetail = { id: string };
 /** ff:goto-block detail (emitter: IssuesList/PublishControl; consumer: Canvas). */
 export type GotoBlockDetail = { id: string };
+/**
+ * ff:plan-limit detail (§14, follow-up #8): the publish path was refused with
+ * 402/403 — the builder page listens and surfaces the inline shell notice.
+ */
+export type PlanLimitDetail = { status: 402 | 403; message: string; capability: string | null };
 
 /** Event names — keep in sync with useShortcuts / PublishControl / UndoToast. */
 export const BUILDER_EVENTS = {
@@ -173,7 +183,13 @@ export const BUILDER_EVENTS = {
   blockDeleted: "ff:block-deleted",
   editSelected: "ff:edit-selected",
   gotoBlock: "ff:goto-block",
+  planLimit: "ff:plan-limit",
 } as const;
+
+export function emitPlanLimit(detail: PlanLimitDetail): void {
+  if (typeof window === "undefined") return; // SSR/static-render safety
+  window.dispatchEvent(new CustomEvent<PlanLimitDetail>("ff:plan-limit", { detail }));
+}
 
 export function emitOpenPicker(detail: OpenPickerDetail): void {
   if (typeof window === "undefined") return; // SSR/static-render safety
