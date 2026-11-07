@@ -10,8 +10,11 @@ export const Option = z.strictObject({
 
 export type Option = z.infer<typeof Option>;
 
+/** §9.2/§7.2 hard cap on select options (one shared constant, never drifts). */
+export const MAX_OPTIONS = 200;
+
 // A question without options cannot be answered — at least one is required.
-export const OptionList = z.array(Option).min(1).max(200);
+export const OptionList = z.array(Option).min(1).max(MAX_OPTIONS);
 
 /** The option ids a select-kind question accepts ("known options"). */
 export function knownOptionIds(options: readonly Option[]): string[] {

@@ -304,11 +304,20 @@ const SAVE_CHIP_LABELS: Record<AutosaveStatus, string> = {
   saved: "Saved",
   conflict: "Conflict — recovering…",
   error: "Save failed",
+  // §7.1 follow-ups: keep the queue calm — same copy as the shared
+  // save-indicator recipe (offline is never an error; unauthenticated asks
+  // for re-auth).
+  offline: "Offline — changes kept",
+  unauthenticated: "Sign-in required",
 };
 
 function SaveChip({ save }: { save: AutosaveStatus }) {
   const tone =
-    save === "error" || save === "conflict" ? "error" : save === "saved" || save === "idle" ? "ok" : "";
+    save === "error" || save === "conflict" || save === "unauthenticated"
+      ? "error"
+      : save === "saved" || save === "idle"
+        ? "ok"
+        : "";
   return (
     <span
       className={`ff-save-chip${tone === "" ? "" : ` ff-save-chip--${tone}`}`}

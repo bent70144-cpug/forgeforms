@@ -19,7 +19,9 @@
     "./domains/routing": "./src/domains/routing.ts",
     "./api": "./src/api/index.ts",
     "./ai": "./src/ai/index.ts",
-    "./analytics": "./src/analytics/index.ts"
+    "./analytics": "./src/analytics/index.ts",
+    "./documents/sensitive-fields": "./src/documents/sensitive-fields.ts",
+    "./documents/sanitize": "./src/documents/sanitize.ts"
   },
   "scripts": {
     "build": "tsc --noEmit",

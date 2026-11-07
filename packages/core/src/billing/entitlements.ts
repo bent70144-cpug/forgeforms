@@ -24,6 +24,10 @@ export type Entitlements = {
   fileUploadMaxMb: number;
   /** Render public documents without the FormForge badge. */
   removeBranding: boolean;
+  /** Redirect endings (§24 builder gate — free endings show a body instead). */
+  customRedirect: boolean;
+  /** Max notification recipients per document (§24 builder gate; §6.6 cap). */
+  notifyEmailsLimit: number;
   /** Max custom domains attached to the workspace. */
   customDomains: number;
   /** Max team members (owner included). */
@@ -48,6 +52,8 @@ export const CAPABILITIES = [
   'submissionsPerMonth',
   'fileUploadMaxMb',
   'removeBranding',
+  'customRedirect',
+  'notifyEmailsLimit',
   'customDomains',
   'seats',
   'analytics',
@@ -75,6 +81,10 @@ export const ENTITLEMENTS: Record<Plan, Entitlements> = {
     submissionsPerMonth: 'unlimited',
     fileUploadMaxMb: 10,
     removeBranding: false,
+    // Builder §24 gates: free endings show a body (no redirect) and notify
+    // exactly one recipient (§6.6 note: "free plans are capped at 1").
+    customRedirect: false,
+    notifyEmailsLimit: 1,
     customDomains: 0,
     seats: 1,
     analytics: false,
@@ -88,6 +98,8 @@ export const ENTITLEMENTS: Record<Plan, Entitlements> = {
     submissionsPerMonth: 'unlimited',
     fileUploadMaxMb: 10,
     removeBranding: true,
+    customRedirect: true,
+    notifyEmailsLimit: 10,
     customDomains: 1,
     seats: 3,
     analytics: true,
@@ -101,6 +113,8 @@ export const ENTITLEMENTS: Record<Plan, Entitlements> = {
     submissionsPerMonth: 'unlimited',
     fileUploadMaxMb: 50,
     removeBranding: true,
+    customRedirect: true,
+    notifyEmailsLimit: 10,
     customDomains: 5,
     seats: 10,
     analytics: true,

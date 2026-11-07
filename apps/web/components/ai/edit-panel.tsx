@@ -7,9 +7,17 @@
 // B6 redesign: design-system card (code tile header), banner errors, diff
 // lines tinted with success/danger tokens. Fetch/error logic unchanged;
 // onQuota is an optional additive callback for the workbench header badge.
-import { useId, useState } from "react";
+//
+// B8 (spec §11): the proposal is reviewed as a diff list with Apply/Discard,
+// and Apply hands off the ops as ONE undoable group — toGroupedApply bundles
+// `{ops, label, group}` (`ai:<batchId>`) for the builder store's apply action
+// (§11 "applying dispatches ops through the normal path, so it is one
+// undoable group"). §15 telemetry: "ai_applied {opsCount}" — counts only.
+import { useId, useMemo, useState } from "react";
 import type { DocumentBody } from "@formforge/core/ai";
-import { BTN_PRIMARY, BTN_SECONDARY_SM } from "@/lib/ui";
+import { summarizeOpsDiff, toBuilderOps, toGroupedApply, type GroupedApply } from "@/lib/builder/ai-apply";
+import { track } from "@/lib/telemetry";
+import { BTN_GHOST_SM, BTN_PRIMARY, BTN_SECONDARY_SM } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
 
 type EditResponse = {
@@ -22,12 +30,24 @@ type EditResponse = {
 
 type ApiError = { error: { code: string; message: string; details?: unknown } };
 
+/** Batch id for the `ai:<batchId>` history group (crypto-backed, offline-safe). */
+export function newAiBatchId(now: () => number = Date.now): string {
+  const cryptoObj = globalThis.crypto;
+  if (typeof cryptoObj?.randomUUID === "function") return cryptoObj.randomUUID();
+  return `batch-${now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export type AiEditPanelProps = {
   document: DocumentBody;
   /** INTEGRATION-DEBT (T01): session provides this; header stopgap until then. */
   workspaceId?: string;
-  /** Handoff point: builder applies the confirmed ops via documents PATCH. */
-  onApply?: (ops: EditResponse["ops"]) => void;
+  /**
+   * Handoff point: builder applies the confirmed ops via documents PATCH.
+   * B8: the second argument carries the §11 grouped apply bundle — dispatch
+   * it as `dispatch({ type: "apply", ...grouped })` so the whole AI proposal
+   * lands as ONE undoable history entry (undo label "Apply AI edits (N)").
+   */
+  onApply?: (ops: EditResponse["ops"], grouped?: GroupedApply) => void;
   /** Additive: surfaces the response quota for the workbench header badge. */
   onQuota?: (quota: EditResponse["quota"]) => void;
 };
@@ -40,6 +60,13 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+
+  // Client-side diff summary (§11): counts + human lines derived from the
+  // proposal ops (core vocabulary normalized to the builder Op union).
+  const diffSummary = useMemo(
+    () => summarizeOpsDiff(toBuilderOps(proposal?.ops ?? [])),
+    [proposal],
+  );
 
   async function propose(): Promise<void> {
     setStatus("loading");
@@ -73,6 +100,24 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
       setError("Could not reach the AI edit endpoint.");
       setStatus("error");
     }
+  }
+
+  function discard(): void {
+    setProposal(null);
+    setApplied(false);
+    setStatus("idle");
+    setError(null);
+    setErrorCode(null);
+  }
+
+  function apply(): void {
+    if (!proposal || applied) return;
+    const builderOps = toBuilderOps(proposal.ops);
+    const grouped = toGroupedApply(builderOps, newAiBatchId());
+    // §15 telemetry: op count only — never labels or props.
+    track("ai_applied", { opsCount: builderOps.length });
+    onApply?.(proposal.ops, grouped);
+    setApplied(true);
   }
 
   return (
@@ -142,39 +187,48 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
               ({proposal.ops.length} op{proposal.ops.length === 1 ? "" : "s"})
             </span>
           </p>
+          {/* §11 diff list: counts summary + one line per proposed op, with
+              Apply (grouped handoff) / Discard (clears). */}
+          <p aria-label="Change summary" className="text-xs opacity-80">
+            {diffSummary.added} added · {diffSummary.changed} changed · {diffSummary.removed}{" "}
+            removed · {diffSummary.moved} moved · {diffSummary.other} other
+          </p>
           <ul
             aria-label="Proposed changes"
             className="space-y-1 rounded-[10px] p-3 font-mono text-xs leading-relaxed"
             style={{ background: "color-mix(in srgb, var(--ff-fg) 3%, var(--ff-bg))" }}
           >
-            {proposal.diff.map((line, index) => (
-              <li
-                key={index}
-                className={
-                  line.startsWith("+")
-                    ? "text-[var(--ff-success)]"
-                    : line.startsWith("−") || line.startsWith("-")
-                      ? "text-[var(--ff-danger)]"
-                      : "text-[var(--ff-fg)]"
-                }
-              >
-                {line}
-              </li>
-            ))}
+            {(diffSummary.lines.length > 0 ? diffSummary.lines : proposal.diff).map(
+              (line, index) => (
+                <li
+                  key={index}
+                  className={
+                    line.startsWith("+")
+                      ? "text-[var(--ff-success)]"
+                      : line.startsWith("−") || line.startsWith("-")
+                        ? "text-[var(--ff-danger)]"
+                        : "text-[var(--ff-fg)]"
+                  }
+                >
+                  {line}
+                </li>
+              ),
+            )}
           </ul>
           {applied ? (
-            <p className="text-sm text-[var(--ff-success)]">Ops handed to the editor.</p>
+            <p className="text-sm text-[var(--ff-success)]">
+              Ops handed to the editor as one undoable group.
+            </p>
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                onApply?.(proposal.ops);
-                setApplied(true);
-              }}
-              className={BTN_SECONDARY_SM}
-            >
-              Apply ops
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={apply} className={BTN_SECONDARY_SM}>
+                Apply ops
+              </button>
+              <button type="button" onClick={discard} className={BTN_GHOST_SM}>
+                Discard
+              </button>
+            </div>
+
           )}
         </div>
       ) : null}

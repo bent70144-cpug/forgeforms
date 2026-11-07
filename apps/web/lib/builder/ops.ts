@@ -26,18 +26,32 @@ export type EditableDoc = { meta: DocMeta; body: DocumentBody };
 
 export type ThemePatch = Partial<Pick<Theme, "fontHeading" | "fontBody" | "radius">> & {
   /** Merged per token key (not replaced wholesale). */
-  tokens?: Record<string, string>;
+  tokens?: Record<string, string | null>;
 };
 
-export type SettingsPatch = Partial<Omit<DocumentSettings, "seo">> & {
-  seo?: Partial<DocumentSettings["seo"]>;
+export type SettingsPatch = Partial<
+  Omit<DocumentSettings, "seo" | "closeAt" | "maxSubmissions" | "retentionDays" | "hiddenFields">
+> & {
+  // Per-key merge with `null` = delete (§21 exact inverses; mirrors the
+  // nullable sub-fields of SettingsPatchSchema in @formforge/schema).
+  seo?: Partial<{ [K in keyof DocumentSettings["seo"]]: DocumentSettings["seo"][K] | null }>;
+  closeAt?: string | null;
+  maxSubmissions?: number | null;
+  retentionDays?: number | null;
+  hiddenFields?: DocumentSettings["hiddenFields"] | null;
 };
+
+/** meta.update patch — `slug: null` deletes/unsets the slug (§21 inverse). */
+export type MetaPatch = { title?: string; slug?: string | null };
 
 // SPEC-NOTE: op shapes follow spec §8. `block.update` is a shallow *merge* into
 // `props` (partial autosave patches); the spec does not pin merge granularity.
 // Extension (INTEGRATION-DEBT for T07 server parity): a patch value of `null`
 // DELETES the key — needed so undo can remove keys that an earlier patch added.
 // Blocks never store `null` prop values in normal editing.
+// B1/§21 (2025): ending/rule upserts carry `index?` (position for NEW entries,
+// per the §21 inverse of ending.remove / rule.remove); meta/settings patches
+// accept the null delete-token so inverses are exact.
 export type Op =
   | { op: "block.insert"; parentId?: string | null; index: number; block: Block }
   | { op: "block.update"; id: string; props: Record<string, unknown> }
@@ -45,11 +59,11 @@ export type Op =
   | { op: "block.remove"; id: string }
   | { op: "settings.update"; patch: SettingsPatch }
   | { op: "theme.update"; patch: ThemePatch }
-  | { op: "ending.upsert"; ending: Ending }
+  | { op: "ending.upsert"; index?: number; ending: Ending }
   | { op: "ending.remove"; id: string }
-  | { op: "rule.upsert"; rule: Rule }
+  | { op: "rule.upsert"; index?: number; rule: Rule }
   | { op: "rule.remove"; id: string }
-  | { op: "meta.update"; patch: Partial<DocMeta> };
+  | { op: "meta.update"; patch: MetaPatch };
 
 export type OpErrorCode = "NOT_FOUND" | "BAD_INDEX" | "INVALID";
 
@@ -207,15 +221,25 @@ function applyOp(doc: EditableDoc, op: Op): EditableDoc {
     }
 
     case "settings.update": {
+      // Merge-patch convention (parity with core/documents/apply.ts): top-level
+      // keys merge with `null` = delete; `seo` merges per key the same way.
+      // mergeWithDelete already copies the base — do NOT pre-spread settings,
+      // or keys deleted by the patch would survive (§21 exactness).
       const seo = op.patch.seo
         ? mergeWithDelete(doc.body.settings.seo as Record<string, unknown>, op.patch.seo as Record<string, unknown>)
         : doc.body.settings.seo;
-      const settings: DocumentSettings = { ...doc.body.settings, ...stripSeo(op.patch), seo };
+      const settings: DocumentSettings = {
+        ...mergeWithDelete(doc.body.settings as Record<string, unknown>, stripSeo(op.patch)),
+        seo,
+      } as DocumentSettings;
       return { ...doc, body: { ...doc.body, settings } };
     }
 
     case "theme.update": {
-      const theme: Theme = { ...doc.body.theme, ...stripTokens(op.patch) };
+      const theme: Theme = mergeWithDelete(
+        doc.body.theme as Record<string, unknown>,
+        stripTokens(op.patch),
+      ) as Theme;
       if (op.patch.tokens) {
         const tokens = { ...doc.body.theme.tokens };
         for (const [k, v] of Object.entries(op.patch.tokens)) {
@@ -229,9 +253,13 @@ function applyOp(doc: EditableDoc, op: Op): EditableDoc {
 
     case "ending.upsert": {
       const exists = doc.body.endings.some((e) => e.id === op.ending.id);
-      const endings = exists
-        ? doc.body.endings.map((e) => (e.id === op.ending.id ? op.ending : e))
-        : [...doc.body.endings, op.ending];
+      if (exists) {
+        // Replace in place; `index` only positions NEW endings (§21).
+        const endings = doc.body.endings.map((e) => (e.id === op.ending.id ? op.ending : e));
+        return { ...doc, body: { ...doc.body, endings } };
+      }
+      const endings = [...doc.body.endings];
+      endings.splice(clampIndex(op.index ?? endings.length, endings.length), 0, op.ending);
       return { ...doc, body: { ...doc.body, endings } };
     }
 
@@ -242,9 +270,12 @@ function applyOp(doc: EditableDoc, op: Op): EditableDoc {
 
     case "rule.upsert": {
       const exists = doc.body.logic.rules.some((r) => r.id === op.rule.id);
-      const rules = exists
-        ? doc.body.logic.rules.map((r) => (r.id === op.rule.id ? op.rule : r))
-        : [...doc.body.logic.rules, op.rule];
+      if (exists) {
+        const rules = doc.body.logic.rules.map((r) => (r.id === op.rule.id ? op.rule : r));
+        return { ...doc, body: { ...doc.body, logic: { rules } } };
+      }
+      const rules = [...doc.body.logic.rules];
+      rules.splice(clampIndex(op.index ?? rules.length, rules.length), 0, op.rule);
       return { ...doc, body: { ...doc.body, logic: { rules } } };
     }
 
@@ -254,7 +285,8 @@ function applyOp(doc: EditableDoc, op: Op): EditableDoc {
     }
 
     case "meta.update": {
-      return { ...doc, meta: { ...doc.meta, ...op.patch } };
+      // `null` deletes the key (e.g. unset a slug) — keeps undo byte-exact.
+      return { ...doc, meta: mergeWithDelete(doc.meta as Record<string, unknown>, op.patch) as DocMeta };
     }
 
     default: {
@@ -307,14 +339,6 @@ export function invertOps(docBefore: EditableDoc, ops: readonly Op[]): Op[] {
   return inverse;
 }
 
-function pick(obj: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const k of keys) {
-    if (k in obj) out[k] = obj[k];
-  }
-  return out;
-}
-
 function invertSingle(sim: EditableDoc, op: Op): Op | null {
   switch (op.op) {
     case "block.insert":
@@ -362,7 +386,8 @@ function invertSingle(sim: EditableDoc, op: Op): Op | null {
       const { seo, ...rest } = op.patch;
       const inv: Record<string, unknown> = {};
       for (const k of Object.keys(rest)) {
-        inv[k] = (old as unknown as Record<string, unknown>)[k];
+        // Key absent before the op → inverse deletes it again (§21 exact undo).
+        inv[k] = k in old ? (old as unknown as Record<string, unknown>)[k] : null;
       }
       if (seo) {
         const invSeo: Record<string, unknown> = {};
@@ -379,19 +404,32 @@ function invertSingle(sim: EditableDoc, op: Op): Op | null {
       return old ? { op: "ending.upsert", ending: old } : { op: "ending.remove", id: op.ending.id };
     }
     case "ending.remove": {
-      const old = sim.body.endings.find((e) => e.id === op.id);
-      return old ? { op: "ending.upsert", ending: old } : null;
+      const idx = sim.body.endings.findIndex((e) => e.id === op.id);
+      if (idx < 0) return null;
+      const old = sim.body.endings[idx];
+      // §21: re-insert at the ORIGINAL index (ending.upsert positions new entries).
+      return old ? { op: "ending.upsert", index: idx, ending: old } : null;
     }
     case "rule.upsert": {
       const old = sim.body.logic.rules.find((r) => r.id === op.rule.id);
       return old ? { op: "rule.upsert", rule: old } : { op: "rule.remove", id: op.rule.id };
     }
     case "rule.remove": {
-      const old = sim.body.logic.rules.find((r) => r.id === op.id);
-      return old ? { op: "rule.upsert", rule: old } : null;
+      const idx = sim.body.logic.rules.findIndex((r) => r.id === op.id);
+      if (idx < 0) return null;
+      const old = sim.body.logic.rules[idx];
+      // §21: re-insert at the ORIGINAL index (rule.upsert positions new rules).
+      return old ? { op: "rule.upsert", index: idx, rule: old } : null;
     }
-    case "meta.update":
-      return { op: "meta.update", patch: pick(sim.meta as Record<string, unknown>, Object.keys(op.patch)) };
+    case "meta.update": {
+      const old = sim.meta as Record<string, unknown>;
+      const inv: Record<string, unknown> = {};
+      for (const k of Object.keys(op.patch)) {
+        // Key absent before (e.g. slug) → inverse deletes it again (§21).
+        inv[k] = k in old ? old[k] : null;
+      }
+      return { op: "meta.update", patch: inv as MetaPatch };
+    }
     default: {
       const exhaustive: never = op;
       throw new OpError("INVALID", `Cannot invert op: ${JSON.stringify(exhaustive)}`);

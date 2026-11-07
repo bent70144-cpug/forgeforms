@@ -191,3 +191,96 @@ test.describe('T28 keyboard sweep (spec §14.4)', () => {
     await expect(page.locator('h1')).toContainText('Thanks for the feedback!');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Builder (three-pane editor) keyboard path — task 9-a wave-3b sweep (§12).
+// Zero pointer events: every state change below is Tab/arrow/Enter/Esc.
+// Path: seed two blocks through the picker → Tab into the blocks tree →
+// arrow through rows (roving tabindex moves focus+selection together) →
+// Enter opens the inline edit → Esc cancels and restores focus →
+// Alt+Arrow moves the block → the single polite live region announces
+// "… moved to position N of M" (§6.2).
+// ---------------------------------------------------------------------------
+test.describe('T28 keyboard sweep — builder editor (task 9-a)', () => {
+  test('tree arrows → inline edit → Esc → Alt+Arrow move → live announcement', async ({ page }) => {
+    test.setTimeout(90_000); // dev-compile race on fresh routes, as in a11y.spec.ts
+
+    await register(page);
+    const created = await page.request.post('/api/v1/documents', {
+      data: { type: 'form', title: 'T28 keyboard builder editor' },
+    });
+    expect(created.status(), await created.text()).toBe(201);
+    const doc = (await created.json()) as { id: string };
+    await page.goto(`/d/${doc.id}`);
+    await expect(page.getByTestId('builder-shell')).toBeVisible();
+
+    // --- 1. Seed two blocks through the picker (keyboard only) -------------
+    await page.getByRole('button', { name: 'Add block' }).focus();
+    await page.keyboard.press('Enter'); // opens the §6.1 picker, search focused
+    const picker = page.getByRole('dialog', { name: 'Add a block' });
+    await expect(picker).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Search blocks' })).toBeFocused();
+    await page.keyboard.type('email');
+    await page.keyboard.press('Enter'); // inserts Email, selects + focuses it
+    await expect(picker).toBeHidden();
+
+    await page.keyboard.press('/'); // §6.5: "/" opens the picker again
+    await expect(page.getByRole('dialog', { name: 'Add a block' })).toBeVisible();
+    await page.keyboard.type('short');
+    await page.keyboard.press('Enter');
+    const tree = page.getByRole('tree', { name: 'Blocks' });
+    await expect(tree.locator('[role="treeitem"]')).toHaveCount(2); // Email + Short text
+
+    // --- 2. Tab (reversed) from the canvas into the blocks tree ------------
+    await page.keyboard.press('Shift+Tab');
+    let hops = 0;
+    while (hops < 30) {
+      const inTree = await page.evaluate(
+        () => document.activeElement?.closest('[role="tree"]') !== null,
+      );
+      if (inTree) break;
+      await page.keyboard.press('Shift+Tab');
+      hops += 1;
+    }
+    const stopTag = await page.evaluate(() => document.activeElement?.tagName ?? 'unknown');
+    expect(
+      await page.evaluate(() => document.activeElement?.closest('[role="tree"]') !== null),
+      `Tab traversal never reached the blocks tree (stopped at <${stopTag}>)`,
+    ).toBe(true);
+    // §12 roving tabindex: exactly ONE tree row is a tab stop.
+    expect(await tree.locator('[role="treeitem"][tabindex="0"]').count()).toBe(1);
+
+    // --- 3. Arrows move focus AND selection together (roving tabindex) ----
+    await page.keyboard.press('ArrowUp'); // Short text (row 2) → Email (row 1)
+    const firstRow = tree.locator('[role="treeitem"]').first();
+    await expect(firstRow).toBeFocused();
+    await expect(firstRow).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowDown');
+    const secondRow = tree.locator('[role="treeitem"]').nth(1);
+    await expect(secondRow).toBeFocused();
+    await expect(secondRow).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('ArrowUp'); // back to Email for the edit below
+    await expect(firstRow).toBeFocused();
+
+    // --- 4. Enter opens the inline edit; Esc cancels and restores focus ----
+    await page.keyboard.press('Enter');
+    const editor = page.getByRole('textbox', { name: 'Edit Email text' });
+    await expect(editor).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(editor).toHaveCount(0);
+    // Focus lands back on the invoking element (the tree row), never <body>.
+    expect(
+      await page.evaluate(() => document.activeElement?.getAttribute('data-block-id') !== null),
+      'Esc from the inline edit restores focus to the block (§12)',
+    ).toBe(true);
+
+    // --- 5. Alt+ArrowDown moves the block; the live region announces it ----
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(page.getByTestId('live-announcer')).toContainText(
+      'Email address moved to position 2 of 2',
+    );
+    // Tree order flipped with the canvas order (§12: identical orders).
+    await expect(tree.locator('[role="treeitem"]').first()).toContainText('Short text question');
+    await expect(tree.locator('[role="treeitem"]').nth(1)).toContainText('Email address');
+  });
+});

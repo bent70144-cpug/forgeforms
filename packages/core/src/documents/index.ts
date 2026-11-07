@@ -43,9 +43,9 @@ export type {
   SnapshotsRepo,
   DocumentVersionsRepo,
 } from './ports';
-export { docTag, routeKey, snapshotCacheKeys, snapshotKey } from './ports';
+export { docTag, PUBLISH_ISSUE_CODES, routeKey, snapshotCacheKeys, snapshotKey } from './ports';
 
-export { makePublishDocument, ordinalOf, type PublishDocument } from './publish';
+export { makePublishDocument, ordinalOf, collectEmbedTargetIssues, type PublishDocument } from './publish';
 export {
   makeUnpublishDocument,
   type UnpublishDocument,
@@ -134,3 +134,13 @@ export {
   type CrudDeps,
   type PatchDocumentInput,
 } from './crud';
+
+// Follow-up #5 (builder-audit §6.6/§14) — slug availability probe service.
+export {
+  isValidSlugFormat,
+  makeCheckSlugAvailable,
+  SLUG_FORMAT,
+  SLUG_FORMAT_MESSAGE,
+  type SlugCheckDeps,
+  type SlugCheckResult,
+} from './slug-check';

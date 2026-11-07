@@ -13,12 +13,14 @@ import { PLANS } from './plans';
 import { AppError } from "../shared/errors.ts";
 
 describe('ENTITLEMENTS matrix (spec §13)', () => {
-  it('has exactly the §13 rows, free column', () => {
+  it('has exactly the §13 rows + §24 builder gates, free column', () => {
     expect(ENTITLEMENTS.free).toEqual({
       documents: 'unlimited',
       submissionsPerMonth: 'unlimited',
       fileUploadMaxMb: 10,
       removeBranding: false,
+      customRedirect: false,
+      notifyEmailsLimit: 1,
       customDomains: 0,
       seats: 1,
       analytics: false,
@@ -29,12 +31,14 @@ describe('ENTITLEMENTS matrix (spec §13)', () => {
     });
   });
 
-  it('has exactly the §13 rows, pro column', () => {
+  it('has exactly the §13 rows + §24 builder gates, pro column', () => {
     expect(ENTITLEMENTS.pro).toEqual({
       documents: 'unlimited',
       submissionsPerMonth: 'unlimited',
       fileUploadMaxMb: 10,
       removeBranding: true,
+      customRedirect: true,
+      notifyEmailsLimit: 10,
       customDomains: 1,
       seats: 3,
       analytics: true,
@@ -45,12 +49,14 @@ describe('ENTITLEMENTS matrix (spec §13)', () => {
     });
   });
 
-  it('has exactly the §13 rows, business column', () => {
+  it('has exactly the §13 rows + §24 builder gates, business column', () => {
     expect(ENTITLEMENTS.business).toEqual({
       documents: 'unlimited',
       submissionsPerMonth: 'unlimited',
       fileUploadMaxMb: 50,
       removeBranding: true,
+      customRedirect: true,
+      notifyEmailsLimit: 10,
       customDomains: 5,
       seats: 10,
       analytics: true,
@@ -145,6 +151,18 @@ describe('requiredPlanFor (402 payload {capability, requiredPlan})', () => {
 
   it('webhooks are available on free', () => {
     expect(requiredPlanFor('webhooks')).toBe('free');
+  });
+
+  it('§24 builder gates: customRedirect unlocks at pro; notifyEmailsLimit 2 → pro', () => {
+    expect(requiredPlanFor('customRedirect')).toBe('pro');
+    // Plain call = availability (value > 0): free notifies 1 recipient, so it
+    // satisfies without a need (same semantics as fileUploadMaxMb 10 → free).
+    // The GATE is need-based: a 2nd recipient requires pro.
+    expect(requiredPlanFor('notifyEmailsLimit')).toBe('free');
+    expect(requiredPlanFor('notifyEmailsLimit', 1)).toBe('free');
+    expect(requiredPlanFor('notifyEmailsLimit', 2)).toBe('pro');
+    expect(requiredPlanFor('notifyEmailsLimit', 10)).toBe('pro');
+    expect(requiredPlanFor('notifyEmailsLimit', 11)).toBeNull();
   });
 });
 

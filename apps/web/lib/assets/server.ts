@@ -26,7 +26,7 @@ import {
   type UploadEntitlements,
 } from "@formforge/core/assets";
 import { parseDocumentId, uuidv7 } from "@formforge/core";;
-import { createAssetsRepository, createDb } from "@formforge/db";
+import { createAssetsRepository, createDb, type AssetsRepoLike } from "@formforge/db";
 import { createDrizzleIngestSnapshotReader } from "@formforge/db/repositories/submissions";
 import { createBillingFromEnv } from "../../app/api/webhooks/stripe/_lib/billing-server";
 import { assetsQueueFromEnv } from "./queue";
@@ -46,6 +46,8 @@ export type TenantAssetsDeps = {
 type Wiring = {
   publicDeps: PublicAssetsDeps;
   tenantDeps: TenantAssetsDeps;
+  /** Raw db repo (adds `listByWorkspace` on top of the core AssetRepo port). */
+  tenantRepo: AssetsRepoLike;
 };
 
 const globalStore = globalThis as unknown as { __ffAssetsWiring?: Wiring };
@@ -56,6 +58,12 @@ export function getPublicAssetsDeps(): PublicAssetsDeps {
 
 export function getTenantAssetsService(): AssetsService {
   return getWiring().tenantDeps.service;
+}
+
+/** Tenant-plane repo for the workspace media LIST (GET /api/v1/assets, §10):
+ * the core `AssetRepo` port intentionally has no list method, the db repo does. */
+export function getTenantAssetsRepo(): AssetsRepoLike {
+  return getWiring().tenantRepo;
 }
 
 function getWiring(): Wiring {
@@ -117,5 +125,6 @@ function buildWiring(): Wiring {
       },
     },
     tenantDeps: { service },
+    tenantRepo: repo,
   };
 }

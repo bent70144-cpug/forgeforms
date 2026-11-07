@@ -6,12 +6,26 @@
 // the reducer is pure and portable to a zustand store unchanged if the team
 // later adopts the pinned stack.
 
-import type { DocumentEnvelope, DocumentStatus } from "../bridge";
+import type { BuilderEntitlements, DocumentEnvelope, DocumentStatus } from "../bridge";
+import { mergeCoalescedEntry } from "./coalesce";
 import { emptyHistory, popRedo, popUndo, pushEntry, type History } from "./history";
+import { checkInsertLimits, type LimitViolation } from "./limits";
 import { applyOps, invertOps, findBlock, emptyBody, type EditableDoc, type Op, type DocMeta } from "./ops";
 
 export type PanelTab = "block" | "document" | "theme" | "endings";
-export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "conflict" | "error";
+// "offline" mirrors AutosaveStatus (§7.1: edits continue, queue kept) — added
+// when AutosaveController gained the offline state so the store can carry it.
+// "unauthenticated" mirrors the §7.1 follow-up #3 re-auth park (session
+// expired — queue parked, edits keep collecting).
+export type SaveStatus =
+  | "idle"
+  | "dirty"
+  | "saving"
+  | "saved"
+  | "conflict"
+  | "error"
+  | "offline"
+  | "unauthenticated";
 
 export type EditorState = {
   docId: string;
@@ -29,11 +43,37 @@ export type EditorState = {
   /** Ops from the latest mutation that must still reach the server. */
   emit: { nonce: number; ops: Op[] } | null;
   emitNonce: number;
+  /**
+   * §13/§14 hard limit the latest `apply` hit (500 blocks / ~1 MB body):
+   * the offending batch was refused whole and this carries the explanatory
+   * notice for the shell. Cleared by the next successful apply. Undo/redo
+   * never set it (history only revisits states that already passed the guard).
+   */
+  limitsViolation: LimitViolation | null;
+  /** §24 builder entitlements (follow-up #8) — from the GET envelope; null
+   * until loaded (and for mocks) → surfaces keep their conservative gates. */
+  entitlements: BuilderEntitlements | null;
 };
 
 export type EditorAction =
   | { type: "loaded"; envelope: DocumentEnvelope; mode: "api" | "mock" }
-  | { type: "apply"; ops: readonly Op[]; label?: string }
+  | {
+      type: "apply";
+      ops: readonly Op[];
+      label?: string;
+      /**
+       * Group id for grouped undo (spec §6.3, §11): entries sharing a group are
+       * undone/redone as ONE step (e.g. an AI multi-op apply batch).
+       */
+      group?: string;
+      /**
+       * Coalescing hint (spec §3.3): dispatches with the same `key` within
+       * COALESCE_WINDOW_MS merge into the last history entry AND into one
+       * outgoing op. Typing uses `update:<blockId>`; the timestamp `at` comes
+       * from the caller (injectable clock — the reducer never calls Date.now).
+       */
+      coalesce?: { key: string; at: number };
+    }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "emitDone"; nonce: number }
@@ -61,6 +101,8 @@ export function initialEditorState(docId: string): EditorState {
     savedAt: null,
     emit: null,
     emitNonce: 0,
+    limitsViolation: null,
+    entitlements: null,
   };
 }
 
@@ -90,11 +132,20 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         body: action.envelope.body,
         docStatus: action.envelope.status,
         rev: action.envelope.rev,
+        entitlements: action.envelope.entitlements ?? null,
         history: emptyHistory(),
         selection: null,
       };
 
     case "apply": {
+      // §13/§14 hard limits (follow-up #10): refuse insert-bearing batches
+      // that would push the document past 500 blocks or the ~1 MB body cap.
+      // The refusal is NEVER silent — the violation rides the state so the
+      // shell shows the explanatory notice. Hot-path safety (§13): the check
+      // exits in O(ops) for batches without inserts (typing/moves stay free).
+      const violation = checkInsertLimits(state.body, action.ops);
+      if (violation) return { ...state, limitsViolation: violation };
+
       const doc: EditableDoc = { meta: state.meta, body: state.body };
       let next: EditableDoc;
       try {
@@ -105,12 +156,47 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         return state;
       }
       const inverse = invertOps(doc, action.ops);
+
+      // §3.3 coalescing: same-key dispatch within the window merges into the
+      // last history entry and into ONE outgoing op (typing = `update:<id>`;
+      // keyboard moves = `move:<id>`). Only consecutive edits coalesce — the
+      // redo stack must be empty (mergeCoalescedEntry clears it either way).
+      if (action.coalesce && action.ops.length === 1 && state.history.future.length === 0) {
+        const merged = mergeCoalescedEntry(state.history, {
+          key: action.coalesce.key,
+          at: action.coalesce.at,
+          op: action.ops[0] as Op,
+          inverse: inverse[0],
+          label: action.label,
+        });
+        if (merged) {
+          return withEmit(
+            {
+              ...state,
+              meta: next.meta,
+              body: next.body,
+              history: merged.history,
+              limitsViolation: null, // a successful edit clears a stale refusal
+            },
+            merged.ops,
+          );
+        }
+      }
+
       return withEmit(
         {
           ...state,
           meta: next.meta,
           body: next.body,
-          history: pushEntry(state.history, { label: action.label, ops: [...action.ops], inverse }),
+          limitsViolation: null, // a successful edit clears a stale refusal
+          history: pushEntry(state.history, {
+            label: action.label,
+            group: action.group,
+            coalesceKey: action.coalesce?.key,
+            coalesceAt: action.coalesce?.at,
+            ops: [...action.ops],
+            inverse,
+          }),
         },
         action.ops,
       );
@@ -178,6 +264,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         rev: action.rev,
         // History references pre-conflict states; safest to reset it.
         history: emptyHistory(),
+        // The server document just replaced the local one — any client-side
+        // limit refusal is stale (§14: notices must match reality).
+        limitsViolation: null,
       };
       return pruneSelection({ ...merged, save: "saved" }, action.doc.body);
     }
@@ -191,8 +280,10 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           body: action.envelope.body,
           docStatus: action.envelope.status,
           rev: action.envelope.rev,
+          entitlements: action.envelope.entitlements ?? state.entitlements,
           history: emptyHistory(),
           save: "saved",
+          limitsViolation: null, // server replacement makes any refusal stale
         },
         action.envelope.body,
       );

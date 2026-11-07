@@ -49,6 +49,10 @@ const LABELS: Record<AutosaveStatus, string> = {
   saved: 'Saved',
   conflict: 'Conflict — recovering…',
   error: 'Save failed',
+  // §4/§7.1: offline keeps the queue — never show a scary error for it.
+  offline: 'Offline — changes kept',
+  // §7.1 follow-up #3: session expired — the re-auth dialog is shown.
+  unauthenticated: 'Sign-in required',
 };
 
 /** Chip text for a status (exported for tests). */
@@ -63,7 +67,10 @@ export function saveStatusLabel(status: AutosaveStatus, message?: string): strin
 export function SaveIndicator({ store }: { store: SaveStatusStore }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const label = saveStatusLabel(snapshot.status, snapshot.message);
-  const tone = snapshot.status === 'error' || snapshot.status === 'conflict' ? 'error' : 'ok';
+  const tone =
+    snapshot.status === 'error' || snapshot.status === 'conflict' || snapshot.status === 'unauthenticated'
+      ? 'error'
+      : 'ok';
   return (
     <span className={`ff-save-chip ff-save-chip--${tone}`} role="status" aria-live="polite">
       {label}

@@ -9,8 +9,9 @@
 //
 // Coverage map:
 //   dashboard      → /dashboard after registering a fresh user
-//   builder        → /d/:docId/logic (T20 logic canvas — the landed builder
-//                    surface; the full three-pane builder page is not merged yet)
+//   builder (logic) → /d/:docId/logic (T20 logic canvas)
+//   builder (editor)→ /d/:docId — the full three-pane builder (wave 3b sweep,
+//                    task 9-a): shell chrome + IssuesList drawer state
 //   public page    → /p/:slug for a PUBLISHED portfolio (scroll renderer plane)
 //   public form    → /dev/form-plane-harness — KNOWN GAP: the /p form plane is
 //                    not landed yet (app/p/[slug] 404s forms), so axe runs the
@@ -19,6 +20,7 @@
 //                    + app animations (spec §14.4).
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { publishButton } from './builder-helpers';
 
 const uniq = () => `t28-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
 
@@ -88,6 +90,28 @@ test.describe('T28 axe — builder (logic canvas)', () => {
     await page.goto(`/d/${doc.id}/logic`);
     await expect(page.getByTestId('logic-canvas')).toBeVisible();
     await expectZeroCritical(page, 'builder');
+  });
+});
+
+test.describe('T28 axe — builder (three-pane editor, task 9-a sweep)', () => {
+  test('zero critical violations on /d/:docId (shell + issues drawer)', async ({ page }) => {
+    await register(page);
+    const created = await page.request.post('/api/v1/documents', {
+      data: { type: 'form', title: 'T28 builder editor a11y' },
+    });
+    expect(created.status(), await created.text()).toBe(201);
+    const doc = (await created.json()) as { id: string };
+
+    await page.goto(`/d/${doc.id}`);
+    await expect(page.getByTestId('builder-shell')).toBeVisible();
+    await expect(page.getByTestId('builder-topbar')).toBeVisible();
+    await expectZeroCritical(page, 'builder (three-pane shell)');
+
+    // Second state: the §8.1 IssuesList drawer (opened via the publish gate —
+    // an empty form always blocks with NO_QUESTIONS / NO_ENDING).
+    await publishButton(page).click();
+    await expect(page.getByTestId('issues-drawer')).toBeVisible();
+    await expectZeroCritical(page, 'builder (issues drawer)');
   });
 });
 

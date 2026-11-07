@@ -72,6 +72,71 @@ describe('buildSnapshot (spec §8 shape)', () => {
     });
   });
 
+  // B7 follow-up #4 (§8.1 MISSING_ASSET): asset issues carry the stable code
+  // and the owning block id so the builder's Issues drawer can group the 422
+  // issues per block (the publish pipeline blocks on any of them).
+  it('tags unresolvable asset props with MISSING_ASSET + owning block id', async () => {
+    const draft = makeDraft({
+      blocks: [
+        { id: 'img1', kind: 'image', props: { assetId: 'ast_gone', alt: 'cover' } },
+        { id: 'g1', kind: 'gallery', props: { assetIds: ['ast_gone_2'] } },
+        {
+          id: 'wrap',
+          kind: 'section',
+          props: {},
+          children: [{ id: 'img2', kind: 'image', props: { imageAssetId: 'ast_gone_3' } }],
+        },
+      ],
+    });
+    const { issues } = await buildSnapshot({
+      document: { id: 'doc_1', workspaceId: 'ws_a', title: 'T', type: 'page' },
+      versionId: 'ver_1',
+      body: draft,
+      assets: { resolve: async () => null },
+      compiler: { compile: () => ({ routing: {}, issues: [] }) },
+    });
+    expect(issues).toContainEqual({
+      path: 'blocks[0].props.assetId',
+      message: 'Asset not found: ast_gone',
+      code: 'MISSING_ASSET',
+      blockId: 'img1',
+    });
+    expect(issues).toContainEqual({
+      path: 'blocks[1].props.assetIds[0]',
+      message: 'Asset not found: ast_gone_2',
+      code: 'MISSING_ASSET',
+      blockId: 'g1',
+    });
+    expect(issues).toContainEqual({
+      path: 'blocks[2][0].props.imageAssetId',
+      message: 'Asset not found: ast_gone_3',
+      code: 'MISSING_ASSET',
+      blockId: 'img2',
+    });
+  });
+
+  it('tags a missing SEO ogImageAssetId as a document-level MISSING_ASSET', async () => {
+    const draft = makeDraft({
+      settings: { locale: 'en', seo: { title: 'My form', ogImageAssetId: 'ast_gone_og' } },
+      blocks: [{ id: 'b1', kind: 'short-text', props: { label: 'Name' } }],
+    });
+    const { issues, snapshot } = await buildSnapshot({
+      document: { id: 'doc_1', workspaceId: 'ws_a', title: 'My form', type: 'form' },
+      versionId: 'ver_1',
+      body: draft,
+      assets: { resolve: async () => null },
+      compiler: { compile: () => ({ routing: {}, issues: [] }) },
+    });
+    expect(issues).toContainEqual({
+      path: 'settings.seo.ogImageAssetId',
+      message: 'Asset not found: ast_gone_og',
+      code: 'MISSING_ASSET',
+    });
+    expect(issues.every((issue) => issue.blockId === undefined)).toBe(true);
+    // document-level asset failure leaves no ogImageUrl on the snapshot
+    expect(snapshot.seo.ogImageUrl).toBeUndefined();
+  });
+
   it('sanitizes rich text through the injected sanitizer', async () => {
     const draft = makeDraft({
       blocks: [{ id: 't1', kind: 'text', props: { richText: { type: 'doc', content: [] } } }],
