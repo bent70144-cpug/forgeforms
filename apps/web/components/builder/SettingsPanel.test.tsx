@@ -263,6 +263,7 @@ describe("<SettingsPanel> document settings (§6.6 document view)", () => {
   });
 
   it("SEO tab: fields, the enabled §10 OG picker and the live social preview card", () => {
+    const html = renderToStaticMarkup(h(Harness, { env: BASE_ENV, initialTab: "seo" }));
     expect(html).toContain("SEO title");
     expect(html).toContain("SEO description");
     // §10 (W12): ogImageAssetId IS in the settings schema → picker enabled.
