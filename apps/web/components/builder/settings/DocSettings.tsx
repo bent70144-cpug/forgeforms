@@ -16,6 +16,7 @@
 
 import { useState } from "react";
 import { useBuilder } from "../context";
+import { requestAssetPick } from "../asset-picker-bridge";
 import {
   FF_SET_INPUT_CLASS,
   FieldRow,
@@ -312,11 +313,40 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 }}
               />
             </FieldRow>
-            <FieldRow label="Social preview image" htmlFor="ff-set-og-image">
-              {/* §10 asset picker is its own milestone — placeholder only. */}
-              <button type="button" disabled className="ff-set-btn" data-testid="ff-set-og-picker">
-                Image picker coming soon
-              </button>
+            <FieldRow
+              label="Social preview image"
+              htmlFor="ff-set-og-image"
+              hint="Shown when the form is shared — 1200×630 recommended. Uploads go through the asset pipeline (virus-scanned before serving)."
+            >
+              {/* §10 asset picker (W12): DocumentSettings.seo.ogImageAssetId IS in
+                  the settings schema (packages/schema document.ts), so the picker
+                  is ENABLED. ogImageAssetId is a plain string → no alt prompt. */}
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className="ff-set-btn"
+                  data-testid="ff-set-og-picker"
+                  onClick={() => {
+                    void requestAssetPick({ supportsAlt: false }).then((pick) => {
+                      if (!pick) return;
+                      updateSettings({ seo: { ogImageAssetId: pick.assetId } });
+                    });
+                  }}
+                >
+                  {settings.seo.ogImageAssetId ? "Replace image…" : "Choose image…"}
+                </button>
+                {settings.seo.ogImageAssetId ? (
+                  <button
+                    type="button"
+                    className="ff-set-btn"
+                    data-testid="ff-set-og-remove"
+                    // settings.update merges per-key; `null` deletes (§21).
+                    onClick={() => updateSettings({ seo: { ogImageAssetId: null } })}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </FieldRow>
 
             <SocialPreview

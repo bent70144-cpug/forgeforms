@@ -205,11 +205,13 @@ describe("<SettingsPanel> document settings (§6.6 document view)", () => {
     expect(html).toContain("disabled");
   });
 
-  it("SEO tab: fields, disabled OG picker and the live social preview card", () => {
+  it("SEO tab: fields, the enabled §10 OG picker and the live social preview card", () => {
     const html = renderToStaticMarkup(h(Harness, { env: BASE_ENV, initialTab: "seo" }));
     expect(html).toContain("SEO title");
     expect(html).toContain("SEO description");
-    expect(html).toContain("Image picker coming soon");
+    // §10 (W12): ogImageAssetId IS in the settings schema → picker enabled.
+    expect(html).toContain("Choose image…");
+    expect(html).not.toContain("Image picker coming soon");
     expect(html).toContain("ff-set-social-preview");
     expect(html).toContain("Fixture SEO title");
     expect(html).toContain("formforge.app");

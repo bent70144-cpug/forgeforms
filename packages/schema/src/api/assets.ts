@@ -99,3 +99,26 @@ export const AssetEnvelopeSchema = z.object({
   download: AssetDownloadSchema.nullable(),
 });
 export type AssetEnvelope = z.infer<typeof AssetEnvelopeSchema>;
+
+/* --------------------------------- list ----------------------------------- */
+
+/** GET /api/v1/assets query — workspace media list (builder asset picker, §10). */
+export const AssetListQuerySchema = z.object({
+  purpose: AssetPurposeSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+export type AssetListQuery = z.infer<typeof AssetListQuerySchema>;
+
+/** One list row: metadata + a signed URL ONLY while servable (scan-before-download, §17). */
+export const AssetListItemSchema = z.object({
+  asset: AssetSchema,
+  download: AssetDownloadSchema.nullable(),
+});
+export type AssetListItem = z.infer<typeof AssetListItemSchema>;
+
+/** GET /api/v1/assets response (§4 pagination envelope; no cursor — limit page only). */
+export const AssetListResponseSchema = z.object({
+  data: z.array(AssetListItemSchema),
+  nextCursor: z.string().nullable(),
+});
+export type AssetListResponse = z.infer<typeof AssetListResponseSchema>;

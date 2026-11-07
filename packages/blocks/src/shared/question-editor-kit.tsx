@@ -6,6 +6,40 @@ import { useState, type ReactNode } from "react";
 import type { Option } from "./option-list";
 import type { UrlParams } from "./prefill";
 
+/* ------------------------------------------------------------------------- *
+ * §10 asset-picker host seam (builder audit §9.1/§10 follow-up).
+ *
+ * The package cannot own the picker UI (it lives in the host builder, which
+ * talks to the presign/confirm API), so editors call `pickImageAsset()` and
+ * the HOST registers an opener via `setAssetPickerOpener()` (same seam
+ * posture as file-upload's `setFileUploadClient`). Without a host the picker
+ * resolves null and the row stays manual-edit only.
+ * ------------------------------------------------------------------------- */
+
+/** What a successful pick resolves with: the asset reference (+ alt text when
+ * the target prop supports it — question `imageAssetId` is a plain string and
+ * does NOT; gallery's ImageAssetRef record does). */
+export type AssetPickResult = { assetId: string; alt?: string };
+
+export type AssetPickerOpener = (options?: {
+  /** Target prop can store alt text → the host shows the §10 alt prompt. */
+  supportsAlt?: boolean;
+}) => Promise<AssetPickResult | null>;
+
+let assetPickerOpener: AssetPickerOpener | null = null;
+
+/** Host registration: mount the AssetPicker modal once, register it here. */
+export function setAssetPickerOpener(opener: AssetPickerOpener | null): void {
+  assetPickerOpener = opener;
+}
+
+/** Open the host's asset picker; resolves null when no host is registered or
+ * the user cancels. Fire-and-forget safe (`void pickImageAsset(...)`). */
+export function pickImageAsset(supportsAlt = false): Promise<AssetPickResult | null> {
+  if (!assetPickerOpener) return Promise.resolve(null);
+  return assetPickerOpener({ supportsAlt });
+}
+
 /**
  * Common question markup: data-block-kind + description + required asterisk.
  * Each render component nests its input inside `children`.
@@ -90,15 +124,42 @@ export function GenericQuestionFields({
           onChange={(event) => onPatch({ buttonText: event.target.value || undefined })}
         />
       </label>
-      <label className="ff-editor__field">
+      {/* §9.1 image row — manual id entry + the §10 host picker (keeps the
+          raw input so hosts without a registered picker still work). */}
+      <div className="ff-editor__field">
         <span>Image asset</span>
-        <input
-          type="text"
-          value={props.imageAssetId ?? ""}
-          disabled={disabled}
-          onChange={(event) => onPatch({ imageAssetId: event.target.value || undefined })}
-        />
-      </label>
+        <div className="ff-editor__image-row" data-image-row>
+          <input
+            type="text"
+            value={props.imageAssetId ?? ""}
+            aria-label="Image asset id"
+            disabled={disabled}
+            onChange={(event) => onPatch({ imageAssetId: event.target.value || undefined })}
+          />
+          <button
+            type="button"
+            className="ff-editor__image-choose"
+            disabled={disabled}
+            onClick={() => {
+              void pickImageAsset(false).then((pick) => {
+                if (pick) onPatch({ imageAssetId: pick.assetId });
+              });
+            }}
+          >
+            Choose image…
+          </button>
+          {props.imageAssetId ? (
+            <button
+              type="button"
+              aria-label="Remove image"
+              disabled={disabled}
+              onClick={() => onPatch({ imageAssetId: undefined })}
+            >
+              ✕
+            </button>
+          ) : null}
+        </div>
+      </div>
       <label className="ff-editor__field">
         <span>Prefill param</span>
         <input

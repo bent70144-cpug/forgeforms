@@ -28,6 +28,7 @@
 // useBlockPicker's SINGLE window listener, so at worst a duplicate event
 // re-anchors the already-open picker — no dedupe needed.
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AutosaveController,
@@ -60,8 +61,16 @@ import { useClipboardShortcuts } from "./useClipboardShortcuts";
 import { UndoToast } from "./UndoToast";
 import { ConflictDialog } from "./ConflictDialog";
 import { RestorePrompt, type RestoreRequest } from "./RestorePrompt";
+import { useAssetPicker } from "./useAssetPicker";
 import type { BannerKind } from "./ContextualBanner";
 import { createSaveStatusStore, type SaveStatusStore } from "./save-indicator";
+
+// §10 asset picker — lazy (§13 JS budget): the modal + its transport code
+// never enter the builder route chunk until first open (same posture as the
+// preview renderer's dynamic import).
+const AssetPicker = dynamic(() => import("./AssetPicker").then((m) => m.AssetPicker), {
+  ssr: false,
+});
 
 /** A pending §7.2 recovery: what the prompt shows + the ops Restore applies. */
 type RecoveryState = { request: RestoreRequest; ops: readonly Op[] };
@@ -121,6 +130,7 @@ function BuilderSession({
 
   // --- wave-3 overlays (mounted ONCE, inside the provider) -------------------
   const picker = useBlockPicker();
+  const assetPicker = useAssetPicker();
   const { helpOpen, closeHelp } = useShortcuts();
   useClipboardShortcuts();
 
@@ -396,6 +406,14 @@ function BuilderSession({
         request={recovery?.request ?? null}
         onRestore={restorePending}
         onDiscard={discardRecovery}
+      />
+      {/* §10 asset picker — ONE modal answering requestAssetPick() from the
+          question-editor-kit seam and the DocSettings OG row. */}
+      <AssetPicker
+        open={assetPicker.request !== null}
+        supportsAlt={assetPicker.request?.supportsAlt === true}
+        onClose={assetPicker.close}
+        onSelect={assetPicker.select}
       />
     </>
   );

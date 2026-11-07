@@ -1,6 +1,7 @@
 // packages/blocks — `gallery` builder editor (settings panel; T08 owns layout).
 import type { FC } from "react";
 import type { EditorProps } from "../registry";
+import { pickImageAsset } from "../shared/question-editor-kit";
 import type { GalleryLayout, GalleryProps } from "./schema";
 
 const LAYOUTS: Array<{ value: GalleryLayout; label: string }> = [
@@ -27,6 +28,29 @@ export const GalleryEditor: FC<EditorProps<GalleryProps>> = ({ props, onChange, 
         }
       />
     </label>
+    {/* §10 asset picker: the manual textarea above stays the power-user path;
+        "Add image…" resolves through the host picker. Gallery refs support alt
+        text (ImageAssetRef record) → supportsAlt=true. */}
+    <button
+      type="button"
+      className="ff-editor__image-choose"
+      disabled={disabled}
+      data-testid="gallery-add-image"
+      onClick={() => {
+        void pickImageAsset(true).then((pick) => {
+          if (!pick) return;
+          onChange({
+            ...props,
+            assetIds: [
+              ...props.assetIds,
+              pick.alt ? { assetId: pick.assetId, alt: pick.alt } : pick.assetId,
+            ],
+          });
+        });
+      }}
+    >
+      Add image…
+    </button>
     <label className="ff-editor__field">
       <span>Layout</span>
       <select
