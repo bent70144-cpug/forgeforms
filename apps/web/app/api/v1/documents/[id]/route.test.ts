@@ -5,7 +5,7 @@
 //   - `{ baseRev, ops }` applied in one transaction → 200 { rev, updatedAt, body };
 //   - stale `baseRev` → 409 CONFLICT with the CURRENT rev + body;
 //   - invalid ops / invalid result DocumentBody → 422 with §4 field details.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createInMemoryCrudDocumentStore } from '@formforge/core';
 import type { AuthenticatedSession } from '@formforge/core/identity';
 
@@ -15,6 +15,7 @@ vi.mock('@/lib/auth/session', () => ({
 
 import { getCurrentSession } from '@/lib/auth/session';
 import { configureCrudDocuments } from '@/lib/api/documents';
+import { configureBuilderEntitlements } from '@/lib/api/entitlements';
 import { POST as createDocument } from '../route';
 import { DELETE as archiveDocument, GET as getDocument, PATCH as patchDocument } from './route';
 import { POST as duplicateDocument } from './duplicate/route';
@@ -56,6 +57,11 @@ beforeEach(() => {
   vi.mocked(getCurrentSession).mockReset();
   vi.mocked(getCurrentSession).mockResolvedValue(OWNER_SESSION);
   configureCrudDocuments({ documents: createInMemoryCrudDocumentStore().documents });
+  configureBuilderEntitlements(null); // live resolver (free default without a DB)
+});
+
+afterEach(() => {
+  configureBuilderEntitlements(null);
 });
 
 describe('GET /api/v1/documents/:id (builder envelope)', () => {
@@ -72,6 +78,44 @@ describe('GET /api/v1/documents/:id (builder envelope)', () => {
     expect(env.status).toBe('draft');
     expect(env.publishedVersionId).toBeNull();
     expect(env.body).toMatchObject({ schemaVersion: 1, type: 'form' });
+  });
+
+  // §24 builder entitlements surface (follow-up #8) — additive on the envelope.
+  it('200 — carries the §24 entitlements surface (free default without a DB)', async () => {
+    const created = await createForm();
+    const res = await getDocument(req('GET', `/${created.id}`), withId(created.id));
+    expect(res.status).toBe(200);
+    const env = (await res.json()) as { entitlements?: Record<string, unknown> };
+    expect(env.entitlements).toEqual({
+      plan: 'free',
+      removeBranding: false,
+      fileUploadMaxMb: 10,
+      customRedirect: false,
+      notifyEmailsLimit: 1,
+    });
+  });
+
+  it('200 — entitlements follow the workspace plan (billing can() resolved server-side)', async () => {
+    // The resolver is billing's — the test injects a pro workspace the same
+    // way the billing service would answer for workspaces.plan = 'pro'.
+    configureBuilderEntitlements(async () => ({
+      plan: 'pro',
+      removeBranding: true,
+      fileUploadMaxMb: 10,
+      customRedirect: true,
+      notifyEmailsLimit: 10,
+    }));
+    const created = await createForm();
+    const res = await getDocument(req('GET', `/${created.id}`), withId(created.id));
+    expect(res.status).toBe(200);
+    const env = (await res.json()) as { entitlements?: Record<string, unknown> };
+    expect(env.entitlements).toEqual({
+      plan: 'pro',
+      removeBranding: true,
+      fileUploadMaxMb: 10,
+      customRedirect: true,
+      notifyEmailsLimit: 10,
+    });
   });
 
   it('404 for an unknown or foreign-workspace id (§4 shape)', async () => {

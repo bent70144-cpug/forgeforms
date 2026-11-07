@@ -25,7 +25,14 @@
 
 import type { Block, DocumentBody, DocumentEnvelope } from "../bridge";
 import { applyOpsBestEffort, type EditableDoc, type Op } from "./ops";
-import { ConflictError, type DocumentTransport, type PatchResult, OpRejectedError } from "./transport";
+import {
+  ConflictError,
+  ForbiddenError,
+  PlanLimitError,
+  type DocumentTransport,
+  type PatchResult,
+  OpRejectedError,
+} from "./transport";
 import type { OfflineQueuePort } from "./offline";
 
 /**
@@ -59,6 +66,19 @@ export type ConflictMode = "mine" | "theirs";
 
 /** One op rejected by a 422 (§14) — the UI marks the block and toasts. */
 export type OpRejectedEvent = { op: Op; index: number; code: string; message: string };
+
+/**
+ * The save was refused by the plan (§13/§14): 402 PLAN_LIMIT or 403
+ * FORBIDDEN. The pending ops are KEPT (never dropped — zero data loss) and
+ * parked without a retry timer; the next enqueue/flush retries them (e.g.
+ * after an upgrade). The UI shows an inline plan-limit explanation.
+ */
+export type PlanLimitEvent = {
+  status: 402 | 403;
+  message: string;
+  /** §13 capability from the 402 body, when present (e.g. notifyEmailsLimit). */
+  capability: string | null;
+};
 
 export type AutosaveOptions = {
   transport: DocumentTransport;
@@ -98,6 +118,9 @@ export type AutosaveOptions = {
   onConflict?: (event: ConflictEvent) => void;
   /** §14 — one op was rejected with a 422; roll it back locally. */
   onOpRejected?: (event: OpRejectedEvent) => void;
+  /** §14 — the batch was refused with 402/403; surface an inline
+   * plan-limit explanation (never a dead-end error). */
+  onPlanLimit?: (event: PlanLimitEvent) => void;
   /** After any conflict resolution — the UI clears its undo history (§7.3.4). */
   onConflictResolved?: (mode: ConflictMode) => void;
   schedule?: (fn: () => void, ms: number) => () => void;
@@ -479,6 +502,21 @@ export class AutosaveController {
       return this.handleConflict(err, batch);
     }
 
+    // §14: plan refusals are NOT transient — keep the ops (zero data loss)
+    // and park without a retry timer (retrying a 402 would just churn). The
+    // queue restarts on the next enqueue / flushNow / online event, so an
+    // upgrade mid-session unblocks the very next flush.
+    if (err instanceof PlanLimitError || err instanceof ForbiddenError) {
+      this.pending.unshift(...batch);
+      this.emit("error", err.message);
+      this.options.onPlanLimit?.({
+        status: err.status === 402 ? 402 : 403,
+        message: err.message,
+        capability: err instanceof PlanLimitError ? err.capability : null,
+      });
+      return false;
+    }
+
     if (isNetworkFailure(err)) {
       // §7.1: fetch failure — keep the queue and wait for reconnect.
       this.pending.unshift(...batch);
@@ -591,5 +629,5 @@ function defaultSchedule(fn: () => void, ms: number): () => void {
 }
 
 // Re-export so UI code can `instanceof` without importing transport directly.
-export { ConflictError, OpRejectedError };
+export { ConflictError, ForbiddenError, OpRejectedError, PlanLimitError };
 export type { DocumentEnvelope };

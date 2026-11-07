@@ -6,7 +6,7 @@
 // the reducer is pure and portable to a zustand store unchanged if the team
 // later adopts the pinned stack.
 
-import type { DocumentEnvelope, DocumentStatus } from "../bridge";
+import type { BuilderEntitlements, DocumentEnvelope, DocumentStatus } from "../bridge";
 import { mergeCoalescedEntry } from "./coalesce";
 import { emptyHistory, popRedo, popUndo, pushEntry, type History } from "./history";
 import { applyOps, invertOps, findBlock, emptyBody, type EditableDoc, type Op, type DocMeta } from "./ops";
@@ -32,6 +32,9 @@ export type EditorState = {
   /** Ops from the latest mutation that must still reach the server. */
   emit: { nonce: number; ops: Op[] } | null;
   emitNonce: number;
+  /** §24 builder entitlements (follow-up #8) — from the GET envelope; null
+   * until loaded (and for mocks) → surfaces keep their conservative gates. */
+  entitlements: BuilderEntitlements | null;
 };
 
 export type EditorAction =
@@ -80,6 +83,7 @@ export function initialEditorState(docId: string): EditorState {
     savedAt: null,
     emit: null,
     emitNonce: 0,
+    entitlements: null,
   };
 }
 
@@ -109,6 +113,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         body: action.envelope.body,
         docStatus: action.envelope.status,
         rev: action.envelope.rev,
+        entitlements: action.envelope.entitlements ?? null,
         history: emptyHistory(),
         selection: null,
       };
@@ -243,6 +248,7 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           body: action.envelope.body,
           docStatus: action.envelope.status,
           rev: action.envelope.rev,
+          entitlements: action.envelope.entitlements ?? state.entitlements,
           history: emptyHistory(),
           save: "saved",
         },

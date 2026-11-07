@@ -124,6 +124,67 @@ export function rejectionNoticeText(event: Pick<OpRejectedEvent, "code" | "messa
 }
 
 // ---------------------------------------------------------------------------
+// §14 plan-limit notice copy (402/403 — never a dead-end error, follow-up #8)
+// ---------------------------------------------------------------------------
+
+/** Input: the autosave/publish plan-limit event (402 PLAN_LIMIT / 403 FORBIDDEN). */
+export type PlanLimitNoticeInput = {
+  status: number;
+  message?: string;
+  /** §13 capability from the 402 body (e.g. notifyEmailsLimit), when present. */
+  capability?: string | null;
+};
+
+/** §24 client entitlements the copy may cite for a concrete number. */
+export type PlanLimitLimits = {
+  notifyEmailsLimit?: number | null;
+  fileUploadMaxMb?: number | null;
+};
+
+/** Friendly subject per §13 capability (fallback line only). */
+const PLAN_CAPABILITY_SUBJECTS: Readonly<Record<string, string>> = {
+  documents: "documents",
+  submissionsPerMonth: "monthly submissions",
+  fileUploadMaxMb: "file uploads",
+  removeBranding: "branding removal",
+  customRedirect: "redirect endings",
+  notifyEmailsLimit: "notifications",
+  customDomains: "custom domains",
+  seats: "team seats",
+  analytics: "advanced analytics",
+  partialSubmissions: "partial submissions",
+  webhooks: "webhooks",
+  apiAccess: "API access",
+  aiDrafts: "AI drafts",
+};
+
+/**
+ * Copy for the §14 shell-top plan-limit notice. 402 → "Plan limit reached:
+ * …" (concrete limit cited when the client entitlements carry the number);
+ * 403 → "Not allowed on this plan". Pure — injectable limits keep it
+ * unit-testable without a store.
+ */
+export function planLimitNoticeText(
+  event: PlanLimitNoticeInput,
+  limits?: PlanLimitLimits | null,
+): string {
+  if (event.status === 403) return "Not allowed on this plan";
+  if (event.capability === "notifyEmailsLimit" && typeof limits?.notifyEmailsLimit === "number") {
+    return `Plan limit reached: notifications are limited to ${limits.notifyEmailsLimit} on your plan`;
+  }
+  if (event.capability === "fileUploadMaxMb" && typeof limits?.fileUploadMaxMb === "number") {
+    return `Plan limit reached: file uploads are capped at ${limits.fileUploadMaxMb} MB on your plan`;
+  }
+  const subject = event.capability != null ? PLAN_CAPABILITY_SUBJECTS[event.capability] : null;
+  if (subject) return `Plan limit reached: ${subject} are limited on your plan`;
+  const detail =
+    typeof event.message === "string" && event.message.trim().length > 0
+      ? event.message
+      : "this action is not available on your plan";
+  return `Plan limit reached: ${detail}`;
+}
+
+// ---------------------------------------------------------------------------
 // §22.2 offline queue singleton (survives HMR double-mounts)
 // ---------------------------------------------------------------------------
 

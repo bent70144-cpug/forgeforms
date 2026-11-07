@@ -166,6 +166,11 @@ export type BlockDeletedDetail = { id: string; label: string; hadLogic: boolean 
 export type EditSelectedDetail = { id: string };
 /** ff:goto-block detail (emitter: IssuesList/PublishControl; consumer: Canvas). */
 export type GotoBlockDetail = { id: string };
+/**
+ * ff:plan-limit detail (§14, follow-up #8): the publish path was refused with
+ * 402/403 — the builder page listens and surfaces the inline shell notice.
+ */
+export type PlanLimitDetail = { status: 402 | 403; message: string; capability: string | null };
 
 /** Event names — keep in sync with useShortcuts / PublishControl / UndoToast. */
 export const BUILDER_EVENTS = {
@@ -173,7 +178,13 @@ export const BUILDER_EVENTS = {
   blockDeleted: "ff:block-deleted",
   editSelected: "ff:edit-selected",
   gotoBlock: "ff:goto-block",
+  planLimit: "ff:plan-limit",
 } as const;
+
+export function emitPlanLimit(detail: PlanLimitDetail): void {
+  if (typeof window === "undefined") return; // SSR/static-render safety
+  window.dispatchEvent(new CustomEvent<PlanLimitDetail>("ff:plan-limit", { detail }));
+}
 
 export function emitOpenPicker(detail: OpenPickerDetail): void {
   if (typeof window === "undefined") return; // SSR/static-render safety

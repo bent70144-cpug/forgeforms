@@ -6,7 +6,7 @@ import { createElement as h, useMemo } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { getBlockDef } from "@formforge/blocks"; // importing registers all kinds (§7.1)
-import type { DocumentEnvelope } from "@/lib/bridge";
+import type { BuilderEntitlements, DocumentEnvelope } from "@/lib/bridge";
 import { DEFAULT_THEME_TOKENS } from "@/lib/bridge";
 import { initialEditorState, type EditorState } from "@/lib/builder/store";
 import { BuilderProvider } from "@/components/builder/context";
@@ -16,9 +16,27 @@ import { SettingsPanel } from "@/components/builder/SettingsPanel";
 // Fixtures
 // ---------------------------------------------------------------------------
 
+/** §24 builder entitlements (free-plan row) — follow-up #8. */
+const FREE_ENTITLEMENTS: BuilderEntitlements = {
+  plan: "free",
+  removeBranding: false,
+  fileUploadMaxMb: 10,
+  customRedirect: false,
+  notifyEmailsLimit: 1,
+};
+
+const PRO_ENTITLEMENTS: BuilderEntitlements = {
+  plan: "pro",
+  removeBranding: true,
+  fileUploadMaxMb: 10,
+  customRedirect: true,
+  notifyEmailsLimit: 10,
+};
+
 function envelope(overrides?: {
   blocks?: DocumentEnvelope["body"]["blocks"];
   rules?: DocumentEnvelope["body"]["logic"]["rules"];
+  entitlements?: BuilderEntitlements;
 }): DocumentEnvelope {
   return {
     id: "doc1",
@@ -26,6 +44,7 @@ function envelope(overrides?: {
     title: "Fixture form",
     status: "draft",
     type: "form",
+    ...(overrides?.entitlements ? { entitlements: overrides.entitlements } : {}),
     body: {
       schemaVersion: 1,
       type: "form",
@@ -71,6 +90,7 @@ function seededState(
     body: env.body,
     docStatus: env.status,
     rev: env.rev,
+    entitlements: env.entitlements ?? null,
     selection,
     panel,
   };
@@ -180,13 +200,24 @@ describe("<SettingsPanel> document settings (§6.6 document view)", () => {
     expect(html).toContain("Language");
   });
 
-  it("Behavior tab: toggles + the §24 static branding gate (inline note, no modal)", () => {
+  it("Behavior tab: branding locked ON + §24 gate note when not entitled", () => {
     const html = renderToStaticMarkup(h(Harness, { env: BASE_ENV, initialTab: "behavior" }));
     expect(html).toContain("Progress bar");
     expect(html).toContain("Auto-advance");
     expect(html).toContain("Captcha");
     expect(html).toContain("Show FormForge branding");
-    expect(html).toContain("Available on Pro");
+    // Free entitlements (and unknown): the switch is disabled + inline note.
+    expect(html).toContain("Pro feature");
+    const toggle = html.match(/<input[^>]*data-testid="ff-set-branding"[^>]*>/)?.[0] ?? "";
+    expect(toggle).toContain("disabled");
+  });
+
+  it("Behavior tab: branding toggle is REAL when removeBranding is entitled (§24)", () => {
+    const env = envelope({ entitlements: PRO_ENTITLEMENTS });
+    const html = renderToStaticMarkup(h(Harness, { env, initialTab: "behavior" }));
+    expect(html).not.toContain("Pro feature");
+    const toggle = html.match(/<input[^>]*data-testid="ff-set-branding"[^>]*>/)?.[0] ?? "";
+    expect(toggle).not.toContain("disabled");
   });
 
   it("Limits tab: closeAt + max submissions (both exist in DocumentSettings)", () => {
@@ -203,6 +234,32 @@ describe("<SettingsPanel> document settings (§6.6 document view)", () => {
     expect(html).toContain("Send test email");
     expect(html).toContain('title="Coming soon"');
     expect(html).toContain("disabled");
+  });
+
+  it("Notifications tab: the §24 free cap (1) replaces the hardcoded 10", () => {
+    const env = envelope({ entitlements: FREE_ENTITLEMENTS });
+    const html = renderToStaticMarkup(h(Harness, { env, initialTab: "notifications" }));
+    expect(html).toContain("Notify emails (1/1)");
+    expect(html).not.toContain("Notify emails (1/10)");
+    // The inline note explains the effective cap:
+    expect(html).toContain("Your plan allows 1 recipient per form");
+  });
+
+  it("Block settings: the file-upload plan cap is surfaced on the block (§24)", () => {
+    const env = envelope({
+      blocks: [{ id: "f1", kind: "file-upload", props: { label: "Upload", maxSizeMb: 10, maxFiles: 1, required: false, accept: [] } }],
+      entitlements: { ...PRO_ENTITLEMENTS, fileUploadMaxMb: 50, plan: "business" },
+    });
+    const html = renderToStaticMarkup(h(Harness, { env, selection: "f1", panel: "block" }));
+    expect(html).toContain("Plan cap: up to 50 MB per file on your plan.");
+  });
+
+  it("Block settings: file-upload cap falls back to the block ceiling when unknown", () => {
+    const env = envelope({
+      blocks: [{ id: "f1", kind: "file-upload", props: { label: "Upload", maxSizeMb: 10, maxFiles: 1, required: false, accept: [] } }],
+    });
+    const html = renderToStaticMarkup(h(Harness, { env, selection: "f1", panel: "block" }));
+    expect(html).toContain("Plan cap: up to 10 MB per file on your plan.");
   });
 
   it("SEO tab: fields, disabled OG picker and the live social preview card", () => {

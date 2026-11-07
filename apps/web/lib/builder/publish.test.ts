@@ -475,6 +475,41 @@ describe("publishDocument", () => {
     expect(result).toEqual({ ok: false, reason: "error", message: "boom" });
   });
 
+  // §14 plan-limit answers (follow-up #8): 402/403 are NOT generic errors —
+  // the caller surfaces an inline plan-limit explanation in the shell notice.
+  it("maps 402 PLAN_LIMIT to reason plan-limit with the §13 capability", async () => {
+    const { fn } = fetchStub(402, {
+      error: {
+        code: "PLAN_LIMIT",
+        message: "Plan limit reached for \"customRedirect\" — upgrade to pro.",
+        details: [
+          { path: "capability", message: "customRedirect" },
+          { path: "requiredPlan", message: "pro" },
+        ],
+      },
+    });
+    const result = await publishDocument("doc1", 1, fn);
+    expect(result).toEqual({
+      ok: false,
+      reason: "plan-limit",
+      status: 402,
+      message: "Plan limit reached for \"customRedirect\" — upgrade to pro.",
+      capability: "customRedirect",
+    });
+  });
+
+  it("maps 403 FORBIDDEN to reason plan-limit with null capability", async () => {
+    const { fn } = fetchStub(403, { error: { code: "FORBIDDEN", message: "nope" } });
+    const result = await publishDocument("doc1", 1, fn);
+    expect(result).toEqual({
+      ok: false,
+      reason: "plan-limit",
+      status: 403,
+      message: "nope",
+      capability: null,
+    });
+  });
+
   it("network failures become a friendly error result (never throw)", async () => {
     const fn: FetchLike = async () => {
       throw new Error("offline");

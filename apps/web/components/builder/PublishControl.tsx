@@ -25,7 +25,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { useBuilder } from "./context";
 import { IssuesList } from "./IssuesList";
-import { BUILDER_EVENTS } from "@/lib/builder/canvas-ops";
+import { BUILDER_EVENTS, emitPlanLimit } from "@/lib/builder/canvas-ops";
 import { blockDisplayLabel } from "@/lib/builder/blockMeta";
 import { findBlock } from "@/lib/builder/ops";
 import {
@@ -115,6 +115,16 @@ export function PublishControl() {
       } else if (result.reason === "validation") {
         setServerIssues(result.issues);
         setDrawerOpen(true);
+      } else if (result.reason === "plan-limit") {
+        // §14 (follow-up #8): 402/403 is an inline plan-limit explanation in
+        // the SHELL notice (same mechanism as the 422 rollback notice) —
+        // never a dead-end error. PublishControl only emits the event; the
+        // builder page owns the notice state.
+        emitPlanLimit({
+          status: result.status,
+          message: result.message,
+          capability: result.capability,
+        });
       } else {
         setErrorMessage(result.message);
       }

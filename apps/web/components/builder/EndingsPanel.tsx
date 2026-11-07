@@ -12,9 +12,12 @@
 // toggles do NOT exist yet → rendered as disabled controls with the note
 // "Not available in this version" (render only what the schema carries).
 //
-// §24: the custom_redirect entitlement is not wired in this version, so the
-// redirect input stays ENABLED with the inline note "Redirect endings
-// require Pro" underneath (in-place note, never an upgrade modal).
+// §24 (follow-up #8): the custom_redirect entitlement IS wired now — the
+// builder store carries the envelope's `entitlements`. When customRedirect is
+// false the redirect input is DISABLED with the inline note (in-place note,
+// never an upgrade modal). When the entitlement is unknown (mocks/old
+// envelopes) the legacy behavior stands: input ENABLED with the note. When
+// entitled, the note is dropped and the field is fully editable.
 //
 // Mutual exclusion (§8.3): a redirect ending shows no body — setting a valid
 // redirect URL disables the body textarea with its own inline note.
@@ -37,7 +40,8 @@ export const ENDING_EDIT_DEBOUNCE_MS = 300;
 /** §8.3 fields that the current Ending schema does not carry. */
 export const NOT_AVAILABLE_NOTE = "Not available in this version";
 
-/** §24 inline note — custom_redirect entitlement is unknown here. */
+/** §24 inline note — shown when the redirect field is gated on the plan
+ * (customRedirect false) or the entitlement is unknown. */
 export const REDIRECT_PRO_NOTE = "Redirect endings require Pro";
 
 /** Inline note shown when a redirect is set (§8.3 mutual exclusion with body). */
@@ -83,6 +87,9 @@ export function EndingsPanel() {
   const { state, dispatch } = useBuilder();
   const endings = state.body.endings;
   const rules = state.body.logic.rules;
+  // §24 customRedirect entitlement (undefined = unknown → legacy behavior).
+  const customRedirect = state.entitlements?.customRedirect;
+  const redirectGated = customRedirect === false;
 
   // Selection is a LOCAL index, clamped against removals/undo.
   const [selectedIdxRaw, setSelectedIdx] = useState(0);
@@ -150,7 +157,7 @@ export function EndingsPanel() {
         }
         upsert(current, "Edit ending body", `ending:${selected.id}:body`);
       }
-      if (pendingRedirect && redirectError(redirectDraft) === null) {
+      if (pendingRedirect && !redirectGated && redirectError(redirectDraft) === null) {
         if (redirectDraft.trim() === "") {
           const { redirectUrl: _drop, ...rest } = current;
           current = rest as Ending;
@@ -347,8 +354,9 @@ export function EndingsPanel() {
           <span className="ff-th-note">{NOT_AVAILABLE_NOTE}</span>
         </div>
 
-        {/* redirectUrl IS in the schema; custom_redirect entitlement is not
-            wired yet → input ENABLED with the §24 inline note underneath. */}
+        {/* redirectUrl IS in the schema and the custom_redirect entitlement
+            is wired (§24): gated on free (disabled + note), free-to-edit on
+            pro/business, and the legacy note stands when unknown. */}
         <div className="ff-th-field">
           <label className="ff-th-row-label" htmlFor="ff-ending-redirect">
             Redirect URL
@@ -360,9 +368,15 @@ export function EndingsPanel() {
             placeholder="https://…"
             value={redirectValue}
             spellCheck={false}
+            disabled={redirectGated}
+            aria-disabled={redirectGated}
             onChange={(e) => setRedirectDraft(e.target.value)}
           />
-          <span className="ff-th-note">{REDIRECT_PRO_NOTE}</span>
+          {(redirectGated || customRedirect === undefined) && (
+            <span className="ff-th-note" role="note">
+              {REDIRECT_PRO_NOTE}
+            </span>
+          )}
           {redirectIssue !== null && (
             <span className="ff-th-error" role="alert">
               {redirectIssue}

@@ -14,7 +14,7 @@
 
 import { useState } from "react";
 import type { Block } from "@formforge/schema";
-import { getBlockDef } from "@formforge/blocks";
+import { FILE_UPLOAD_BLOCK_MAX_MB, getBlockDef } from "@formforge/blocks";
 import { findBlock } from "@/lib/builder/ops";
 import { useBuilder } from "../context";
 import { SettingsSection, FieldRow, InlineNote, FF_SET_INPUT_CLASS } from "./FieldRow";
@@ -67,6 +67,9 @@ export function BlockSettings() {
       docId={state.docId}
       blocks={state.body.blocks}
       ruleCount={state.body.logic.rules.filter((rule) => rule.scope === block.id).length}
+      // §24 file-upload cap (follow-up #8): the plan's file_upload_max_mb;
+      // null = entitlement unknown → the block schema ceiling applies.
+      fileUploadCapMb={state.entitlements?.fileUploadMaxMb ?? null}
       dispatch={dispatch}
     />
   );
@@ -77,12 +80,14 @@ function BlockSettingsLoaded({
   docId,
   blocks,
   ruleCount,
+  fileUploadCapMb,
   dispatch,
 }: {
   block: Block;
   docId: string;
   blocks: readonly Block[];
   ruleCount: number;
+  fileUploadCapMb: number | null;
   dispatch: ReturnType<typeof useBuilder>["dispatch"];
 }) {
   // Registry lookup is deterministic per kind; the caller only renders this
@@ -156,6 +161,12 @@ function BlockSettingsLoaded({
   const labelProp = props["label"];
   const sensitiveWarning = sensitiveLabelWarning(typeof labelProp === "string" ? labelProp : undefined);
   const isQuestion = def.family === "question";
+  // §24 (follow-up #8): surface the plan's file_upload_max_mb on the relevant
+  // settings field — the file-upload block's Max size editor caps at the
+  // block schema ceiling; the plan cap (Business: 50 MB) is a server
+  // entitlement, so the builder SHOWS the effective cap instead of editing it.
+  const fileUploadCap =
+    block.kind === "file-upload" ? (fileUploadCapMb ?? FILE_UPLOAD_BLOCK_MAX_MB) : null;
 
   return (
     <div className="ff-set-panel flex flex-col gap-4 p-3" data-testid="block-settings">
@@ -174,6 +185,11 @@ function BlockSettingsLoaded({
         {sensitiveWarning && (
           <InlineNote tone="warn" testId="ff-set-sensitive-warning">
             {sensitiveWarning}
+          </InlineNote>
+        )}
+        {fileUploadCap !== null && (
+          <InlineNote tone="info" testId="ff-set-file-cap">
+            {`Plan cap: up to ${fileUploadCap} MB per file on your plan.`}
           </InlineNote>
         )}
       </SettingsSection>
