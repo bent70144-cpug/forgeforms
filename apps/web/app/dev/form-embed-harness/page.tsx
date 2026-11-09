@@ -8,7 +8,7 @@
 //  - default (doc_demo)       → frames show the graceful fallback, which still
 //                               posts real ff:ready / ff:height messages
 import type { Metadata } from "next";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { BADGE_MUTED, BTN_GHOST_SM } from "@/lib/ui";
 
@@ -23,8 +23,6 @@ export const metadata: Metadata = {
 
 const DEFAULT_DOC = "doc_demo";
 
-const HEADING_STYLE: CSSProperties = { fontFamily: "var(--ff-font-heading)" };
-
 // Quiet dev-tool chrome strip: identifies the page as an internal harness and
 // offers a one-click reload — presentation only, no debug behavior lives here.
 function HarnessHeader({ route }: { route: string }) {
@@ -35,7 +33,7 @@ function HarnessHeader({ route }: { route: string }) {
           <span
             aria-hidden="true"
             className="h-1.5 w-1.5 rounded-full"
-            style={{ background: "var(--ff-grad)" }}
+            style={{ background: "var(--ff-accent)" }}
           />
           dev harness
         </span>
@@ -68,7 +66,8 @@ export default async function FormEmbedHarnessPage({
     <div className="min-h-screen bg-[var(--ff-bg)] text-[var(--ff-fg)]">
       <main className="mx-auto w-full max-w-3xl px-6 py-6">
         <HarnessHeader route="/dev/form-embed-harness" />
-        <h1 className="mt-8 text-2xl font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
+        {/* Dev-lab header: JetBrains Mono, utilitarian by design. */}
+        <h1 className="mt-8 font-mono text-2xl font-semibold tracking-tight text-[var(--ff-fg)]">
           form-embed postMessage harness
         </h1>
         <p className="mt-3 leading-relaxed text-[var(--ff-muted)]">

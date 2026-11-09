@@ -1,8 +1,9 @@
 // T15 — Results screen shell (`/d/:docId/results`, spec §14.1.5): document
 // header, Submissions / Summary / Analytics tabs, client seam for data.
-// Aurora: width follows the app shell (no extra max-w), underline tabs with a
-// violet→cyan gradient inset underline (roving arrow-key focus preserved),
-// mono "Updated" doc meta, shared EmptyState for the Analytics pointer.
+// Meridian: width follows the app shell (no extra max-w), Sora doc title with
+// a ghost share action, tabs rendered as a SEG control (roving arrow-key
+// focus preserved), mono "Updated" doc meta, shared EmptyState for the
+// Analytics pointer.
 
 "use client";
 
@@ -27,7 +28,8 @@ import {
   BADGE_WARNING,
   BTN_GHOST_SM,
   BTN_PRIMARY,
-  BTN_SECONDARY_SM,
+  SEG,
+  SEG_BTN,
 } from "../../lib/ui";
 import { EmptyState } from "../ui/empty-state";
 import { Icon, type IconName } from "../ui/icons";
@@ -141,7 +143,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
         <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
           {loading ? (
             <div className="min-w-0 space-y-2 py-1">
-              <Skeleton className="h-7 w-64 sm:w-80" />
+              <Skeleton className="h-8 w-64 sm:w-80" />
               <Skeleton className="h-4 w-52" />
             </div>
           ) : docError ? (
@@ -155,7 +157,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
           ) : doc ? (
             <>
               <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                <h1 className="min-w-0 text-xl font-semibold tracking-tight text-balance text-[var(--ff-fg)] sm:text-2xl">
+                <h1 className="min-w-0 text-2xl font-semibold tracking-[-0.02em] text-balance text-[var(--ff-fg)] sm:text-[1.75rem]">
                   {doc.title}
                 </h1>
                 <span className={BADGE_MUTED}>{typeBadge(doc.type)}</span>
@@ -169,7 +171,7 @@ export function ResultsScreen({ docId }: { docId: string }) {
               <button
                 type="button"
                 onClick={() => void copyShareLink()}
-                className={BTN_SECONDARY_SM}
+                className={BTN_GHOST_SM}
               >
                 <Icon name={copied ? "check" : "link"} size={14} />
                 {copied ? "Link copied" : "Copy public link"}
@@ -178,50 +180,46 @@ export function ResultsScreen({ docId }: { docId: string }) {
           ) : null}
         </div>
 
-        <nav
-          role="tablist"
-          aria-label="Results sections"
-          className="mt-6 flex gap-6 overflow-x-auto border-b border-[var(--ff-border)]"
-        >
-          {TABS.map((t, i) => {
-            const selected = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                ref={(el) => {
-                  tabRefs.current[i] = el;
-                }}
-                role="tab"
-                type="button"
-                id={`results-tab-${t.id}`}
-                aria-selected={selected}
-                aria-controls={selected ? `results-panel-${t.id}` : undefined}
-                tabIndex={selected ? 0 : -1}
-                onClick={() => setTab(t.id)}
-                onKeyDown={(e) => onTabKeyDown(e, i)}
-                className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap pb-3 pt-2.5 text-sm font-medium transition-colors hover:text-[var(--ff-fg)] sm:pt-1 ${
-                  selected ? "" : "text-[var(--ff-muted)]"
-                }`}
-                style={
-                  selected
-                    ? {
-                        color: "var(--ff-fg)",
-                        fontWeight: 550,
-                        /* aurora underline: a 2px violet→cyan gradient line pinned
-                           to the tab's bottom edge (inset-shadow can't gradient) */
-                        backgroundImage: "var(--ff-grad)",
-                        backgroundSize: "100% 2px",
-                        backgroundPosition: "0 100%",
-                        backgroundRepeat: "no-repeat",
-                      }
-                    : undefined
-                }
-              >
-                <Icon name={t.icon} size={14} />
-                {t.label}
-              </button>
-            );
-          })}
+        {/* Tabs as a Meridian SEG control: recessed paper pill, white active
+            segment (roving arrow-key focus + tablist semantics preserved). */}
+        <nav className="mt-6 overflow-x-auto py-1">
+          <div role="tablist" aria-label="Results sections" className={SEG}>
+            {TABS.map((t, i) => {
+              const selected = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  ref={(el) => {
+                    tabRefs.current[i] = el;
+                  }}
+                  role="tab"
+                  type="button"
+                  id={`results-tab-${t.id}`}
+                  aria-selected={selected}
+                  aria-controls={selected ? `results-panel-${t.id}` : undefined}
+                  tabIndex={selected ? 0 : -1}
+                  onClick={() => setTab(t.id)}
+                  onKeyDown={(e) => onTabKeyDown(e, i)}
+                  className={`${SEG_BTN} shrink-0`}
+                  style={
+                    selected
+                      ? /* mirrors .ff-seg-btn[aria-pressed="true"] — inline so it
+                           wins the cascade over the unlayered ff-seg recipe */
+                        {
+                          background: "var(--ff-card)",
+                          color: "var(--ff-fg)",
+                          fontWeight: 500,
+                          boxShadow: "var(--ff-shadow-sm)",
+                        }
+                      : undefined
+                  }
+                >
+                  <Icon name={t.icon} size={14} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </nav>
       </header>
 

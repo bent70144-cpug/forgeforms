@@ -4,16 +4,17 @@
 // → "insert into document" handoff. The builder (T05) supplies onInsert;
 // until then the standalone /d/[docId]/ai page wires it to a local hold.
 //
-// Aurora redesign: gradient spark-tile header, static suggestion chips (local
-// presentation only — they fill the composer, nothing is fetched), the glass
-// composer textarea with its violet focus ring, a full-width glowing primary
-// CTA, skeleton shimmer + "Generating" badge while the request is in flight,
-// and the draft rendered in the BodyPreview document frame with accept
-// (primary) / regenerate (ghost) actions. Fetch/error/quota logic unchanged;
-// onQuota is an optional additive callback for the workbench header badge.
+// Meridian redesign: quiet terracotta spark tile (the AI signal — no glow, no
+// gradient), Sora panel title, a mono character counter on the composer label,
+// a full-width ultramarine primary CTA with a ghost Clear beside it, terracotta
+// dot + mono uppercase "Generating" microtext over quiet --ff-bg-2 skeleton
+// wells while the request is in flight, and the draft rendered in the
+// BodyPreview document sheet with accept (primary) / regenerate (ghost)
+// actions. Fetch/error/quota logic unchanged; onQuota is an optional additive
+// callback for the workbench header badge.
 import { useId, useState } from "react";
 import type { DocumentBody, DocumentType } from "@formforge/core/ai";
-import { BADGE_ACCENT, BADGE_MUTED, BTN_GHOST, BTN_GHOST_SM, BTN_PRIMARY, INPUT } from "@/lib/ui";
+import { BADGE_MUTED, BTN_GHOST, BTN_GHOST_SM, BTN_PRIMARY, INPUT } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
 import { BodyPreview } from "./body-preview";
 
@@ -105,12 +106,21 @@ export function AiDraftDialog({
           <span
             aria-hidden="true"
             className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px]"
-            style={{ background: "var(--ff-grad)", boxShadow: "var(--ff-glow)", color: "#ffffff" }}
+            style={{
+              background: "color-mix(in srgb, var(--ff-accent) 10%, var(--ff-card))",
+              border: "1px solid color-mix(in srgb, var(--ff-accent) 25%, transparent)",
+              color: "var(--ff-accent)",
+            }}
           >
             <Icon name="sparkles" size={16} />
           </span>
           <div>
-            <h2 className="text-base font-semibold text-[var(--ff-fg)]">Generate draft</h2>
+            <h2
+              className="text-base font-semibold tracking-[-0.01em] text-[var(--ff-fg)]"
+              style={{ fontFamily: "var(--ff-font-heading)" }}
+            >
+              Generate draft
+            </h2>
             <p className="mt-0.5 text-sm leading-relaxed text-[var(--ff-muted)]">
               Describe the document — review the generated body before it is inserted.
             </p>
@@ -124,7 +134,15 @@ export function AiDraftDialog({
       </header>
 
       <div className="ff-field">
-        <label htmlFor={promptId}>Describe what to build</label>
+        <label htmlFor={promptId} className="flex items-baseline justify-between gap-3">
+          Describe what to build
+          <span
+            aria-hidden="true"
+            className="font-mono text-[11px] font-normal tabular-nums text-[var(--ff-muted)]"
+          >
+            {prompt.length} / 2000
+          </span>
+        </label>
         <textarea
           id={promptId}
           value={prompt}
@@ -184,25 +202,35 @@ export function AiDraftDialog({
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={() => void generate()}
-        disabled={status === "loading" || prompt.trim().length === 0}
-        aria-busy={status === "loading"}
-        className={`${BTN_PRIMARY} w-full disabled:cursor-not-allowed`}
-      >
-        {status === "loading" ? (
-          <>
-            <Icon name="spinner" size={16} />
-            Drafting…
-          </>
-        ) : (
-          <>
-            <Icon name="sparkles" size={16} />
-            Generate draft
-          </>
-        )}
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => void generate()}
+          disabled={status === "loading" || prompt.trim().length === 0}
+          aria-busy={status === "loading"}
+          className={`${BTN_PRIMARY} flex-1 disabled:cursor-not-allowed`}
+        >
+          {status === "loading" ? (
+            <>
+              <Icon name="spinner" size={16} />
+              Drafting…
+            </>
+          ) : (
+            <>
+              <Icon name="sparkles" size={16} />
+              Generate draft
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setPrompt("")}
+          disabled={status === "loading" || prompt.length === 0}
+          className={`${BTN_GHOST} disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          Clear
+        </button>
+      </div>
 
       <p aria-live="polite" className="text-sm">
         {status === "error" ? (
@@ -221,16 +249,21 @@ export function AiDraftDialog({
       </p>
 
       {status === "loading" && !draft ? (
-        // First-generation shimmer: status badge + skeleton rows (reduced-motion
-        // users get the static pulse reset from globals.css).
+        // First-generation wait: terracotta AI-signal microtext + quiet --ff-bg-2
+        // skeleton wells (reduced-motion users get the static pulse reset from
+        // globals.css).
         <div className="space-y-3 border-t border-[var(--ff-border)] pt-4">
-          <span className={BADGE_ACCENT}>
-            <Icon name="spinner" size={12} />
+          <span className="inline-flex items-center gap-2 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "var(--ff-accent)" }}
+            />
             Generating draft…
           </span>
-          <div className="ff-skeleton" style={{ height: "2.75rem" }} />
-          <div className="ff-skeleton" style={{ height: "2.75rem" }} />
-          <div className="ff-skeleton" style={{ height: "6rem" }} />
+          <div className="ff-skeleton" style={{ height: "2.75rem", background: "var(--ff-bg-2)" }} />
+          <div className="ff-skeleton" style={{ height: "2.75rem", background: "var(--ff-bg-2)" }} />
+          <div className="ff-skeleton" style={{ height: "6rem", background: "var(--ff-bg-2)" }} />
         </div>
       ) : null}
 

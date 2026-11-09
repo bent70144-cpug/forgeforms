@@ -7,10 +7,10 @@
 // B6 redesign: shell-aligned container, segmented range control, shared
 // EmptyState primitives, self-titled panels (trend + drop-off carry their own
 // headers). Data loading and range logic unchanged.
-// Aurora redesign: funnel-intelligence surface — hero heading with heading
-// font + aurora tick, range .ff-seg pinned in a sticky frosted toolbar just
-// under the app shell header so it stays above the fold, glass KPI tiles and
-// the funnel drop-off panel below. Queries, range state and copy unchanged.
+// Meridian redesign: quiet analytics on paper — Sora heading with muted
+// subtitle, range .ff-seg pinned in a sticky paper toolbar just under the app
+// shell header so it stays above the fold, white KPI panels and the funnel
+// drop-off panel below. Queries, range state and copy unchanged.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -51,20 +51,24 @@ const RANGE_ACTIVE_STYLE = {
   boxShadow: "var(--ff-shadow-sm)",
 } as const;
 
-// Sticky range toolbar: a frosted glass strip pinned just under the app shell
-// header (3.75rem tall, z-40) so the range control rides above the fold while
-// the funnel scrolls beneath it. Inline styles because unlayered recipes beat
-// Tailwind utilities.
+// Sticky range toolbar: a paper strip pinned just under the app shell header
+// (3.75rem tall, z-40) so the range control rides above the fold while the
+// funnel scrolls beneath it. --ff-glass is the design system's sticky-chrome
+// token (near-opaque paper); no backdrop blur — Meridian keeps chrome crisp.
+// Inline styles because unlayered recipes beat Tailwind utilities.
 const RANGE_BAR_STYLE = {
   background: "var(--ff-glass)",
   border: "1px solid var(--ff-glass-border)",
-  backdropFilter: "blur(10px) saturate(1.35)",
-  WebkitBackdropFilter: "blur(10px) saturate(1.35)",
-  boxShadow: "var(--ff-shadow-md)",
+  borderRadius: "var(--ff-radius)",
+  boxShadow: "var(--ff-shadow-sm)",
 } as const;
 
+// Sora display heading, tightened to the Meridian editorial scale.
 const HEADING_STYLE = {
   fontFamily: "var(--ff-font-heading)",
+  fontSize: "clamp(1.75rem, 3vw, 2.5rem)",
+  letterSpacing: "-0.02em",
+  fontWeight: 600,
 } as const;
 
 const MONO_STYLE = {
@@ -85,14 +89,8 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
           <Icon name="arrowLeft" size={14} />
           Results
         </Link>
-        {/* aurora tick — gradient dash introducing the funnel surface */}
-        <span
-          aria-hidden="true"
-          className="mt-3 block h-1 w-10 rounded-full"
-          style={{ background: "var(--ff-grad)" }}
-        />
-        <div className="mt-2 flex items-baseline gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="text-[var(--ff-fg)]" style={HEADING_STYLE}>
             Analytics
           </h1>
           {/* INTEGRATION-DEBT: the document title lives behind the client-side
@@ -102,9 +100,12 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
             {docId}
           </span>
         </div>
+        <p className="mt-1.5 text-sm text-[var(--ff-muted)]">
+          Views, starts, completions and per-question drop-off for the selected range.
+        </p>
       </header>
 
-      <div className="sticky top-[3.75rem] z-30 flex justify-end rounded-2xl px-2 py-1.5" style={RANGE_BAR_STYLE}>
+      <div className="sticky top-[3.75rem] z-30 flex justify-end px-2 py-1.5" style={RANGE_BAR_STYLE}>
         <nav aria-label="Range" className={SEG}>
           <Link
             href={`/d/${docId}/analytics?range=7`}

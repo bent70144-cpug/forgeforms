@@ -1,14 +1,15 @@
 // T19 — 30-day trend chart: PURE SVG (spec §14.1.5, issue #19: no chart lib).
 // Server component; three series over the same UTC day axis.
 // B6 redesign: token-driven series colors (--ff-chart-1/2/3, dark-mode safe),
-// gradient wash under the primary series, non-scaling strokes, 12px mono axis
-// labels with tabular numerals, canonical .ff-panel chrome with header legend.
-// Aurora redesign: grid hairlines softened via color-mix on the token border
-// (keeps the baseline at --ff-border-strong) and pill-shaped legend swatches.
-// Geometry helpers (chart-geometry.ts) are untouched.
+// non-scaling strokes, mono axis labels with tabular numerals, canonical
+// .ff-panel chrome with header legend.
+// Meridian redesign: quiet print-style chart — solid 1px hairline grid on the
+// token border, flat 12% ultramarine wash under the primary series (no
+// gradient defs, no glow), 11px muted mono axis labels, 8px round legend
+// dots. Geometry helpers (chart-geometry.ts) are untouched.
 // R3 mobile: the svg carries .ff-trend-axis + data-alt on odd axis labels so
 // globals.css can enlarge/thin labels on phones (viewBox scaling would
-// otherwise render the 12px labels at ~5.5px on a 390px screen).
+// otherwise render the 11px labels at ~5px on a 390px screen).
 import {
   buildAreaPath,
   buildLinePath,
@@ -60,7 +61,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
             <span key={s.key} className="inline-flex items-center gap-1.5">
               <span
                 aria-hidden="true"
-                className="inline-block h-1.5 w-4 rounded-full"
+                className="inline-block h-2 w-2 rounded-full"
                 style={{ backgroundColor: s.color }}
               />
               {s.label}
@@ -78,13 +79,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
         aria-label="Daily trend of views, starts and completions"
         className="ff-trend-axis h-auto w-full"
       >
-        <defs>
-          <linearGradient id="ff-trend-views-wash" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" style={{ stopColor: "var(--ff-chart-1)", stopOpacity: 0.14 }} />
-            <stop offset="100%" style={{ stopColor: "var(--ff-chart-1)", stopOpacity: 0 }} />
-          </linearGradient>
-        </defs>
-        {/* horizontal grid — dashed hairline, token border softened to 60% */}
+        {/* horizontal grid — solid 1px hairlines on the token border */}
         {[0.25, 0.5, 0.75, 1].map((fraction) => {
           const y = scaleY(max * fraction, max, HEIGHT, PAD.top, PAD.bottom);
           return (
@@ -94,8 +89,9 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
               x2={WIDTH - PAD.right}
               y1={y}
               y2={y}
-              strokeDasharray="2 4"
-              style={{ stroke: "color-mix(in srgb, var(--ff-border) 60%, transparent)" }}
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+              style={{ stroke: "var(--ff-border)" }}
             />
           );
         })}
@@ -104,7 +100,9 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
           x2={WIDTH - PAD.right}
           y1={baseline}
           y2={baseline}
-          style={{ stroke: "var(--ff-border-strong)" }}
+          strokeWidth={1}
+          vectorEffect="non-scaling-stroke"
+          style={{ stroke: "var(--ff-border)" }}
         />
         {series.map((point, i) => (
           <text
@@ -112,7 +110,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
             x={scaleX(i, series.length, WIDTH, PAD.left, PAD.right)}
             y={HEIGHT - 8}
             textAnchor="middle"
-            fontSize={12}
+            fontSize={11}
             data-alt={i % 2 === 1 ? "" : undefined}
             style={AXIS_TEXT_STYLE}
           >
@@ -127,7 +125,10 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
           return (
             <g key={s.key}>
               {s.key === "views" && points.length > 1 ? (
-                <path d={buildAreaPath(points, baseline)} fill="url(#ff-trend-views-wash)" />
+                <path
+                  d={buildAreaPath(points, baseline)}
+                  fill="color-mix(in srgb, var(--ff-chart-1) 12%, transparent)"
+                />
               ) : null}
               <path
                 d={buildLinePath(points)}

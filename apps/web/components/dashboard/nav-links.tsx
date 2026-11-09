@@ -1,21 +1,21 @@
 "use client";
 
-// App-shell navigation (F4, aurora redesign): pill nav + the mobile menu.
+// App-shell navigation (F4, Meridian redesign): editorial nav rows + the
+// mobile menu.
 //
-// · NavLinks — the primary nav rendered as pills. The active route
-//   (usePathname) gets aria-current="page", a violet-tinted pill
-//   (color-mix with --ff-primary) plus a soft violet glow; inactive pills
-//   hover to a cyan tint (and the active pill deepens its violet). Colors
-//   resolve through two local custom properties (--ff-nav-fg / --ff-nav-bg)
-//   that inline styles consume: globals.css ships unlayered
-//   `.ff-app-header nav a` rules that would beat layered Tailwind utilities,
-//   and inline styles win there; hover variants flip the custom properties,
-//   so hover works despite the inline color/background. No bar/underline
-//   indicator anymore — the pill IS the active indicator.
+// · NavLinks — the primary nav rendered as quiet paper rows. The active route
+//   (usePathname) gets aria-current="page", an ultramarine 10% tint
+//   background, ultramarine text and — on vertical rows — a 2px left
+//   ultramarine indicator; inactive rows keep ink text with muted icons and
+//   hover to the recessed --ff-bg-2 wash. (The old inline-style custom-
+//   property dance existed to beat the unlayered `.ff-app-header nav a` rules;
+//   both nav regions now render outside the header, so plain layered
+//   utilities are enough.) Keyboard focus comes from the global
+//   `a:focus-visible` rule in globals.css (2px accent outline).
 // · MobileMenu — the <md menu button + Drawer sheet (right, 18rem) with the
-//   same links, workspace name, user email and a sign-out form. The Drawer
-//   primitive owns Esc / backdrop / focus handling; this component only closes
-//   on route change so tapping a link dismisses the sheet.
+//   same links, workspace name and a sign-out form. The Drawer primitive owns
+//   Esc / backdrop / focus handling; this component only closes on route
+//   change so tapping a link dismisses the sheet.
 //   (`md:hidden!` carries an important modifier: .ff-icon-btn is unlayered CSS
 //   and would otherwise beat the layered md:hidden utility, leaving the
 //   hamburger visible on desktop.)
@@ -26,8 +26,6 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/ui/icons";
 import { Drawer } from "@/components/ui/drawer";
 import { ICON_BTN } from "@/lib/ui";
-
-const EASE = "var(--ff-ease-out)";
 
 export type NavItem = {
   href: string;
@@ -55,11 +53,11 @@ export function isNavActive(pathname: string, href: string): boolean {
   return firstSegment(href) === firstSegment(pathname);
 }
 
-// Shared pill base. :focus-visible styling comes from the unlayered global
+// Shared row base. :focus-visible styling comes from the unlayered global
 // `a:focus-visible` rule in globals.css (2px accent outline), which beats any
 // layered utility — so no Tailwind focus classes are needed here.
-const PILL =
-  "relative inline-flex select-none items-center rounded-full no-underline";
+const NAV_ROW =
+  "relative inline-flex select-none items-center no-underline transition-colors";
 
 export function NavLinks({
   items,
@@ -81,30 +79,37 @@ export function NavLinks({
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={[
-              PILL,
+              NAV_ROW,
               vertical
-                ? "min-h-[2.75rem] w-full gap-2.5 px-3.5 text-[0.9375rem]" // 44px touch row
-                : "h-8 gap-1.5 px-3 text-[0.875rem]",
-              // Inactive pills hover to a cyan tint; the active pill deepens
-              // its violet instead. One hover rule per state — no cascade
-              // fights between the two.
+                ? "min-h-[2.75rem] w-full gap-2.5 rounded-[10px] px-3 text-[0.9375rem]" // 44px touch row
+                : "h-9 gap-2 rounded-lg px-3 text-[0.875rem]",
+              // Inactive rows hover to the recessed paper wash; the active
+              // row deepens its ultramarine tint instead. One hover rule per
+              // state — no cascade fights between the two.
               active
-                ? "[--ff-nav-bg:color-mix(in_srgb,var(--ff-primary)_16%,transparent)] hover:[--ff-nav-bg:color-mix(in_srgb,var(--ff-primary)_24%,transparent)]"
-                : "hover:[--ff-nav-fg:color-mix(in_srgb,var(--ff-accent)_40%,var(--ff-fg))] hover:[--ff-nav-bg:color-mix(in_srgb,var(--ff-accent)_8%,transparent)]",
+                ? "bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] font-semibold text-[var(--ff-primary)] hover:bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)]"
+                : "font-medium text-[var(--ff-fg)] hover:bg-[var(--ff-bg-2)]",
             ].join(" ")}
-            style={{
-              // Inline styles beat the unlayered `.ff-app-header nav a` rules;
-              // the hover variants above flip the custom properties they read.
-              color: `var(--ff-nav-fg, ${active ? "var(--ff-fg)" : "var(--ff-muted)"})`,
-              background: "var(--ff-nav-bg, transparent)",
-              fontWeight: active ? 600 : 500,
-              boxShadow: active
-                ? "inset 0 0 0 1px color-mix(in srgb, var(--ff-primary) 30%, transparent), 0 2px 14px -4px color-mix(in srgb, var(--ff-primary) 42%, transparent)"
-                : "none",
-              transition: `color 150ms ${EASE}, background-color 150ms ${EASE}, box-shadow 150ms ${EASE}`,
-            }}
+            style={
+              // 2px left ultramarine indicator — vertical (sidebar/drawer)
+              // rows only; the horizontal variant reads better without it.
+              vertical && active
+                ? { boxShadow: "inset 2px 0 0 0 var(--ff-primary)" }
+                : undefined
+            }
           >
-            {item.icon ? <Icon name={item.icon} size={vertical ? 17 : 15} /> : null}
+            {item.icon ? (
+              <span
+                aria-hidden="true"
+                className={
+                  active
+                    ? "inline-flex text-[var(--ff-primary)]"
+                    : "inline-flex text-[var(--ff-muted)]"
+                }
+              >
+                <Icon name={item.icon} size={vertical ? 17 : 15} />
+              </span>
+            ) : null}
             <span className={vertical ? "flex-1" : undefined}>{item.label}</span>
           </Link>
         );
@@ -158,16 +163,20 @@ export function MobileMenu({
         width="18rem"
         footer={signOut}
       >
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-medium text-[var(--ff-muted)]">
+        <div className="flex flex-col">
+          {/* workspace block — hairline rule separates it from the nav */}
+          <div className="pb-4" style={{ borderBottom: "1px solid var(--ff-border)" }}>
+            <p className="m-0 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
               Workspace
-            </span>
-            <span className="ff-chip max-w-full truncate" title={workspaceName}>
+            </p>
+            <p
+              className="m-0 mt-1 truncate text-sm font-medium text-[var(--ff-fg)]"
+              title={workspaceName}
+            >
               {workspaceName}
-            </span>
+            </p>
           </div>
-          <nav aria-label="Primary" className="flex flex-col">
+          <nav aria-label="Primary" className="flex flex-col pt-3">
             <NavLinks items={items} orientation="vertical" />
           </nav>
         </div>

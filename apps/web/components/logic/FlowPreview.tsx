@@ -5,10 +5,11 @@
 // path + final ending. Also lists blocking lint errors (dangling goto …)
 // exactly as publish will gate on them.
 //
-// Aurora redesign (task 10/13): mini-map style preview card with muted chrome
-// — a recessed well for the simulated path, a violet→cyan gradient rail on the
-// numbered steps, mono step numerals, cyan goto targets, and a gradient tile
-// in the header. Simulation/lint logic is unchanged.
+// Meridian redesign (task 10/13): the same node language as the canvas, at
+// preview density — a recessed paper well for the simulated path, white
+// hairline step cards with mono numerals in ultramarine circles, terracotta
+// goto targets, a quiet tinted tile in the header, and no canvas controls
+// (read-only). Simulation/lint logic is unchanged.
 
 import { useMemo, useState } from "react";
 import type { DocumentBody } from "@/lib/bridge";
@@ -20,17 +21,21 @@ import { sampleAnswers, simulateFlow } from "@/lib/logic/preview";
 // .ff-input defaults are unlayered CSS → width/size overrides need `!`.
 const PREVIEW_INPUT = "ff-input min-h-[2.25rem]! rounded-lg! px-2! text-[13px]!";
 
-/** Header tile — gradient icon chip matching the aurora node tiles. */
+/** Header tile — quiet ultramarine tint, matching the canvas node tiles. */
 const HEADER_TILE =
-  "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]";
+  "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border border-[color-mix(in_srgb,var(--ff-primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-card))] text-[var(--ff-primary)]";
 
-/** Numbered step circle on the path rail (mono numeral, violet glass fill). */
+/** Numbered step circle on the path rail (mono numeral, white hairline ring). */
 const STEP_CIRCLE =
-  "relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--ff-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_14%,var(--ff-card))] font-mono text-[10px] font-semibold text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]";
+  "relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--ff-border-strong)] bg-[var(--ff-card)] font-mono text-[10px] font-semibold text-[var(--ff-primary)]";
 
-/** Recessed well for the simulated path (mini-map chrome). */
+/** Recessed paper well for the simulated path. */
 const PATH_WELL =
-  "rounded-xl border border-[var(--ff-glass-border)] bg-[color-mix(in_srgb,var(--ff-bg)_45%,var(--ff-card))] p-3";
+  "rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-bg-2)] p-3";
+
+/** One step of the path, styled as a mini node card (same language as canvas). */
+const STEP_CARD =
+  "min-w-0 flex-1 truncate rounded-lg border border-[var(--ff-border)] bg-[var(--ff-card)] px-2 py-1 text-xs text-[var(--ff-muted)] shadow-[var(--ff-shadow-sm)]";
 
 export function FlowPreview({ body }: { body: DocumentBody }) {
   const questions = useMemo(() => questionBlocks(body.blocks ?? []), [body.blocks]);
@@ -65,11 +70,11 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
   }, [body.blocks, body.endings]);
 
   return (
-    <section className={`${CARD} p-5`} data-testid="flow-preview" aria-label="Preview flow">
+    <section className={`${CARD} p-4`} data-testid="flow-preview" aria-label="Preview flow">
       <div className="flex items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--ff-fg)]">
-          <span aria-hidden="true" className={HEADER_TILE} style={{ background: "var(--ff-grad)" }}>
-            <Icon name="flow" size={13} className="text-[var(--ff-primary-fg)]" />
+          <span aria-hidden="true" className={HEADER_TILE}>
+            <Icon name="flow" size={13} />
           </span>
           Preview
         </h2>
@@ -142,11 +147,11 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
                 {i < simulation.steps.length - 1 && (
                   <span
                     aria-hidden="true"
-                    className="absolute -bottom-2.5 left-[9.5px] top-[22px] w-px bg-[linear-gradient(180deg,var(--ff-primary),var(--ff-accent))] opacity-45"
+                    className="absolute -bottom-2.5 left-[9.5px] top-[22px] w-px bg-[var(--ff-border-strong)]"
                   />
                 )}
                 <span className={STEP_CIRCLE}>{i + 1}</span>
-                <span className="min-w-0 truncate text-xs text-[var(--ff-muted)]">
+                <span className={STEP_CARD}>
                   <span className="font-medium text-[var(--ff-fg)]">
                     {nodeById.get(step.blockId) ?? step.blockId}
                   </span>

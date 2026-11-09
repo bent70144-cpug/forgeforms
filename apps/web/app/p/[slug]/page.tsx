@@ -10,7 +10,7 @@ import {
 } from "@formforge/renderer";
 import { ReportAbuseLink } from "@/components/public/report-abuse-link";
 import { Icon } from "@/components/ui/icons";
-import { BTN_PRIMARY } from "@/lib/ui";
+import { BTN_GHOST } from "@/lib/ui";
 import { documentsApi } from "@/lib/api/documents";
 
 /**
@@ -21,7 +21,7 @@ import { documentsApi } from "@/lib/api/documents";
  *
  * Chrome note (2026 redesign): the document itself renders through the
  * renderer with its own per-document theme; everything AROUND it (gone/unavailable
- * state, abuse-link footer) is app chrome on the aurora-glass token canvas.
+ * state, abuse-link footer) is app chrome on the Meridian paper token canvas.
  */
 export const revalidate = 60;
 
@@ -44,34 +44,22 @@ export async function generateMetadata({ params }: PublicPageProps): Promise<Met
 
 /**
  * "Gone" chrome for unpublished/deleted documents (spec §8: HTTP 410 semantics).
- * Centered aurora-glass card — gradient icon tile, clear message, muted support
- * line. Same messaging/semantics as the previous renderer `GoneView`; the
- * document rendering surface is untouched.
+ * Centered white panel on the Meridian paper canvas — quiet line icon on a
+ * recessed circle, mono status numeral, Sora title, muted support lines, ghost
+ * back action. Same messaging/semantics as the previous renderer `GoneView`;
+ * the document rendering surface is untouched.
  */
 function GoneCard() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--ff-bg)] px-6 py-16 text-[var(--ff-fg)]">
-      <div
-        className="ff-panel w-full max-w-md p-8 text-center"
-        style={{
-          background: "var(--ff-glass)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-          boxShadow: "var(--ff-glow-soft)",
-        }}
-      >
+      <div className="ff-panel w-full max-w-md p-8 text-center">
         <span
           aria-hidden="true"
-          className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px]"
-          style={{
-            background: "var(--ff-grad)",
-            color: "var(--ff-primary-fg)",
-            boxShadow: "var(--ff-glow)",
-          }}
+          className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-[var(--ff-border)] bg-[var(--ff-bg-2)] text-[var(--ff-muted)]"
         >
-          <Icon name="alert" size={22} />
+          <Icon name="alert" size={20} />
         </span>
-        <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-[var(--ff-muted)]">410</p>
+        <p className="mt-5 font-mono text-xs font-medium uppercase tracking-widest text-[var(--ff-muted)]">410</p>
         <h1
           className="mt-2 text-2xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]"
           style={{ fontFamily: "var(--ff-font-heading)" }}
@@ -84,7 +72,7 @@ function GoneCard() {
         <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">
           If you own this document, republish it to restore access.
         </p>
-        <Link href="/" className={`${BTN_PRIMARY} mt-6`}>
+        <Link href="/" className={`${BTN_GHOST} mt-6`}>
           Go home
         </Link>
       </div>

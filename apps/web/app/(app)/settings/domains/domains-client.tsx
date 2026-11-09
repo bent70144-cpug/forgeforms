@@ -7,13 +7,15 @@
 // prompts live only in settings and the error response, never in editing
 // surfaces).
 //
-// Presentation notes (aurora glass): DNS records render as mono chips with a
-// copy action for BOTH name and value (aria-label'd, swap to a check when
-// copied; the same shared copy() handler feeds the live region); the "Copied"
-// announcement lives on a visually-hidden live region instead of the whole
-// instructions region; removal goes through the shared Modal primitive instead
-// of window.confirm (row-level Remove is a quiet danger ghost — the Modal's
-// confirm button keeps the solid destructive treatment).
+// Presentation notes (Meridian): DNS records render on a recessed --ff-bg-2
+// well with 13px JetBrains Mono values and a copy action for BOTH name and
+// value (aria-label'd, swap to a check when copied; the same shared copy()
+// handler feeds the live region); the "Copied" announcement lives on a
+// visually-hidden live region instead of the whole instructions region;
+// domain rows are separated by 1px hairline rules; removal goes through the
+// shared Modal primitive instead of window.confirm (row-level Remove is a
+// quiet danger ghost — the Modal's confirm button keeps the solid
+// destructive treatment).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -38,11 +40,11 @@ import {
 
 // Row-level destructive action renders as a quiet ghost; the confirming
 // action inside the Modal keeps the solid destructive button.
-const BTN_DANGER_GHOST_SM = 'ff-btn ff-btn-ghost ff-btn-sm text-[var(--ff-danger)]';
+const BTN_DANGER_GHOST_SM = 'ff-btn ff-btn-ghost--danger ff-btn-sm';
 
-// Compact copy affordance that fits inside a mono chip (inline sizes override
-// the 2rem .ff-icon-btn recipe without touching the shared class).
-const CHIP_COPY_BTN_STYLE = { width: '1.5rem', height: '1.5rem' } as const;
+// Compact copy affordance that fits beside a 13px mono value (inline sizes
+// override the 2rem .ff-icon-btn recipe without touching the shared class).
+const SMALL_COPY_BTN_STYLE = { width: '1.5rem', height: '1.5rem' } as const;
 
 type LoadState =
   | { kind: 'loading' }
@@ -291,42 +293,43 @@ export function DomainsClient() {
               return (
                 <li
                   key={rowKey}
-                  className="rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,var(--ff-bg))] px-3 py-2.5"
+                  className="rounded-[10px] border border-[var(--ff-border)] bg-[var(--ff-bg-2)] px-3 py-2.5"
                 >
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
                     <span className={`${BADGE_ACCENT} font-mono text-xs`}>{record.type}</span>
-                    {/* name and value are mono chips, each with its own copy
-                        action — same shared copy() handler and live region */}
+                    {/* name and value are plain 13px mono on the recessed
+                        well, each with its own copy action — same shared
+                        copy() handler and live region */}
                     <span
-                      className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                      className="min-w-0 max-w-full truncate font-mono text-[13px] text-[var(--ff-fg)]"
                       title={record.name}
                     >
-                      <span className="min-w-0 truncate">{record.name}</span>
-                      <button
-                        type="button"
-                        aria-label="Copy record name"
-                        onClick={() => void copy(nameKey, 'record name', record.name)}
-                        className={ICON_BTN}
-                        style={CHIP_COPY_BTN_STYLE}
-                      >
-                        <Icon name={copiedKey === nameKey ? 'check' : 'copy'} size={12} />
-                      </button>
+                      {record.name}
                     </span>
+                    <button
+                      type="button"
+                      aria-label="Copy record name"
+                      onClick={() => void copy(nameKey, 'record name', record.name)}
+                      className={ICON_BTN}
+                      style={SMALL_COPY_BTN_STYLE}
+                    >
+                      <Icon name={copiedKey === nameKey ? 'check' : 'copy'} size={12} />
+                    </button>
                     <span
-                      className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                      className="min-w-0 max-w-full truncate font-mono text-[13px] text-[var(--ff-fg)]"
                       title={record.value}
                     >
-                      <span className="min-w-0 truncate">{record.value}</span>
-                      <button
-                        type="button"
-                        aria-label="Copy record value"
-                        onClick={() => void copy(valueKey, 'record value', record.value)}
-                        className={ICON_BTN}
-                        style={CHIP_COPY_BTN_STYLE}
-                      >
-                        <Icon name={copiedKey === valueKey ? 'check' : 'copy'} size={12} />
-                      </button>
+                      {record.value}
                     </span>
+                    <button
+                      type="button"
+                      aria-label="Copy record value"
+                      onClick={() => void copy(valueKey, 'record value', record.value)}
+                      className={ICON_BTN}
+                      style={SMALL_COPY_BTN_STYLE}
+                    >
+                      <Icon name={copiedKey === valueKey ? 'check' : 'copy'} size={12} />
+                    </button>
                   </div>
                   <p className="mt-1.5 text-xs leading-relaxed text-[var(--ff-muted)]">
                     {record.purpose}
@@ -491,7 +494,7 @@ export function DomainsClient() {
                   </span>
                 )}
                 {domain.lastError ? <span className={BADGE_DANGER}>DNS error</span> : null}
-                <p className="min-w-0 text-xs tabular-nums text-[var(--ff-muted)]">
+                <p className="min-w-0 font-mono text-xs tabular-nums text-[var(--ff-muted)]">
                   Added {relativeTime(domain.createdAt)} · Checked{' '}
                   {relativeTime(domain.lastCheckedAt)}
                   {domain.verifiedAt ? ` · Verified ${relativeTime(domain.verifiedAt)}` : ''}
@@ -533,7 +536,7 @@ export function DomainsClient() {
               )}
               {domain.status !== 'verified' && (
                 <dl
-                  className="mt-3 grid gap-1.5 rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,var(--ff-bg))] px-3 py-2.5"
+                  className="mt-3 grid gap-1.5 rounded-[10px] border border-[var(--ff-border)] bg-[var(--ff-bg-2)] px-3 py-2.5"
                   aria-label="DNS records for this domain"
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -542,31 +545,31 @@ export function DomainsClient() {
                     </dt>
                     <dd className="m-0 flex min-w-0 flex-wrap items-center gap-2">
                       <span
-                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        className="min-w-0 max-w-full truncate font-mono text-[13px] text-[var(--ff-fg)]"
                         title={domain.txtName}
                       >
-                        <span className="min-w-0 truncate">{domain.txtName}</span>
+                        {domain.txtName}
                       </span>
                       <span
-                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        className="min-w-0 max-w-full truncate font-mono text-[13px] text-[var(--ff-fg)]"
                         title={domain.txtValue}
                       >
-                        <span className="min-w-0 truncate">{domain.txtValue}</span>
-                        <button
-                          type="button"
-                          aria-label="Copy TXT record value"
-                          onClick={() =>
-                            void copy(`${domain.id}:txt`, 'TXT value', domain.txtValue)
-                          }
-                          className={ICON_BTN}
-                          style={CHIP_COPY_BTN_STYLE}
-                        >
-                          <Icon
-                            name={copiedKey === `${domain.id}:txt` ? 'check' : 'copy'}
-                            size={12}
-                          />
-                        </button>
+                        {domain.txtValue}
                       </span>
+                      <button
+                        type="button"
+                        aria-label="Copy TXT record value"
+                        onClick={() =>
+                          void copy(`${domain.id}:txt`, 'TXT value', domain.txtValue)
+                        }
+                        className={ICON_BTN}
+                        style={SMALL_COPY_BTN_STYLE}
+                      >
+                        <Icon
+                          name={copiedKey === `${domain.id}:txt` ? 'check' : 'copy'}
+                          size={12}
+                        />
+                      </button>
                     </dd>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -575,31 +578,31 @@ export function DomainsClient() {
                     </dt>
                     <dd className="m-0 flex min-w-0 flex-wrap items-center gap-2">
                       <span
-                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        className="min-w-0 max-w-full truncate font-mono text-[13px] text-[var(--ff-fg)]"
                         title={domain.hostname}
                       >
-                        <span className="min-w-0 truncate">{domain.hostname}</span>
+                        {domain.hostname}
                       </span>
                       <span
-                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        className="min-w-0 max-w-full truncate font-mono text-[13px] text-[var(--ff-fg)]"
                         title={domain.cnameTarget}
                       >
-                        <span className="min-w-0 truncate">→ {domain.cnameTarget}</span>
-                        <button
-                          type="button"
-                          aria-label="Copy CNAME target"
-                          onClick={() =>
-                            void copy(`${domain.id}:cname`, 'CNAME target', domain.cnameTarget)
-                          }
-                          className={ICON_BTN}
-                          style={CHIP_COPY_BTN_STYLE}
-                        >
-                          <Icon
-                            name={copiedKey === `${domain.id}:cname` ? 'check' : 'copy'}
-                            size={12}
-                          />
-                        </button>
+                        → {domain.cnameTarget}
                       </span>
+                      <button
+                        type="button"
+                        aria-label="Copy CNAME target"
+                        onClick={() =>
+                          void copy(`${domain.id}:cname`, 'CNAME target', domain.cnameTarget)
+                        }
+                        className={ICON_BTN}
+                        style={SMALL_COPY_BTN_STYLE}
+                      >
+                        <Icon
+                          name={copiedKey === `${domain.id}:cname` ? 'check' : 'copy'}
+                          size={12}
+                        />
+                      </button>
                     </dd>
                   </div>
                 </dl>

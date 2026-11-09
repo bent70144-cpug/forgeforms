@@ -16,6 +16,7 @@ import { useState } from "react";
 import type { Block } from "@formforge/schema";
 import { FILE_UPLOAD_BLOCK_MAX_MB, getBlockDef } from "@formforge/blocks";
 import { findBlock } from "@/lib/builder/ops";
+import { BTN_SECONDARY_SM } from "@/lib/ui";
 import { useBuilder } from "../context";
 import { SettingsSection, FieldRow, InlineNote, FF_SET_INPUT_CLASS } from "./FieldRow";
 import { ToggleRow } from "./ToggleRow";
@@ -260,11 +261,12 @@ function BlockSettingsLoaded({
               value={block.id}
               aria-readonly="true"
               data-testid="ff-set-block-id"
-              className={`${FF_SET_INPUT_CLASS} font-mono text-xs`}
+              className={FF_SET_INPUT_CLASS}
+              style={{ fontFamily: "var(--ff-font-mono)", fontSize: "0.75rem" }}
             />
             <button
               type="button"
-              className="ff-set-btn"
+              className={`${BTN_SECONDARY_SM} shrink-0 self-start`}
               aria-label="Copy block id"
               data-testid="ff-set-copy-id"
               onClick={() => {

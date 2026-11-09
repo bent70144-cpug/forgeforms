@@ -4,7 +4,7 @@
 // click the label → edit in place; Enter commits (newline in multiline),
 // Esc cancels, blur commits. Controlled by the parent card so the card's
 // Enter keydown can open the editor (§6.5 keyboard map).
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type CSSProperties, type KeyboardEvent } from "react";
 
 export type InlineEditableProps = {
   value: string;
@@ -98,7 +98,7 @@ export function InlineEditable({
         title="Click to edit"
         onClick={onBegin}
         dir="auto"
-        className="-mx-0.5 cursor-text rounded px-0.5 transition-opacity duration-150 hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_16%,transparent)]"
+        className="-mx-0.5 cursor-text rounded-[4px] px-0.5 outline-1 outline-dashed outline-transparent transition-[outline-color] duration-150 hover:[outline-color:var(--ff-border-strong)]"
       >
         {value}
       </span>
@@ -119,7 +119,8 @@ export function InlineEditable({
     onKeyDown: handleKeyDown,
     onBlur: commit,
     className:
-      "w-full rounded-lg border border-[color:var(--ff-primary)] bg-[color:var(--ff-bg)] px-1.5 py-1 text-sm text-[color:var(--ff-fg)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-primary)_20%,transparent)] outline-none",
+      "w-full rounded-md bg-[color:color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-bg))] px-1.5 py-1 text-sm text-[color:var(--ff-fg)] outline-[1.5px] outline-offset-2 outline-[color:var(--ff-primary)]",
+    style: { caretColor: "var(--ff-primary)" } as CSSProperties,
   };
 
   return multiline ? <textarea {...shared} rows={3} /> : <input type="text" {...shared} />;

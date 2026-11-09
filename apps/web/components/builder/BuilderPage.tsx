@@ -507,14 +507,12 @@ function BuilderSession({
           className="ff-panel max-w-md p-6 text-sm"
           role="alert"
           style={{
-            background: "var(--ff-glass)",
-            WebkitBackdropFilter: "blur(14px) saturate(1.4)",
-            backdropFilter: "blur(14px) saturate(1.4)",
+            border: "1px solid var(--ff-border)",
             boxShadow: "var(--ff-shadow-lg)",
           }}
         >
           <p
-            className="m-0 font-semibold text-[color:var(--ff-danger)]"
+            className="m-0 text-base font-semibold tracking-[-0.02em] text-[color:var(--ff-danger)]"
             style={{ fontFamily: "var(--ff-font-heading)" }}
           >
             The builder could not load
@@ -523,7 +521,7 @@ function BuilderSession({
           <p className="mt-2 text-xs text-[color:var(--ff-muted)]">
             Set NEXT_PUBLIC_FF_MOCK_BUILDER=1 for the in-memory dev document.
           </p>
-          <button type="button" className="ff-btn ff-btn-secondary mt-3" onClick={retry}>
+          <button type="button" className="ff-btn ff-btn-primary mt-3" onClick={retry}>
             Retry
           </button>
         </div>

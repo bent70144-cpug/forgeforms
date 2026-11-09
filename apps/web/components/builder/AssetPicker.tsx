@@ -16,8 +16,10 @@
 // The modal chrome (dialog + focus trap + Esc + backdrop close) mirrors
 // BlockPicker so the builder keeps one modal posture (§12).
 //
-// 2026 restyle: aurora glass body, tokenized tabs/fields, semantic scan-state
-// badges (BADGE_*) and BTN_* actions. Upload/scan flows untouched.
+// 2026 restyle: Meridian white modal (hairline border, print-like shadow, ink
+// scrim), tokenized tabs/fields, semantic scan-state badges (BADGE_*) and
+// BTN_* actions. Library items are hairline grid tiles; a servable tile shows
+// an ultramarine ring on keyboard focus. Upload/scan flows untouched.
 
 import {
   useCallback,
@@ -272,7 +274,12 @@ export function AssetPicker({
 
   return (
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-hidden="true" onClick={onClose} />
+      <div
+        className="absolute inset-0"
+        style={{ background: "rgb(26 29 38 / 0.4)" }}
+        aria-hidden="true"
+        onClick={onClose}
+      />
       <div
         ref={dialogRef}
         role="dialog"
@@ -280,10 +287,10 @@ export function AssetPicker({
         aria-label="Choose an image"
         tabIndex={-1}
         data-testid="ff-asset-picker"
-        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
+        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-lg)] outline-none"
       >
         {/* Tabs */}
-        <div role="tablist" aria-label="Asset source" className="flex border-b border-[color:var(--ff-glass-border)]">
+        <div role="tablist" aria-label="Asset source" className="flex border-b border-[color:var(--ff-border)]">
           {(
             [
               { id: "upload" as Tab, label: "Upload" },
@@ -401,7 +408,11 @@ export function AssetPicker({
                 No images yet — upload your first one.
               </p>
             ) : (
-              <ul id={listId} className="flex max-h-72 flex-col gap-1.5 overflow-y-auto" data-testid="ff-asset-library-list">
+              <ul
+                id={listId}
+                className="m-0 grid max-h-72 list-none grid-cols-2 gap-2 overflow-y-auto p-0 sm:grid-cols-3"
+                data-testid="ff-asset-library-list"
+              >
                 {library.items.map((item) => {
                   const scanStatus = item.asset.scanStatus as ScanStatus;
                   const servable = isServable(scanStatus);
@@ -414,9 +425,9 @@ export function AssetPicker({
                         data-testid="ff-asset-item"
                         data-asset-id={item.asset.id}
                         title={servable ? undefined : scanLabel(scanStatus)}
-                        className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-[opacity] duration-150 ${
+                        className={`flex h-full w-full flex-col gap-2 rounded-xl border p-2 text-left text-sm transition-colors duration-150 ease-[var(--ff-ease-out)] ${
                           servable
-                            ? "border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] hover:border-[color:var(--ff-primary)]"
+                            ? "border-[color:var(--ff-border)] bg-[color:var(--ff-card)] hover:border-[color:var(--ff-primary)] focus-visible:border-[color:var(--ff-primary)] focus-visible:outline focus-visible:outline-[2px] focus-visible:outline-[color:var(--ff-primary)] focus-visible:-outline-offset-1"
                             : "border-[color:var(--ff-border)] opacity-60"
                         }`}
                       >
@@ -426,15 +437,21 @@ export function AssetPicker({
                             src={item.download.url}
                             alt=""
                             aria-hidden="true"
-                            className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                            className="h-14 w-full shrink-0 rounded-lg border border-[color:var(--ff-border)] object-cover"
                           />
                         ) : (
-                          <span aria-hidden="true" className="w-8 text-center">
+                          <span
+                            aria-hidden="true"
+                            style={{ background: "var(--ff-bg-2)" }}
+                            className="flex h-14 w-full shrink-0 items-center justify-center rounded-lg text-lg"
+                          >
                             🖼
                           </span>
                         )}
-                        <span className="min-w-0 flex-1 truncate">{fileNameOf(item.asset.key)}</span>
-                        <span className={`${scanBadgeClass(scanStatus)} shrink-0`}>
+                        <span className="min-w-0 flex-1 truncate" title={fileNameOf(item.asset.key)}>
+                          {fileNameOf(item.asset.key)}
+                        </span>
+                        <span className={`${scanBadgeClass(scanStatus)} shrink-0 self-start`}>
                           {scanLabel(scanStatus)}
                         </span>
                       </button>
@@ -446,7 +463,7 @@ export function AssetPicker({
           </div>
         )}
 
-        <div className="border-t border-[color:var(--ff-glass-border)] px-4 py-2 text-[11px] text-[color:var(--ff-muted)]">
+        <div className="border-t border-[color:var(--ff-border)] px-4 py-2 text-[11px] text-[color:var(--ff-muted)]">
           Esc close{supportsAlt ? " · alt text is prompted after picking" : ""}
         </div>
       </div>

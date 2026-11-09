@@ -32,7 +32,20 @@ import type { Ending, Rule } from "../../lib/bridge";
 import { DEFAULT_THEME_TOKENS, type ThemeTokenKey } from "../../lib/bridge";
 import { newId } from "../../lib/builder/id";
 import type { Op } from "../../lib/builder/ops";
+import {
+  BTN_DESTRUCTIVE_SM,
+  BTN_GHOST_SM,
+  BTN_SECONDARY_SM,
+} from "../../lib/ui";
 import { useBuilder } from "./context";
+
+/** Meridian kicker for right-pane section titles (matches ThemePanel). */
+const SECTION_TITLE =
+  "sticky top-0 z-10 m-0 bg-[color:var(--ff-card)] pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-muted)]";
+/** 13px 500 label for panel fields. */
+const FIELD_LABEL = "text-[13px] font-medium text-[color:var(--ff-fg)]";
+/** Quiet inline help note. */
+const NOTE = "text-xs leading-relaxed text-[color:var(--ff-muted)]";
 
 /** Debounce for ending title/body/redirect text edits. */
 export const ENDING_EDIT_DEBOUNCE_MS = 300;
@@ -221,13 +234,13 @@ export function EndingsPanel() {
 
   if (endings.length === 0 || !selected) {
     return (
-      <div className="ff-th-panel" data-testid="endings-panel">
-        <section aria-label="Endings" className="ff-th-section">
-          <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Endings</h3>
-          <p className="ff-th-note" data-testid="endings-empty">
+      <div className="flex flex-col gap-4 p-3" data-testid="endings-panel">
+        <section aria-label="Endings" className="flex flex-col gap-2">
+          <h3 className={SECTION_TITLE}>Endings</h3>
+          <p className={NOTE} data-testid="endings-empty">
             No endings yet — add one to close the form.
           </p>
-          <button type="button" className="ff-th-btn" onClick={addEnding}>
+          <button type="button" className={`${BTN_SECONDARY_SM} self-start`} onClick={addEnding}>
             Add ending
           </button>
         </section>
@@ -245,17 +258,19 @@ export function EndingsPanel() {
   const effectiveReplacement = replacementId || otherEndings[0]?.id || "";
 
   return (
-    <div className="ff-th-panel" data-testid="endings-panel">
+    <div className="flex flex-col gap-4 p-3" data-testid="endings-panel">
       {/* --- Endings list (§8.3 left-pane rows + preview chip) ---------------- */}
-      <section aria-label="Endings" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Endings</h3>
-        <ul className="ff-th-endings-list" data-testid="endings-list">
+      <section aria-label="Endings" className="flex flex-col gap-2">
+        <h3 className={SECTION_TITLE}>Endings</h3>
+        <ul className="m-0 flex max-h-48 list-none flex-col gap-0.5 overflow-y-auto p-0" data-testid="endings-list">
           {endings.map((ending, idx) => (
             <li key={ending.id}>
               <button
                 type="button"
                 className={
-                  idx === selectedIdx ? "ff-th-ending-row ff-th-ending-row--active" : "ff-th-ending-row"
+                  idx === selectedIdx
+                    ? "flex min-h-9 w-full items-center gap-2 rounded-lg border px-2 text-[13px] text-left transition-colors duration-150 ease-[var(--ff-ease-out)] [border-color:color-mix(in_srgb,var(--ff-primary)_35%,transparent)] bg-[color:color-mix(in_srgb,var(--ff-primary)_8%,transparent)]"
+                    : "flex min-h-9 w-full items-center gap-2 rounded-lg border border-transparent px-2 text-[13px] text-left transition-colors duration-150 ease-[var(--ff-ease-out)] hover:bg-[color:var(--ff-bg-2)]"
                 }
                 aria-current={idx === selectedIdx ? "true" : undefined}
                 data-ending-id={ending.id}
@@ -265,78 +280,81 @@ export function EndingsPanel() {
                 }}
               >
                 <span aria-hidden="true">🏁</span>
-                <span className="ff-th-ending-title" dir="auto">{ending.title}</span>
-                <span className="ff-th-chip" aria-hidden="true">
+                <span className="min-w-0 flex-1 truncate" dir="auto">{ending.title}</span>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 rounded-full border border-[color:var(--ff-border)] px-1.5 text-[10px] leading-4 text-[color:var(--ff-muted)]"
+                >
                   {endingChip(ending)}
                 </span>
               </button>
             </li>
           ))}
         </ul>
-        <button type="button" className="ff-th-btn" data-testid="ending-add" onClick={addEnding}>
+        <button type="button" className={`${BTN_SECONDARY_SM} self-start`} data-testid="ending-add" onClick={addEnding}>
           Add ending
         </button>
       </section>
 
       {/* --- Editor for the selected ending ------------------------------------ */}
-      <section aria-label="Ending editor" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Ending editor</h3>
+      <section aria-label="Ending editor" className="flex flex-col gap-2">
+        <h3 className={SECTION_TITLE}>Ending editor</h3>
 
-        <div className="ff-th-field">
-          <label className="ff-th-row-label" htmlFor="ff-ending-title">
+        <div className="flex flex-col gap-1.5">
+          <label className={FIELD_LABEL} htmlFor="ff-ending-title">
             Title
           </label>
           <input
             id="ff-ending-title"
             type="text"
-            className="ff-th-input"
+            className="ff-input"
             value={titleDraft ?? selected.title}
             onChange={(e) => setTitleDraft(e.target.value)}
           />
         </div>
 
-        <div className="ff-th-field">
-          <label className="ff-th-row-label" htmlFor="ff-ending-body">
+        <div className="flex flex-col gap-1.5">
+          <label className={FIELD_LABEL} htmlFor="ff-ending-body">
             Body
           </label>
           <textarea
             id="ff-ending-body"
-            className="ff-th-input"
+            className="ff-input"
             rows={3}
             value={bodyDraft ?? selected.body ?? ""}
             disabled={bodyLocked}
             onChange={(e) => setBodyDraft(e.target.value)}
           />
           {bodyLocked && (
-            <span className="ff-th-note" role="note">
+            <span className={NOTE} role="note">
               {REDIRECT_NO_BODY_NOTE}
             </span>
           )}
         </div>
 
         {/* Schema has no image field yet (§8.3) — disabled control + note. */}
-        <div className="ff-th-field">
-          <label className="ff-th-row-label" htmlFor="ff-ending-image">
+        <div className="flex flex-col gap-1.5">
+          <label className={FIELD_LABEL} htmlFor="ff-ending-image">
             Image
           </label>
           <input
             id="ff-ending-image"
             type="text"
-            className="ff-th-input"
+            className="ff-input"
             placeholder="https://…"
             disabled
             aria-disabled="true"
           />
-          <span className="ff-th-note">{NOT_AVAILABLE_NOTE}</span>
+          <span className={NOTE}>{NOT_AVAILABLE_NOTE}</span>
         </div>
 
         {/* Schema has no button field yet (§8.3) — disabled controls + note. */}
-        <div className="ff-th-field">
-          <span className="ff-th-row-label">Button</span>
-          <div className="ff-th-row">
+        <div className="flex flex-col gap-1.5">
+          <span className={FIELD_LABEL}>Button</span>
+          <div className="flex gap-1.5">
             <input
               type="text"
-              className="ff-th-input"
+              className="ff-input"
               aria-label="Button label"
               placeholder="Label"
               disabled
@@ -344,27 +362,27 @@ export function EndingsPanel() {
             />
             <input
               type="text"
-              className="ff-th-input"
+              className="ff-input"
               aria-label="Button URL"
               placeholder="https://…"
               disabled
               aria-disabled="true"
             />
           </div>
-          <span className="ff-th-note">{NOT_AVAILABLE_NOTE}</span>
+          <span className={NOTE}>{NOT_AVAILABLE_NOTE}</span>
         </div>
 
         {/* redirectUrl IS in the schema and the custom_redirect entitlement
             is wired (§24): gated on free (disabled + note), free-to-edit on
             pro/business, and the legacy note stands when unknown. */}
-        <div className="ff-th-field">
-          <label className="ff-th-row-label" htmlFor="ff-ending-redirect">
+        <div className="flex flex-col gap-1.5">
+          <label className={FIELD_LABEL} htmlFor="ff-ending-redirect">
             Redirect URL
           </label>
           <input
             id="ff-ending-redirect"
             type="text"
-            className="ff-th-input"
+            className="ff-input"
             placeholder="https://…"
             value={redirectValue}
             spellCheck={false}
@@ -373,32 +391,32 @@ export function EndingsPanel() {
             onChange={(e) => setRedirectDraft(e.target.value)}
           />
           {(redirectGated || customRedirect === undefined) && (
-            <span className="ff-th-note" role="note">
+            <span className={NOTE} role="note">
               {REDIRECT_PRO_NOTE}
             </span>
           )}
           {redirectIssue !== null && (
-            <span className="ff-th-error" role="alert">
+            <span className="text-xs text-[color:var(--ff-danger)]" role="alert">
               {redirectIssue}
             </span>
           )}
         </div>
 
         {/* Schema has no share/restart toggles yet (§8.3). */}
-        <fieldset className="ff-th-field" disabled>
-          <legend className="ff-th-row-label">After submission</legend>
-          <label className="ff-th-row">
-            <input type="checkbox" disabled aria-disabled="true" /> Show Share button
+        <fieldset className="flex flex-col gap-1.5" disabled>
+          <legend className={`${FIELD_LABEL} mb-1 p-0`}>After submission</legend>
+          <label className="flex min-h-9 items-center gap-2 text-sm">
+            <input type="checkbox" disabled aria-disabled="true" className="accent-[color:var(--ff-primary)]" /> Show Share button
           </label>
-          <label className="ff-th-row">
-            <input type="checkbox" disabled aria-disabled="true" /> Show Restart button
+          <label className="flex min-h-9 items-center gap-2 text-sm">
+            <input type="checkbox" disabled aria-disabled="true" className="accent-[color:var(--ff-primary)]" /> Show Restart button
           </label>
-          <span className="ff-th-note">{NOT_AVAILABLE_NOTE}</span>
+          <span className={NOTE}>{NOT_AVAILABLE_NOTE}</span>
         </fieldset>
 
         {/* --- Delete (last-ending guard + logic-reference confirm) ------------ */}
         <div
-          className="ff-th-field rounded-xl border p-3"
+          className="flex flex-col gap-2 rounded-xl border p-3"
           data-testid="ending-delete-zone"
           style={{
             borderColor: "color-mix(in srgb, var(--ff-danger) 35%, transparent)",
@@ -407,7 +425,7 @@ export function EndingsPanel() {
         >
           <button
             type="button"
-            className="ff-th-btn ff-th-btn--danger"
+            className={`${BTN_DESTRUCTIVE_SM} self-start`}
             data-testid="ending-delete"
             disabled={!canDelete}
             aria-disabled={!canDelete}
@@ -418,15 +436,20 @@ export function EndingsPanel() {
           >
             Delete ending
           </button>
-          {!canDelete && <span className="ff-th-note">{LAST_ENDING_NOTE}</span>}
+          {!canDelete && <span className={NOTE}>{LAST_ENDING_NOTE}</span>}
 
           {confirmDelete && referencing.length > 0 && (
-            <div className="ff-th-confirm" role="group" aria-label="Confirm ending deletion">
+            <div
+              className="flex flex-wrap items-center gap-2 rounded-lg border p-2 text-[13px]"
+              role="group"
+              aria-label="Confirm ending deletion"
+              style={{ borderColor: "color-mix(in srgb, var(--ff-danger) 40%, transparent)" }}
+            >
               <span>
                 Used by {referencing.length} {referencing.length === 1 ? "rule" : "rules"} — pick replacement:
               </span>
               <select
-                className="ff-th-select"
+                className="ff-input min-w-0 flex-1"
                 aria-label="Replacement ending"
                 value={effectiveReplacement}
                 onChange={(e) => setReplacementId(e.target.value)}
@@ -439,14 +462,14 @@ export function EndingsPanel() {
               </select>
               <button
                 type="button"
-                className="ff-th-btn ff-th-btn--danger"
+                className={BTN_DESTRUCTIVE_SM}
                 data-testid="ending-delete-confirm"
                 disabled={effectiveReplacement === ""}
                 onClick={() => deleteSelected(effectiveReplacement)}
               >
                 Delete ending
               </button>
-              <button type="button" className="ff-th-btn" onClick={() => setConfirmDelete(false)}>
+              <button type="button" className={BTN_GHOST_SM} onClick={() => setConfirmDelete(false)}>
                 Cancel
               </button>
             </div>
@@ -455,10 +478,10 @@ export function EndingsPanel() {
       </section>
 
       {/* --- Live preview card (§8.3; styles computed from theme tokens) ------- */}
-      <section aria-label="Ending preview" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Preview</h3>
+      <section aria-label="Ending preview" className="flex flex-col gap-2">
+        <h3 className={SECTION_TITLE}>Preview</h3>
         <div
-          className="ff-th-preview"
+          className="flex flex-col gap-2 rounded-xl p-4"
           data-testid="ending-preview"
           style={{
             background: tokens("color.bg"),
@@ -471,6 +494,9 @@ export function EndingsPanel() {
           <h4
             dir="auto"
             style={{
+              margin: 0,
+              fontSize: "1.0625rem",
+              letterSpacing: "-0.01em",
               color: tokens("color.fg"),
               fontFamily: `"${state.body.theme.fontHeading}", system-ui, sans-serif`,
             }}
@@ -478,9 +504,13 @@ export function EndingsPanel() {
             {selected.title}
           </h4>
           {selected.redirectUrl ? (
-            <p dir="auto" style={{ color: tokens("color.muted") }}>Redirects to {selected.redirectUrl}</p>
+            <p dir="auto" style={{ margin: 0, fontSize: "0.8125rem", color: tokens("color.muted") }}>
+              Redirects to {selected.redirectUrl}
+            </p>
           ) : (
-            <p dir="auto" style={{ color: tokens("color.muted") }}>{selected.body || "No body text."}</p>
+            <p dir="auto" style={{ margin: 0, fontSize: "0.8125rem", color: tokens("color.muted") }}>
+              {selected.body || "No body text."}
+            </p>
           )}
           <span
             aria-hidden="true"

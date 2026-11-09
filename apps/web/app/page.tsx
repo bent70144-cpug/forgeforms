@@ -1,4 +1,4 @@
-// FormForge marketing home (Aurora Glass redesign, 2026).
+// FormForge marketing home (Meridian redesign, 2026).
 // Server component; the only interactive island is the hero desk demo.
 // Every link below is a real route; every fact comes from the product
 // (README / spec / template library). No invented metrics, quotes or logos.
@@ -52,27 +52,30 @@ const FEATURES = [
   },
 ] as const;
 
+/* Template preview washes are keyed to the real system palette (--ff-chart-*,
+   --ff-primary/--ff-primary-2, --ff-accent/--ff-success) so they stay quiet on
+   paper and flip with the app's night tokens. */
 const TEMPLATES = [
   {
     slug: "event-rsvp",
     tag: "Form",
     name: "Event RSVP",
     desc: "Collect RSVPs for meetups and launches, with guests counted automatically.",
-    grad: "linear-gradient(135deg, #34d399, #22d3ee)",
+    grad: "linear-gradient(135deg, var(--ff-chart-3), var(--ff-success))",
   },
   {
     slug: "product-landing",
     tag: "Landing page",
     name: "SaaS product landing",
     desc: "A dark, confident launch page: hero, feature pitch, pricing and FAQ.",
-    grad: "linear-gradient(135deg, #6366f1, #6c5cff)",
+    grad: "linear-gradient(135deg, var(--ff-primary), var(--ff-primary-2))",
   },
   {
     slug: "designer-portfolio",
     tag: "Portfolio",
     name: "Product designer portfolio",
     desc: "Case-study-first portfolio with selected work and an embedded inquiry form.",
-    grad: "linear-gradient(135deg, #a855f7, #6c5cff)",
+    grad: "linear-gradient(135deg, var(--ff-accent), var(--ff-chart-2))",
   },
 ] as const;
 
@@ -195,19 +198,19 @@ function IconArrow({ size = 16 }: IconProps) {
 export default function Home() {
   return (
     <div className="ff-land">
-      {/* the aurora field behind everything */}
-      <div className="ff-land-aurora" aria-hidden="true">
-        <span className="ff-land-aurora-blob ff-land-aurora-blob--1" />
-        <span className="ff-land-aurora-blob ff-land-aurora-blob--2" />
-        <span className="ff-land-aurora-blob ff-land-aurora-blob--3" />
+      {/* the meridian field: whisper-quiet washes behind everything */}
+      <div className="ff-land-wash" aria-hidden="true">
+        <span className="ff-land-wash-blob ff-land-wash-blob--1" />
+        <span className="ff-land-wash-blob ff-land-wash-blob--2" />
+        <span className="ff-land-wash-blob ff-land-wash-blob--3" />
       </div>
 
-      {/* Nav: sticky glass, gradient wordmark */}
+      {/* Nav: sticky paper chrome, ultramarine wordmark */}
       <header className="ff-land-header">
         <nav className="ff-land-container ff-land-nav" aria-label="Main">
           <Link href="/" className="ff-land-wordmark">
             <span className="ff-land-logo-mark" aria-hidden="true" />
-            Form<span className="ff-land-wordmark-grad">Forge</span>
+            Form<span className="ff-land-wordmark-accent">Forge</span>
           </Link>
           <div className="ff-land-nav-links">
             <Link href="/templates" className="ff-land-nav-link">
@@ -227,7 +230,7 @@ export default function Home() {
       </header>
 
       <main>
-        {/* Hero: gradient display headline + the desk demo under an aurora glow */}
+        {/* Hero: display headline with one ultramarine accent + the desk demo */}
         <section className="ff-land-container" aria-labelledby="ff-land-hero-h1">
           <div className="ff-land-hero">
             <div className="ff-land-hero-copy">
@@ -240,7 +243,7 @@ export default function Home() {
               <Reveal step={1}>
                 <h1 className="ff-land-h1" id="ff-land-hero-h1">
                   One document,{" "}
-                  <span className="ff-land-grad-text">published every way</span>
+                  <span className="ff-land-accent-text">published every way</span>
                 </h1>
               </Reveal>
               <Reveal step={2}>
@@ -364,7 +367,7 @@ export default function Home() {
                   >
                     <span
                       className="ff-land-tpl-preview"
-                      style={{ "--tpl-grad": tpl.grad } as CSSProperties}
+                      style={{ "--tpl-accent": tpl.grad } as CSSProperties}
                       aria-hidden="true"
                     >
                       <span className="ff-land-tpl-chrome">
@@ -449,14 +452,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The close: glass band with a gradient edge glow */}
+        {/* The close: white card with an ultramarine letterhead rule */}
         <section className="ff-land-section" aria-labelledby="ff-land-close-h2">
           <div className="ff-land-container">
             <Reveal>
               <div className="ff-land-close">
                 <h2 className="ff-land-h2" id="ff-land-close-h2">
                   Author once.{" "}
-                  <span className="ff-land-grad-text">Publish everywhere.</span>
+                  <span className="ff-land-accent-text">Publish everywhere.</span>
                 </h2>
                 <p className="ff-land-lead">
                   Start from a template or a blank page — free to start.
@@ -481,14 +484,14 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer: colophon under a gradient hairline */}
+      {/* Footer: colophon on a recessed paper band */}
       <footer className="ff-land-footer">
         <div className="ff-land-container">
           <div className="ff-land-footer-row">
             <div className="ff-land-footer-brand">
               <span className="ff-land-wordmark">
                 <span className="ff-land-logo-mark" aria-hidden="true" />
-                Form<span className="ff-land-wordmark-grad">Forge</span>
+                Form<span className="ff-land-wordmark-accent">Forge</span>
               </span>
               <p className="ff-land-footer-tag">
                 Forms, landing pages and portfolios — one block-document model.

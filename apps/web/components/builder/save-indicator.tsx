@@ -61,9 +61,27 @@ export function saveStatusLabel(status: AutosaveStatus, message?: string): strin
 }
 
 /**
- * Saving/Saved chip. Announces transitions politely for screen readers
- * (spec §14.4) and shows the error message verbatim on 'error'.
+ * Saving/Saved indicator — quiet mono microtext with a status dot (Meridian):
+ * saved = success, saving/dirty = muted, offline = warning,
+ * error/conflict/unauthenticated = danger. Announces transitions politely
+ * for screen readers (spec §14.4) and shows the error message verbatim on
+ * 'error'. The ff-save-chip classes stay for the test/CSS seam; the visible
+ * styling is the inline Meridian microtext (the live region rides the
+ * wrapper, so the shared `--ok` ::before dot never double-renders).
  */
+const DOT_COLOR: Record<AutosaveStatus, string> = {
+  idle: 'var(--ff-success)',
+  dirty: 'var(--ff-muted)',
+  saving: 'var(--ff-muted)',
+  saved: 'var(--ff-success)',
+  conflict: 'var(--ff-danger)',
+  error: 'var(--ff-danger)',
+  // §4/§7.1: offline keeps the queue — warning, not scary error.
+  offline: 'var(--ff-warning)',
+  // §7.1 follow-up #3: session expired — the re-auth dialog is shown.
+  unauthenticated: 'var(--ff-danger)',
+};
+
 export function SaveIndicator({ store }: { store: SaveStatusStore }) {
   const snapshot = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot);
   const label = saveStatusLabel(snapshot.status, snapshot.message);
@@ -72,13 +90,28 @@ export function SaveIndicator({ store }: { store: SaveStatusStore }) {
       ? 'error'
       : 'ok';
   return (
-    <span
-      className={`ff-save-chip ff-save-chip--${tone}`}
-      role="status"
-      aria-live="polite"
-      data-save-status={snapshot.status}
-    >
-      {label}
+    <span role="status" aria-live="polite">
+      <span
+        className={`ff-save-chip ff-save-chip--${tone}`}
+        data-save-status={snapshot.status}
+        style={{
+          background: 'transparent',
+          borderColor: 'transparent',
+          padding: '0.25rem 0.5rem',
+          fontFamily: 'var(--ff-font-mono)',
+          fontSize: '0.6875rem',
+          letterSpacing: '0.01em',
+          fontVariantNumeric: 'tabular-nums',
+          color: tone === 'error' ? 'var(--ff-danger)' : 'var(--ff-muted)',
+        }}
+      >
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 shrink-0 rounded-full"
+          style={{ background: DOT_COLOR[snapshot.status] }}
+        />
+        {label}
+      </span>
     </span>
   );
 }

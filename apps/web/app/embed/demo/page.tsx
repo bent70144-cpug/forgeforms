@@ -29,9 +29,8 @@ function BrandRow() {
         aria-hidden="true"
         className="flex h-7 w-7 items-center justify-center rounded-lg"
         style={{
-          background: "var(--ff-grad)",
+          background: "var(--ff-primary)",
           color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-glow)",
         }}
       >
         <svg
@@ -64,11 +63,21 @@ function Chip({ children }: { children: ReactNode }) {
   );
 }
 
+// Framed preview well: white card, 1px hairline, print-like shadow — the
+// embed frame inside stays document-themed (the loader owns its canvas).
+function Frame({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4 shadow-[var(--ff-shadow-md)]">
+      {children}
+    </div>
+  );
+}
+
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="ff-panel mt-10 space-y-3 p-5">
       <h2 className="flex items-center gap-3 text-base font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
-        <span aria-hidden="true" className="h-4 w-1 shrink-0 rounded-full" style={{ background: "var(--ff-grad)" }} />
+        <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--ff-accent)" }} />
         {title}
       </h2>
       {children}
@@ -109,18 +118,18 @@ export default async function EmbedDemoPage({
           <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
             The frame below is placed inline and auto-grows with its content.
           </p>
-          <div className="rounded-[12px] border border-dashed border-[var(--ff-border-strong)] p-4">
+          <Frame>
             <div data-formforge-embed={docId} data-formforge-mode="inline" data-formforge-label="FormForge form" />
-          </div>
+          </Frame>
         </Panel>
 
         <Panel title="2 · Popup">
           <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
             Loader injects the trigger button; the form opens in a centered overlay (Esc / backdrop closes).
           </p>
-          <div>
+          <Frame>
             <div data-formforge-embed={docId} data-formforge-mode="popup" data-formforge-label="Give feedback" />
-          </div>
+          </Frame>
         </Panel>
 
         <Panel title="3 · Side tab">

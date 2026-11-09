@@ -44,12 +44,13 @@ export function FieldRow({
 }) {
   return (
     <div className="ff-field">
-      <label className="font-medium" htmlFor={htmlFor}>
+      {/* 14px/500 label — inline size beats the unlayered .ff-field > label rule */}
+      <label className="font-medium" htmlFor={htmlFor} style={{ fontSize: "0.875rem" }}>
         {label}
       </label>
       {children}
       {error ? (
-        <p className="ff-set-note ff-set-note--error" role="alert">
+        <p className="ff-set-note ff-set-note--error" role="alert" style={{ color: "var(--ff-danger)" }}>
           {error}
         </p>
       ) : hint ? (
@@ -71,13 +72,16 @@ export function InlineNote({
   testId?: string;
 }) {
   return (
-    <p className={`ff-set-note${tone === "warn" ? " ff-set-note--warn" : ""}`} data-testid={testId}>
+    <p
+      className={`ff-set-note${tone === "warn" ? " ff-set-note--warn" : ""}`}
+      data-testid={testId}
+      style={tone === "warn" ? { color: "var(--ff-warning)" } : undefined}
+    >
       {children}
     </p>
   );
 }
 
-/** Shared compact control styling for panel inputs/selects — tokenized
- * (deep surface, violet focus ring, danger border when aria-invalid). */
-export const FF_SET_INPUT_CLASS =
-  "ff-set-input min-h-9 w-full rounded-lg border border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] px-2.5 py-1.5 text-sm text-[color:var(--ff-fg)] outline-none placeholder:text-[color:var(--ff-muted)] focus-visible:border-[color:var(--ff-primary)] focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-primary)_22%,transparent)] disabled:opacity-50 aria-[invalid=true]:border-[color:var(--ff-danger)]";
+/** Shared control styling for panel inputs/selects — the canonical Meridian
+ * .ff-input recipe (recessed surface, hairline, ultramarine focus ring). */
+export const FF_SET_INPUT_CLASS = "ff-input";

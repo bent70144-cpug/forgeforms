@@ -14,7 +14,9 @@
 // behind the runtime, which this page doesn't own); toolbar shows question +
 // lint summary; the state machine (rules, undo/redo, autosave) is untouched.
 //
-// Aurora polish (task 10/13): gradient flow tile beside the page title and
+// Meridian polish (task 10/13): quiet ultramarine tile beside the Sora page
+// title, one ultramarine "Add rule" action (opens the Start scope drawer)
+// plus a ghost "Validate" that jumps to the first lint issue, and
 // token-tinted inline code chips in the explainer — presentation only.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -24,6 +26,7 @@ import {
   BADGE_MUTED,
   BADGE_POSITIVE,
   BADGE_WARNING,
+  BTN_GHOST_SM,
   BTN_PRIMARY_SM,
   BTN_SECONDARY_SM,
   CARD,
@@ -170,8 +173,7 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
           {backLink}
           <span
             aria-hidden="true"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[var(--ff-primary-fg)] shadow-[inset_0_1px_0_rgb(255_255_255/0.25),var(--ff-glow)]"
-            style={{ background: "var(--ff-grad)" }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] border border-[color-mix(in_srgb,var(--ff-primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-card))] text-[var(--ff-primary)] shadow-[var(--ff-shadow-sm)]"
           >
             <Icon name="flow" size={18} />
           </span>
@@ -236,11 +238,34 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
               </button>
               <button
                 type="button"
+                className={`${BTN_GHOST_SM} disabled:cursor-not-allowed! disabled:opacity-40!`}
+                onClick={() => {
+                  // Validate = jump straight to the first lint issue's scope
+                  // (diagnostics carry blockId = the rule's scope); a clean
+                  // document has nothing to jump to, so the button rests.
+                  const issueScope = lintErrors[0]?.blockId;
+                  if (issueScope !== undefined && graph.nodes.some((n) => n.id === issueScope)) {
+                    setOpenScope(issueScope);
+                  }
+                }}
+                disabled={lintErrors.length === 0}
+                title={lintErrors.length === 0 ? "No logic issues" : "Jump to the first issue"}
+                aria-label={
+                  lintErrors.length === 0
+                    ? "Validate logic — no issues"
+                    : `Validate logic — jump to the first of ${lintErrors.length} issues`
+                }
+              >
+                <Icon name="check" size={14} />
+                Validate
+              </button>
+              <button
+                type="button"
                 className={BTN_PRIMARY_SM}
                 onClick={() => setOpenScope(START_NODE_ID)}
               >
-                <Icon name="flow" size={14} />
-                Edit rules
+                <Icon name="plus" size={14} />
+                Add rule
               </button>
             </div>
           </div>
@@ -264,15 +289,11 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
             <section className={`${CARD} p-5`} aria-label="How the logic builder works">
               <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
                 <strong className="font-medium text-[var(--ff-fg)]">How it works:</strong> nodes follow
-                document order (default flow); dashed cyan edges are rule{" "}
-                <code className="rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] px-1 py-px font-mono text-xs text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]">
-                  goto
-                </code>
+                document order (default flow); dashed terracotta edges are rule{" "}
+                <code className={CODE_CHIP_GOTO}>goto</code>
                 s. Click Start or a question to add rules — IF conditions are AND-ed, THEN runs
                 goto/set, and “in all other cases” is the fallback. Rule edits autosave via{" "}
-                <code className="rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] px-1 py-px font-mono text-xs text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]">
-                  PATCH /api/v1/documents/:id
-                </code>{" "}
+                <code className={CODE_CHIP_API}>PATCH /api/v1/documents/:id</code>{" "}
                 ops.
               </p>
               <div className="mt-3 flex gap-2">
@@ -339,6 +360,13 @@ function SaveChip({ save }: { save: AutosaveStatus }) {
     </span>
   );
 }
+
+// Inline code chips in the explainer: terracotta echoes the dashed goto
+// edges, ultramarine marks the API surface (the one strong accent per chip).
+const CODE_CHIP_GOTO =
+  "rounded-md border border-[color-mix(in_srgb,var(--ff-accent)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent)_8%,transparent)] px-1 py-px font-mono text-xs text-[color-mix(in_srgb,var(--ff-accent)_72%,var(--ff-fg))]";
+const CODE_CHIP_API =
+  "rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_8%,transparent)] px-1 py-px font-mono text-xs text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]";
 
 function emptyFallback(): LogicEditorSnapshot["body"] {
   // Pre-load placeholder — replaced as soon as the envelope arrives.

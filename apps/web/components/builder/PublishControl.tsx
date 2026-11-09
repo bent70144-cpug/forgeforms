@@ -28,6 +28,7 @@ import { IssuesList } from "./IssuesList";
 import { BUILDER_EVENTS, emitPlanLimit } from "@/lib/builder/canvas-ops";
 import { blockDisplayLabel } from "@/lib/builder/blockMeta";
 import { findBlock } from "@/lib/builder/ops";
+import { BTN_DESTRUCTIVE, BTN_PRIMARY } from "@/lib/ui";
 import {
   collectIssues,
   hasUnpublishedChanges,
@@ -142,7 +143,16 @@ export function PublishControl() {
     <div className="flex flex-col items-end" data-testid="publish-control">
       <div className="flex items-center gap-1.5 sm:gap-2">
         {chipVisible && (
-          <span className="ff-pub-chip" title={DRAFT_HINT} data-testid="unpublished-chip">
+          <span
+            className="ff-pub-chip"
+            title={DRAFT_HINT}
+            data-testid="unpublished-chip"
+            style={{
+              borderColor: "color-mix(in srgb, var(--ff-warning) 30%, transparent)",
+              background: "var(--ff-warning-soft)",
+              color: "var(--ff-warning)",
+            }}
+          >
             Unpublished changes
           </span>
         )}
@@ -150,7 +160,7 @@ export function PublishControl() {
         {btnState === "publishing" ? (
           <button
             type="button"
-            className="ff-pub-btn"
+            className={BTN_PRIMARY}
             disabled
             aria-live="polite"
             data-testid="publish-button"
@@ -162,7 +172,7 @@ export function PublishControl() {
           <>
             <button
               type="button"
-              className="ff-pub-btn"
+              className={BTN_PRIMARY}
               disabled
               data-testid="publish-button"
               data-state="published"
@@ -170,6 +180,14 @@ export function PublishControl() {
             >
               Published ✓
             </button>
+            <span
+              className="hidden text-xs text-[color:var(--ff-muted)] sm:inline sm:max-w-44 sm:truncate"
+              style={{ fontFamily: "var(--ff-font-mono)" }}
+              title={liveHref}
+              data-testid="publish-live-url"
+            >
+              {liveHref}
+            </span>
             <a
               href={liveHref}
               className="ff-icon-btn"
@@ -179,11 +197,27 @@ export function PublishControl() {
             >
               Live — view
             </a>
+            <button
+              type="button"
+              className="ff-icon-btn"
+              aria-label="Copy live form URL"
+              title="Copy live URL"
+              data-testid="publish-copy-link"
+              onClick={() => {
+                try {
+                  void navigator.clipboard?.writeText(liveHref);
+                } catch {
+                  // Clipboard permission denied / insecure context — best effort.
+                }
+              }}
+            >
+              <span aria-hidden="true">⧉</span>
+            </button>
           </>
         ) : btnState === "fix-issues" ? (
           <button
             type="button"
-            className="ff-pub-btn ff-pub-btn--issues"
+            className={BTN_DESTRUCTIVE}
             onClick={onPublish}
             data-testid="publish-button"
             data-state="fix-issues"
@@ -194,8 +228,7 @@ export function PublishControl() {
         ) : (
           <button
             type="button"
-            className="ff-pub-btn shadow-[var(--ff-glow)] transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] enabled:hover:-translate-y-px"
-            style={{ backgroundImage: "var(--ff-grad)" }}
+            className={BTN_PRIMARY}
             onClick={onPublish}
             data-testid="publish-button"
             data-state="publish"
@@ -207,12 +240,12 @@ export function PublishControl() {
       </div>
 
       {errorMessage && (
-        <p role="alert" className="ff-pub-error">
+        <p role="alert" className="ff-pub-error" style={{ color: "var(--ff-danger)" }}>
           {errorMessage}
         </p>
       )}
       {conflictNote && (
-        <p role="status" className="ff-pub-note">
+        <p role="status" className="ff-pub-note" style={{ color: "var(--ff-warning)" }}>
           Saving your changes — try again
         </p>
       )}

@@ -1,5 +1,7 @@
-// Canonical class constants for the FormForge design system ("aurora glass",
-// 2026 redesign). Builder agents: import from here instead of hand-writing
+// Canonical class constants for the FormForge design system ("Meridian",
+// 2026 redesign #2): light-first editorial — warm paper canvas, ink
+// typography, ultramarine primary, terracotta signal, crisp 1px rules.
+// Builder agents: import from here instead of hand-writing
 // class strings so markup stays consistent and refactor-safe.
 //
 // The CSS recipes behind these constants live in apps/web/app/globals.css
@@ -7,11 +9,15 @@
 // string, so they compose with template literals and Tailwind utilities:
 //   className={`${BTN_SECONDARY} w-full`}
 //
-// Aurora vocabulary:
-//   --ff-grad      violet→cyan gradient (buttons, icons, highlights)
-//   --ff-glow      soft violet glow shadow
-//   --ff-glass     frosted chrome surface (+ --ff-glass-border)
-//   Text on gradient surfaces is always --ff-primary-fg (#fff).
+// Meridian vocabulary (consume tokens from globals.css, never hardcode):
+//   --ff-primary   ultramarine action color — one primary action per view
+//   --ff-accent    terracotta signal — badges, highlights, active states
+//   --ff-grad      ultramarine→deep ultramarine, used sparingly (progress,
+//                  selected states)
+//   --ff-glow      restrained ultramarine shadow — primary CTA hover only
+//   --ff-glass     near-opaque chrome surface (+ --ff-glass-border) for
+//                  sticky top bars
+//   Text on primary surfaces is always --ff-primary-fg (#fff).
 
 /* ---------- buttons ---------- */
 
@@ -30,7 +36,7 @@ export const BTN_PRIMARY_LG = "ff-btn ff-btn-primary ff-btn-lg";
 
 /* ---------- surfaces ---------- */
 
-/** The canonical card: deep-indigo surface, glass hairline, glow on hover. */
+/** The canonical card: white panel on paper, 1px hairline, soft paper shadow. */
 export const CARD = "ff-panel";
 
 /** Standalone input styling (same look as a .ff-field control). */

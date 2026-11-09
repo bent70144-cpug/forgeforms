@@ -6,7 +6,6 @@ import { useActionState, useId, useState } from "react";
 import { resetPasswordAction, type AuthFormState } from "@/lib/auth/actions";
 import { BANNER_ERROR, BTN_PRIMARY, ICON_BTN } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
-import { FocusSpine } from "@/components/auth/auth-form";
 
 const initialState: AuthFormState = {};
 
@@ -84,7 +83,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
 
       <div className="ff-field">
         <label htmlFor={passwordId}>New password</label>
-        <div className="group relative">
+        <div className="relative">
           <input
             id={passwordId}
             name="password"
@@ -98,7 +97,6 @@ export function ResetPasswordForm({ token }: { token: string }) {
             style={{ paddingRight: "2.75rem" }}
             onChange={(event) => setPassword(event.target.value)}
           />
-          <FocusSpine />
           <button
             type="button"
             className={`${ICON_BTN} absolute top-1/2 right-1.5 -translate-y-1/2`}

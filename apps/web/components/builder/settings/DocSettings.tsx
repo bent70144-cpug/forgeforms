@@ -19,6 +19,7 @@
 // No upgrade modals anywhere (§24 forbids them inside the builder).
 
 import { useState } from "react";
+import { BTN_GHOST_SM, BTN_SECONDARY_SM } from "@/lib/ui";
 import { useBuilder } from "../context";
 import { requestAssetPick } from "../asset-picker-bridge";
 import {
@@ -321,7 +322,7 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 ? `Your plan allows ${notifyMax} recipient${notifyMax === 1 ? "" : "s"} per form — Pro raises the cap to ${MAX_NOTIFY_EMAILS}.`
                 : "Recipients get an email after every completed submission."}
             </InlineNote>
-            <button type="button" disabled title="Coming soon" className="ff-set-btn" data-testid="ff-set-send-test-email">
+            <button type="button" disabled title="Coming soon" className={`${BTN_SECONDARY_SM} self-start`} data-testid="ff-set-send-test-email">
               Send test email
             </button>
           </SettingsSection>
@@ -363,10 +364,10 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
               {/* §10 asset picker (W12): DocumentSettings.seo.ogImageAssetId IS in
                   the settings schema (packages/schema document.ts), so the picker
                   is ENABLED. ogImageAssetId is a plain string → no alt prompt. */}
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 <button
                   type="button"
-                  className="ff-set-btn"
+                  className={`${BTN_SECONDARY_SM} self-start`}
                   data-testid="ff-set-og-picker"
                   onClick={() => {
                     void requestAssetPick({ supportsAlt: false }).then((pick) => {
@@ -380,7 +381,7 @@ export function DocSettings({ initialTab }: { initialTab?: DocSettingsTab } = {}
                 {settings.seo.ogImageAssetId ? (
                   <button
                     type="button"
-                    className="ff-set-btn"
+                    className={`${BTN_GHOST_SM} self-start`}
                     data-testid="ff-set-og-remove"
                     // settings.update merges per-key; `null` deletes (§21).
                     onClick={() => updateSettings({ seo: { ogImageAssetId: null } })}

@@ -1,11 +1,12 @@
 // T19 — per-question drop-off (spec §13: gated by
 // can(workspaceId,'advanced_analytics'); §13 UI rule: show an upgrade prompt
 // when the capability is missing — never inside editing surfaces).
-// Aurora redesign: vertical funnel — each step is a full-width track whose
-// fill width maps to retention, painted with --ff-grad at an alpha that
-// descends step by step; per-step drop-off renders as danger/warning badge
-// chips; step labels keep their mono counts. Meter aria attributes, pass-rate
-// math, copy and all values unchanged.
+// Meridian redesign: vertical funnel — each step is a full-width recessed
+// --ff-bg-2 well whose fill width maps to retention, painted in ultramarine
+// (--ff-primary) at an alpha that descends step by step; per-step drop-off
+// renders as danger/warning badge chips; step labels keep their mono counts
+// and the legend uses 8px round dots. Meter aria attributes, pass-rate math,
+// copy and all values unchanged.
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon } from "@/components/ui/icons";
 
@@ -45,19 +46,19 @@ export function DropOffPanel({ enabled, steps }: DropOffPanelProps) {
             Where respondents leave the form, question by question.
           </p>
         </div>
-        {/* decorative legend: gradient fill = retained, faint track = lost */}
+        {/* decorative legend: ultramarine fill = retained, recessed well = lost */}
         {enabled && steps.length > 0 ? (
           <span aria-hidden="true" className="flex items-center gap-3 text-xs text-[var(--ff-muted)]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block h-2 w-5 rounded-full" style={{ background: "var(--ff-grad)" }} />
+              <span className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--ff-primary)" }} />
               retained
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span
-                className="inline-block h-2 w-5 rounded-full"
+                className="inline-block h-2 w-2 rounded-full"
                 style={{
-                  background: "color-mix(in srgb, var(--ff-fg) 6%, transparent)",
-                  boxShadow: "inset 0 0 0 1px var(--ff-glass-border)",
+                  background: "var(--ff-bg-2)",
+                  boxShadow: "inset 0 0 0 1px var(--ff-border)",
                 }}
               />
               lost
@@ -102,8 +103,9 @@ export function DropOffPanel({ enabled, steps }: DropOffPanelProps) {
           <ol className="space-y-5">
             {steps.map((step, index) => {
               const passRate = Math.round((1 - step.dropOffRate) * 100);
-              // Descending aurora: the first step's fill runs at full strength
-              // and each deeper step fades toward 30% alpha (single step → 1).
+              // Descending ultramarine: the first step's fill runs at full
+              // strength and each deeper step fades toward 30% alpha (single
+              // step → 1).
               const alpha =
                 steps.length > 1 ? Math.max(0.3, 1 - index * (0.7 / (steps.length - 1))) : 1;
               const chip = dropOffChip(step.dropOffRate);
@@ -154,13 +156,13 @@ export function DropOffPanel({ enabled, steps }: DropOffPanelProps) {
                     aria-label={`${step.blockId} pass rate ${formatPct(1 - step.dropOffRate)}`}
                     className="mt-2 h-8 overflow-hidden rounded-lg"
                     style={{
-                      background: "color-mix(in srgb, var(--ff-fg) 4%, transparent)",
-                      boxShadow: "inset 0 0 0 1px var(--ff-glass-border)",
+                      background: "var(--ff-bg-2)",
+                      boxShadow: "inset 0 0 0 1px var(--ff-border)",
                     }}
                   >
                     <div
                       className="h-full rounded-lg"
-                      style={{ width: `${passRate}%`, background: "var(--ff-grad)", opacity: alpha }}
+                      style={{ width: `${passRate}%`, background: "var(--ff-primary)", opacity: alpha }}
                     />
                   </div>
                 </li>

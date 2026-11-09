@@ -1,17 +1,18 @@
 'use client';
 
-// Empty-document state (builder spec §5.3): aurora-glass composition —
-// gradient icon tile, short lead, the three suggested blocks, a CTA that
-// opens the shared block picker (same "ff:open-picker" contract the canvas
-// insertion rows use) and the template link. Each suggestion dispatches a
-// root block.insert at index 0 and selects the new block (done by the
-// caller).
+// Empty-document state (builder spec §5.3): quiet Meridian composition —
+// line icon on a recessed circle, Sora title, the three suggested blocks,
+// a ghost action that opens the shared block picker (same "ff:open-picker"
+// contract the canvas insertion rows use) and the template link. Each
+// suggestion dispatches a root block.insert at index 0 and selects the new
+// block (done by the caller).
 //
 // NOTE on tokens: this component renders INSIDE the themed canvas subtree
 // (the document theme remaps --ff-bg/--ff-fg/--ff-primary/--ff-muted/
 // --ff-border/--ff-primary-fg), so surface/text colors intentionally use
-// those document tokens; --ff-grad/--ff-glow are resolved at :root and stay
-// the fixed app aurora gradient.
+// those document tokens — a hard --ff-bg-2 circle would not flip with the
+// document theme, so the recessed circle mixes --ff-border into --ff-bg
+// instead (same quiet-well effect, theme-live).
 import { Icon } from "@/components/ui/icons";
 import { emitOpenPicker } from "@/lib/builder/canvas-ops";
 import { QUICK_ADD_KINDS } from "./InsertionRow";
@@ -20,26 +21,25 @@ export function EmptyCanvasState({ onAdd }: { onAdd: (kind: string) => void }) {
   return (
     <div
       data-testid="empty-canvas"
-      className="mt-4 rounded-[var(--ff-radius)] border-2 border-dashed p-8 text-center sm:p-10"
+      className="mt-4 rounded-[var(--ff-radius)] border border-dashed p-8 text-center sm:p-10"
       style={{
-        background: "color-mix(in srgb, var(--ff-primary) 4%, var(--ff-bg))",
-        borderColor: "color-mix(in srgb, var(--ff-primary) 26%, var(--ff-border))",
+        background: "color-mix(in srgb, var(--ff-fg) 3%, var(--ff-bg))",
+        borderColor: "var(--ff-border)",
       }}
     >
       <span
         aria-hidden="true"
-        className="mx-auto flex h-12 w-12 items-center justify-center rounded-[calc(var(--ff-radius)*0.6)]"
-        style={{ background: "var(--ff-grad)", boxShadow: "var(--ff-glow)" }}
+        className="mx-auto flex h-12 w-12 items-center justify-center rounded-full"
+        style={{
+          background: "color-mix(in srgb, var(--ff-border) 45%, var(--ff-bg))",
+          color: "var(--ff-muted)",
+        }}
       >
-        {/* text on the fixed app gradient is always white (--ff-primary-fg is
-            shadowed by the document theme inside the canvas) */}
-        <span className="text-white">
-          <Icon name="plus" size={22} />
-        </span>
+        <Icon name="plus" size={22} />
       </span>
 
       <h2
-        className="mt-4 text-lg font-semibold text-[color:var(--ff-fg)]"
+        className="mt-4 text-lg font-semibold tracking-[-0.02em] text-[color:var(--ff-fg)]"
         style={{ fontFamily: "var(--ff-font-heading)" }}
       >
         Add your first question

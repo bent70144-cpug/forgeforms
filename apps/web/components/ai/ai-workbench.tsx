@@ -5,11 +5,12 @@
 // drafts/ops flow into optimistic autosave; this page keeps the feature
 // reachable end-to-end until that integration lands.
 //
-// Aurora redesign: gradient spark mark + "Describe it — AI drafts it"
-// headline (the AI moment of the app), aurora glow wash and gradient
-// hairline, quota badge, two-column Draft/Edit grid and the slim "Current
-// document" meta row with mono chips. All handoff logic, notices and state
-// flow unchanged (quota callbacks are additive, optional).
+// Meridian redesign: quiet terracotta spark tile (the AI signal — no glow, no
+// gradient text) with a terracotta "AI workbench" kicker chip and a Sora
+// headline, closed by a plain 1px hairline. The compose zone (draft + edit
+// panels) and the current-document zone are separated by hairlines instead of
+// nested chrome. All handoff logic, notices and state flow unchanged (quota
+// callbacks are additive, optional).
 import { useState } from "react";
 import type { DocumentBody } from "@formforge/core/ai";
 import { BADGE_ACCENT, BADGE_MUTED, BANNER_SUCCESS } from "@/lib/ui";
@@ -38,15 +39,19 @@ const EMPTY_FORM: DocumentBody = {
 
 type Quota = { used: number; limit: number; period: string };
 
-/** The workbench's signature mark: white spark on the violet→cyan gradient. */
+/** The workbench's signature mark: terracotta spark on a quiet card tile. */
 function SparkMark() {
   return (
     <span
       aria-hidden="true"
       className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px]"
-      style={{ background: "var(--ff-grad)", boxShadow: "var(--ff-glow)", color: "#ffffff" }}
+      style={{
+        background: "color-mix(in srgb, var(--ff-accent) 10%, var(--ff-card))",
+        border: "1px solid color-mix(in srgb, var(--ff-accent) 25%, transparent)",
+        color: "var(--ff-accent)",
+      }}
     >
-      <Icon name="sparkles" size={22} />
+      <Icon name="sparkles" size={20} />
     </span>
   );
 }
@@ -58,32 +63,20 @@ export function AiWorkbench({ docId: _docId }: { docId: string }) {
 
   return (
     <div className="space-y-6">
-      <header className="relative">
-        {/* Aurora wash — static decoration, safe under reduced motion. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-20 right-8 h-52 w-52 rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(closest-side, var(--ff-primary), transparent)" }}
-        />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
+      <header>
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex min-w-0 items-start gap-4">
             <SparkMark />
             <div className="min-w-0">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+              <span className={`${BADGE_ACCENT} font-mono uppercase tracking-[0.14em]`}>
+                <Icon name="sparkles" size={12} />
                 AI workbench
-              </p>
-              <h1 className="mt-1 text-3xl font-semibold tracking-tight text-[var(--ff-fg)]">
-                Describe it —{" "}
-                <span
-                  style={{
-                    backgroundImage: "var(--ff-grad)",
-                    WebkitBackgroundClip: "text",
-                    backgroundClip: "text",
-                    color: "transparent",
-                  }}
-                >
-                  AI drafts it
-                </span>
+              </span>
+              <h1
+                className="mt-3 text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--ff-fg)]"
+                style={{ fontFamily: "var(--ff-font-heading)" }}
+              >
+                Describe it — AI drafts it
               </h1>
               <p className="mt-2 max-w-prose text-sm leading-relaxed text-[var(--ff-muted)]">
                 Draft and revise document content with AI — review every change before applying.
@@ -91,20 +84,17 @@ export function AiWorkbench({ docId: _docId }: { docId: string }) {
             </div>
           </div>
           {quota ? (
-            <span className={`${BADGE_ACCENT} tabular-nums`}>
+            <span className={`${BADGE_ACCENT} font-mono tabular-nums`}>
               <Icon name="sparkles" size={12} />
               Used {quota.used}/{quota.limit} · {quota.period}
             </span>
           ) : null}
         </div>
-        {/* Gradient hairline closing the header block. */}
+        {/* Plain hairline closing the header block. */}
         <div
           aria-hidden="true"
-          className="relative mt-6 h-px w-full"
-          style={{
-            background:
-              "linear-gradient(90deg, transparent, color-mix(in srgb, var(--ff-primary) 55%, transparent) 30%, color-mix(in srgb, var(--ff-primary-2) 55%, transparent) 72%, transparent)",
-          }}
+          className="mt-6 h-px w-full"
+          style={{ background: "var(--ff-border)" }}
         />
       </header>
 
@@ -114,7 +104,8 @@ export function AiWorkbench({ docId: _docId }: { docId: string }) {
         </p>
       ) : null}
 
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      {/* Compose zone: prompt composer and edit proposal, split by a hairline. */}
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
         <AiDraftDialog
           documentType={document.type}
           onQuota={setQuota}
@@ -124,6 +115,12 @@ export function AiWorkbench({ docId: _docId }: { docId: string }) {
             setDocument(body);
             setNotice("Draft loaded below as the current document.");
           }}
+        />
+
+        <div
+          aria-hidden="true"
+          className="h-px w-full lg:h-auto lg:w-px lg:self-stretch"
+          style={{ background: "var(--ff-border)" }}
         />
 
         <AiEditPanel
@@ -139,6 +136,13 @@ export function AiWorkbench({ docId: _docId }: { docId: string }) {
         />
       </div>
 
+      {/* Preview zone: the current document, fenced off by a hairline above. */}
+      <div
+        aria-hidden="true"
+        className="h-px w-full"
+        style={{ background: "var(--ff-border)" }}
+      />
+
       <section
         aria-label="Current document"
         className="ff-panel flex flex-wrap items-center gap-x-3 gap-y-2 p-4"
@@ -153,7 +157,12 @@ export function AiWorkbench({ docId: _docId }: { docId: string }) {
         >
           <Icon name="fileText" size={16} />
         </span>
-        <h2 className="text-sm font-semibold text-[var(--ff-fg)]">Current document</h2>
+        <h2
+          className="text-sm font-semibold tracking-[-0.01em] text-[var(--ff-fg)]"
+          style={{ fontFamily: "var(--ff-font-heading)" }}
+        >
+          Current document
+        </h2>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <span className={`${BADGE_MUTED} font-mono`}>{document.type}</span>
           <span className={`${BADGE_MUTED} font-mono tabular-nums`}>

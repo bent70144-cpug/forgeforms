@@ -24,13 +24,13 @@
 // type + slug on the Template tab; it re-syncs if the prop changes while
 // mounted.
 //
-// "aurora glass" presentation pass: type tiles use the gradient recipe
-// (--ff-grad endpoints at low opacity + --ff-accent-soft icon) with violet
-// selection, and the §11 template gallery renders as a two-column choice grid
-// (sm+) with a per-template aurora swatch. Class names / radio contract are
-// unchanged — the ff-tpl-* recipes in globals.css stay canonical (the `grid!`
-// important utility overrides only the gallery's display/gap; the preflight
-// [hidden] rule still wins, so screen readers keep the stable hidden DOM).
+// Meridian presentation pass: type tiles use the quiet
+// paper-well recipe (--ff-bg-2 + hairline ring + muted icon) with ultramarine
+// selection, and the §11 template gallery keeps its canonical ff-tpl-* radio
+// rows. Class names / radio contract are unchanged — the ff-tpl-* recipes in
+// globals.css stay canonical (the `grid!` important utility overrides only
+// the gallery's display/gap; the preflight [hidden] rule still wins, so screen
+// readers keep the stable hidden DOM).
 
 import { useEffect, useRef, useState } from 'react';
 import type { Ref } from 'react';
@@ -266,13 +266,16 @@ export function CreateDocumentFields({
         <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {TYPES.map((t) => {
             const selected = type === t.value;
+            // Hairline radio card — 1.5px border in both states so the
+            // selection never shifts layout; selected = ultramarine border
+            // + 6% tint (editorial, no glow ring).
             return (
               <label
                 key={t.value}
                 title={t.hint}
-                className={`flex cursor-pointer flex-col gap-1.5 rounded-xl border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--ff-primary)] ${
+                className={`flex cursor-pointer flex-col gap-1.5 rounded-xl border-[1.5px] p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--ff-primary)] ${
                   selected
-                    ? 'border-[var(--ff-primary)] bg-[color-mix(in_srgb,var(--ff-primary)_6%,var(--ff-card))] ring-2 ring-[color-mix(in_srgb,var(--ff-primary)_28%,transparent)] ring-offset-0'
+                    ? 'border-[var(--ff-primary)] bg-[color-mix(in_srgb,var(--ff-primary)_6%,var(--ff-card))]'
                     : 'border-[var(--ff-border)] hover:border-[var(--ff-border-strong)]'
                 }`}
               >
@@ -289,11 +292,9 @@ export function CreateDocumentFields({
                     aria-hidden="true"
                     className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
                     style={{
-                      background:
-                        'linear-gradient(135deg, color-mix(in srgb, var(--ff-primary) 26%, transparent), color-mix(in srgb, var(--ff-primary-2) 20%, transparent)), var(--ff-card)',
-                      boxShadow:
-                        'inset 0 0 0 1px color-mix(in srgb, var(--ff-primary) 28%, transparent)',
-                      color: 'var(--ff-accent-soft)',
+                      background: 'var(--ff-bg-2)',
+                      boxShadow: 'inset 0 0 0 1px var(--ff-border)',
+                      color: 'var(--ff-muted)',
                     }}
                   >
                     <Icon name={t.icon} size={15} />
@@ -349,7 +350,7 @@ export function CreateDocumentFields({
         </div>
         <p className="ff-tpl-note">AI drafting is available on Pro.</p>
 
-        {/* §11 gallery: radio grid (name + aurora swatch + category chip +
+        {/* §11 gallery: radio grid (name + paper swatch + category chip +
             stats). Rendered (hidden) even before the segment is picked so
             screen readers get a stable DOM and the choice survives segment
             toggling. Two columns from sm up — `grid!`/`gap-2!` override the
@@ -386,15 +387,14 @@ export function CreateDocumentFields({
                   onChange={() => onTemplateIdChange(t.id)}
                   className="ff-tpl-radio"
                 />
-                {/* aurora swatch — token-only gradient, mirrors the catalog
-                    thumbnail slot without hard-coding marketing colors */}
+                {/* quiet paper swatch — token-only recessed tile, mirrors
+                    the catalog thumbnail slot without marketing colors */}
                 <span
                   aria-hidden="true"
                   className="h-7 w-7 shrink-0 rounded-lg"
                   style={{
-                    background:
-                      'linear-gradient(135deg, color-mix(in srgb, var(--ff-primary) 55%, transparent), color-mix(in srgb, var(--ff-primary-2) 55%, transparent))',
-                    boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--ff-fg) 12%, transparent)',
+                    background: 'var(--ff-bg-2)',
+                    boxShadow: 'inset 0 0 0 1px var(--ff-border)',
                   }}
                 />
                 <span className="ff-tpl-text">

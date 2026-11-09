@@ -60,9 +60,12 @@ export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptPr
         role="dialog"
         aria-label="Restore unsaved changes"
         data-testid="restore-prompt"
-        className="flex max-w-lg flex-col gap-2 rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] p-4 text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
+        className="flex max-w-lg flex-col gap-2 rounded-2xl border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] p-4 text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-lg)]"
       >
-        <p className="m-0 text-sm font-semibold">
+        <p
+          className="m-0 text-sm font-semibold"
+          style={{ fontFamily: "var(--ff-font-heading)", letterSpacing: "-0.01em" }}
+        >
           {stale
             ? "Discard unsaved changes?"
             : `Restore unsaved changes (${edits})?`}

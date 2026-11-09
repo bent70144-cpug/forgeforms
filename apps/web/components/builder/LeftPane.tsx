@@ -94,7 +94,7 @@ export function LeftPane() {
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="left-pane">
       <div className="ff-pane--bottom p-3">
-        {/* the pane's primary action — violet→cyan gradient with glow */}
+        {/* the pane's primary action — Meridian ultramarine (canonical .ff-btn) */}
         <button type="button" className="ff-btn ff-btn-primary w-full" onClick={openPicker}>
           <Icon name="plus" size={16} />
           Add block
@@ -106,7 +106,10 @@ export function LeftPane() {
       </nav>
 
       <section aria-label="Endings" className="ff-pane--top p-2">
-        <h2 className="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--ff-muted)]">
+        <h2
+          className="px-1 pb-1 text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-muted)]"
+          style={{ fontFamily: "var(--ff-font-heading)" }}
+        >
           Endings
         </h2>
         <ul className="m-0 flex list-none flex-col gap-0.5 p-0">

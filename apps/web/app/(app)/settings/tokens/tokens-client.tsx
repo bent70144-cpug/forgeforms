@@ -7,13 +7,15 @@
 //    and never sent anywhere except the single POST that created it;
 //  - the list endpoint never returns plaintexts or hashes.
 //
-// Presentation notes (aurora glass): the create dialog and the remove
+// Presentation notes (Meridian): the create dialog and the remove
 // confirmation use the shared Modal primitive (focus trap, Esc, backdrop,
 // scroll lock come from the primitive — none are re-implemented here); the
 // reveal panel renders ABOVE the persistent list header so the toolbar never
-// jumps when it appears, and carries a gradient spine + glass glow so the
-// show-once moment reads as a distinct callout. Row-level Revoke is a quiet
-// danger ghost (window.confirm stays as the gate).
+// jumps when it appears, and is a quiet success strip (success-soft wash,
+// 1px success-tinted border) so the show-once moment reads as distinct
+// without glow. Token values, dates and scopes are set in JetBrains Mono;
+// row-level Revoke is a quiet danger ghost (window.confirm stays as the
+// gate).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_SCOPES } from '@formforge/schema/api';
@@ -30,8 +32,9 @@ import {
 } from '@/lib/ui';
 
 // Row-level destructive action renders as a quiet ghost (window.confirm stays
-// as the gate — see revoke()).
-const BTN_DANGER_GHOST_SM = 'ff-btn ff-btn-ghost ff-btn-sm text-[var(--ff-danger)]';
+// as the gate — see revoke()); .ff-btn-ghost--danger is quiet at rest and
+// tints red on hover.
+const BTN_DANGER_GHOST_SM = 'ff-btn ff-btn-ghost--danger ff-btn-sm';
 
 interface TokenDto {
   id: string;
@@ -134,7 +137,7 @@ export function TokensClient() {
         <h2 className="text-base font-semibold">
           Tokens
           {state.kind === 'ready' && state.tokens.length > 0 ? (
-            <span className="ml-2 text-xs font-normal tabular-nums text-[var(--ff-muted)]">
+            <span className="ml-2 font-mono text-xs font-normal tabular-nums text-[var(--ff-muted)]">
               {state.tokens.length}
             </span>
           ) : null}
@@ -204,7 +207,7 @@ export function TokensClient() {
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-[var(--ff-fg)]">{token.name}</p>
-                  <p className="mt-0.5 text-xs tabular-nums text-[var(--ff-muted)]">
+                  <p className="mt-0.5 font-mono text-xs tabular-nums text-[var(--ff-muted)]">
                     Created {relativeTime(token.createdAt)} · Last used{' '}
                     {relativeTime(token.lastUsedAt)}
                   </p>
@@ -273,22 +276,23 @@ function RevealOncePanel({
     <section
       aria-live="polite"
       aria-label="New token created — copy it now, it will not be shown again"
-      className="ff-panel overflow-hidden"
-      style={{ boxShadow: 'var(--ff-glow-soft), var(--ff-shadow-sm)' }}
+      className="ff-panel"
+      style={{
+        background: 'var(--ff-success-soft)',
+        borderColor: 'color-mix(in srgb, var(--ff-success) 30%, transparent)',
+      }}
     >
-      {/* gradient spine marks this as the one-time moment */}
-      <div aria-hidden="true" className="h-[3px]" style={{ background: 'var(--ff-grad)' }} />
       <div className="p-5">
         <p className="flex flex-wrap items-center gap-2 text-sm">
-          <Icon name="alert" size={16} className="shrink-0 text-[var(--ff-warning)]" />
+          <Icon name="check" size={16} className="shrink-0 text-[var(--ff-success)]" />
           <span className="font-medium">“{name}” created</span>
           <span className="text-[var(--ff-muted)]">— copy it now, you won’t see it again.</span>
         </p>
         <code
           className="mt-3 block select-all break-all rounded-[10px] border p-3 font-mono text-[13px] text-[var(--ff-fg)]"
           style={{
-            borderColor: 'color-mix(in srgb, var(--ff-primary) 35%, var(--ff-border))',
-            background: 'color-mix(in srgb, var(--ff-primary) 7%, var(--ff-bg))',
+            borderColor: 'var(--ff-border)',
+            background: 'var(--ff-bg-2)',
           }}
           data-testid="revealed-token"
         >

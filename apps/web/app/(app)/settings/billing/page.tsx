@@ -17,11 +17,16 @@ import {
 // ids are missing the CTAs degrade to a disabled state instead of failing at
 // submit time (honest fallback copy lives in ONE footnote below the grid).
 //
-// Presentation notes (aurora glass): header eyebrow carries a small gradient
-// tick, the seats summary is a glass panel with a violet meter, and plan
-// cards live in PlanCard (violet ring = current plan).
+// Presentation notes (Meridian): calm administrative print feel — mono
+// uppercase kickers and hairline rules carry the structure, numbers set in
+// JetBrains Mono, and the seats meter is the page's single fill of color.
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+// JetBrains Mono for kickers + numeric telemetry (Meridian typography rule).
+const MONO = { fontFamily: 'var(--ff-font-mono)' } as const;
+// 13px uppercase muted mono kickers carry the section structure.
+const KICKER = 'text-[13px] font-medium uppercase tracking-[0.14em] text-[var(--ff-muted)]';
 
 const FLASH_INFO: Record<string, string> = {
   success: 'Subscription confirmed — your plan unlocks within seconds.',
@@ -79,18 +84,21 @@ export default async function BillingSettingsPage({
     <div className="w-full max-w-5xl">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-3xl">
-          <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ff-muted)]">
+          <p
+            className="flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--ff-muted)]"
+            style={MONO}
+          >
             <span
               aria-hidden="true"
-              className="h-px w-6 rounded-full"
-              style={{ background: 'var(--ff-grad)' }}
+              className="h-px w-6"
+              style={{ background: 'var(--ff-border-strong)' }}
             />
             Settings
           </p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-balance sm:text-[1.75rem]">
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-balance sm:text-[1.75rem]">
             Billing
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
+          <p className="mt-1.5 text-sm leading-relaxed text-[var(--ff-muted)]">
             You’re on the{' '}
             <span className="font-medium text-[var(--ff-fg)]">{currentEntry.name}</span> plan.
             {snapshot.storageReady ? null : (
@@ -120,8 +128,11 @@ export default async function BillingSettingsPage({
         <CheckoutFlash params={params} />
       </div>
 
-      <section aria-label="Seats" className="ff-panel mt-6 p-5">
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+      <section aria-label="Seats" className="ff-panel mt-6 p-5 sm:p-6">
+        <h2 className={KICKER} style={MONO}>
+          Seats
+        </h2>
+        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
           <span
             aria-hidden="true"
             className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)] text-[var(--ff-primary)]"
@@ -129,8 +140,7 @@ export default async function BillingSettingsPage({
             <Icon name="creditCard" size={18} />
           </span>
           <div>
-            <p className="text-xs text-[var(--ff-muted)]">Seats</p>
-            <p className="text-2xl font-semibold tabular-nums">
+            <p className="text-2xl font-semibold tabular-nums" style={MONO}>
               {snapshot.seats.used}
               <span className="text-base font-normal text-[var(--ff-muted)]">
                 {' '}
@@ -155,8 +165,10 @@ export default async function BillingSettingsPage({
       </section>
 
       <section aria-label="Plans" className="mt-8">
-        <div className="flex items-center gap-3">
-          <h2 className="text-base font-semibold">Plans</h2>
+        <div className="flex items-center gap-4">
+          <h2 className={KICKER} style={MONO}>
+            Plans
+          </h2>
           <span aria-hidden="true" className="h-px flex-1 bg-[var(--ff-border)]" />
         </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
@@ -181,7 +193,9 @@ export default async function BillingSettingsPage({
           <p className="mt-4 text-xs leading-relaxed text-[var(--ff-muted)]">
             Online billing is not enabled on this deployment — Stripe isn’t configured, so upgrade
             and portal buttons stay disabled. Webhooks remain active at{' '}
-            <code className="rounded bg-[var(--ff-bg)] px-1">/api/webhooks/stripe</code>.
+            <code className="rounded bg-[var(--ff-bg-2)] px-1" style={MONO}>
+              /api/webhooks/stripe
+            </code>.
           </p>
         ) : null}
       </section>

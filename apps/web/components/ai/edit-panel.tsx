@@ -11,17 +11,19 @@
 // (§11 "applying dispatches ops through the normal path, so it is one
 // undoable group"). §15 telemetry: "ai_applied {opsCount}" — counts only.
 //
-// Aurora redesign: violet-tinted code-tile header, composer + glowing primary
-// propose action, skeleton shimmer while proposing, and the proposal framed
-// as a review card — badge header with op counts, tinted diff lines on a
-// tokenized ink surface, Apply (primary, check) / Discard (ghost, x).
-// Fetch/error/quota logic unchanged; onQuota stays an optional additive
-// callback for the workbench header badge.
+// Meridian redesign: quiet ultramarine code-tile header (the user-action
+// side of the workbench), Sora panel title, composer with a mono character
+// counter and the zone's ultramarine propose action, terracotta dot + mono
+// uppercase "Analyzing" microtext over a quiet --ff-bg-2 skeleton well while
+// proposing, and the proposal framed as a review card — badge header with op
+// counts, hairline diff rows (mono index + 500-weight ink lines) on a --ff-bg-2
+// well, Apply (secondary) / Discard (ghost). Fetch/error/quota logic unchanged;
+// onQuota stays an optional additive callback for the workbench header badge.
 import { useId, useMemo, useState } from "react";
 import type { DocumentBody } from "@formforge/core/ai";
 import { summarizeOpsDiff, toBuilderOps, toGroupedApply, type GroupedApply } from "@/lib/builder/ai-apply";
 import { track } from "@/lib/telemetry";
-import { BADGE_ACCENT, BADGE_POSITIVE, BTN_GHOST, BTN_PRIMARY } from "@/lib/ui";
+import { BADGE_ACCENT, BADGE_POSITIVE, BTN_GHOST, BTN_PRIMARY, BTN_SECONDARY } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
 
 type EditResponse = {
@@ -138,7 +140,12 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
           <Icon name="code" size={16} />
         </span>
         <div>
-          <h2 className="text-base font-semibold text-[var(--ff-fg)]">Edit with AI</h2>
+          <h2
+            className="text-base font-semibold tracking-[-0.01em] text-[var(--ff-fg)]"
+            style={{ fontFamily: "var(--ff-font-heading)" }}
+          >
+            Edit with AI
+          </h2>
           <p className="mt-0.5 text-sm leading-relaxed text-[var(--ff-muted)]">
             Proposals are shown as a diff first. Nothing changes until you apply them.
           </p>
@@ -146,7 +153,15 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
       </header>
 
       <div className="ff-field">
-        <label htmlFor={instructionId}>What should change?</label>
+        <label htmlFor={instructionId} className="flex items-baseline justify-between gap-3">
+          What should change?
+          <span
+            aria-hidden="true"
+            className="font-mono text-[11px] font-normal tabular-nums text-[var(--ff-muted)]"
+          >
+            {instruction.length} / 1000
+          </span>
+        </label>
         <textarea
           id={instructionId}
           value={instruction}
@@ -184,14 +199,19 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
       </p>
 
       {status === "loading" ? (
-        // Proposal shimmer: status badge + skeleton rows (reduced-motion users
-        // get the static pulse reset from globals.css).
+        // Proposal wait: terracotta AI-signal microtext + a quiet --ff-bg-2
+        // skeleton well (reduced-motion users get the static pulse reset from
+        // globals.css).
         <div className="space-y-3 border-t border-[var(--ff-border)] pt-4">
-          <span className={BADGE_ACCENT}>
-            <Icon name="spinner" size={12} />
+          <span className="inline-flex items-center gap-2 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: "var(--ff-accent)" }}
+            />
             Analyzing document…
           </span>
-          <div className="ff-skeleton" style={{ height: "5.5rem" }} />
+          <div className="ff-skeleton" style={{ height: "5.5rem", background: "var(--ff-bg-2)" }} />
         </div>
       ) : null}
 
@@ -209,8 +229,9 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
               {proposal.ops.length} op{proposal.ops.length === 1 ? "" : "s"}
             </span>
           </div>
-          {/* §11 diff list: counts summary + one line per proposed op, with
-              Apply (grouped handoff) / Discard (clears). */}
+          {/* §11 diff list: counts summary + one hairline row per proposed op
+              (mono index + diff line), with Apply (grouped handoff) /
+              Discard (clears). */}
           <p aria-label="Change summary" className="text-xs tabular-nums text-[var(--ff-muted)]">
             <span className="text-[var(--ff-success)]">{diffSummary.added} added</span>
             {" · "}
@@ -222,25 +243,35 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
           </p>
           <ul
             aria-label="Proposed changes"
-            className="max-h-64 space-y-1 overflow-auto rounded-[10px] border p-3 font-mono text-xs leading-relaxed"
+            className="max-h-64 divide-y divide-[var(--ff-border)] overflow-auto rounded-[10px] border px-3 py-1 font-mono text-xs leading-relaxed"
             style={{
               borderColor: "var(--ff-border)",
-              background: "color-mix(in srgb, var(--ff-bg) 55%, var(--ff-bg-2))",
+              background: "var(--ff-bg-2)",
             }}
           >
             {(diffSummary.lines.length > 0 ? diffSummary.lines : proposal.diff).map(
               (line, index) => (
                 <li
                   key={index}
-                  className={
-                    line.startsWith("+")
-                      ? "text-[var(--ff-success)]"
-                      : line.startsWith("−") || line.startsWith("-")
-                        ? "text-[var(--ff-danger)]"
-                        : "text-[var(--ff-fg)]"
-                  }
+                  className="flex items-baseline gap-2.5 py-2 first:pt-0 last:pb-0"
                 >
-                  {line}
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 text-[0.6875rem] tabular-nums text-[var(--ff-muted)]"
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className={
+                      line.startsWith("+")
+                        ? "font-medium text-[var(--ff-success)]"
+                        : line.startsWith("−") || line.startsWith("-")
+                          ? "font-medium text-[var(--ff-danger)]"
+                          : "font-medium text-[var(--ff-fg)]"
+                    }
+                  >
+                    {line}
+                  </span>
                 </li>
               ),
             )}
@@ -252,7 +283,7 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
             </span>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={apply} className={BTN_PRIMARY}>
+              <button type="button" onClick={apply} className={BTN_SECONDARY}>
                 <Icon name="check" size={16} />
                 Apply ops
               </button>

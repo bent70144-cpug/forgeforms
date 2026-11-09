@@ -14,6 +14,11 @@
 // timer), Undo dispatches the editor "undo" action and dismisses, Escape
 // dismisses, aria-live="polite" role="status". No confirm dialog (§6.4).
 
+// Meridian restyle: an ink-dark toast pinned bottom-left — #1a1d26 surface
+// with paper text (the two core neutrals, pinned so the toast stays dark in
+// night mode too), the Undo action in an ultramarine-300 tone, and a mono
+// countdown to the 8 s auto-dismiss. Behavior contract unchanged.
+
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useBuilderDispatch } from "./context";
 
@@ -105,35 +110,64 @@ export function UndoToastView(props: {
   onUndo: () => void;
   onDismiss: () => void;
 }): ReactElement {
+  // Mono countdown for the auto-dismiss window — purely presentational (the
+  // controller owns the real timer; this mirror just renders the seconds).
+  const [secondsLeft, setSecondsLeft] = useState(Math.round(UNDO_TOAST_MS / 1000));
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsLeft((s) => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div
       role="status"
       aria-live="polite"
       data-testid="undo-toast"
-      className="ff-undo-toast fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-xl px-4 py-3 text-sm"
+      className="ff-undo-toast fixed bottom-4 left-4 z-50 flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-4 py-3 text-sm"
       style={{
-        background: "var(--ff-glass)",
-        WebkitBackdropFilter: "blur(14px) saturate(1.4)",
-        backdropFilter: "blur(14px) saturate(1.4)",
-        border: "1px solid var(--ff-glass-border)",
+        background: "#1a1d26",
+        color: "#f7f5f0",
+        border: "1px solid rgb(247 245 240 / 0.14)",
         boxShadow: "var(--ff-shadow-lg)",
       }}
     >
       <span className="font-medium">Deleted {props.label}</span>
       {props.hadLogic ? (
-        <span className="text-[color:var(--ff-warning)]">
+        <span style={{ color: "color-mix(in srgb, var(--ff-warning) 60%, white)" }}>
           Used by logic rules — review in{" "}
-          <a href={props.logicHref ?? "../logic"} className="underline underline-offset-2">
+          <a
+            href={props.logicHref ?? "../logic"}
+            className="underline underline-offset-2"
+            style={{ color: "inherit" }}
+          >
             Logic
           </a>
           .
         </span>
       ) : null}
+      <span
+        aria-hidden="true"
+        className="tabular-nums"
+        style={{
+          fontFamily: "var(--ff-font-mono)",
+          fontSize: "0.6875rem",
+          color: "rgb(247 245 240 / 0.6)",
+        }}
+      >
+        {secondsLeft}s
+      </span>
       <button
         type="button"
         onClick={props.onUndo}
         aria-label={`Undo delete of ${props.label}`}
-        className="ff-btn ff-btn-secondary ff-btn-sm"
+        className="ff-btn ff-btn-sm hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_30%,transparent)]"
+        style={{
+          color: "color-mix(in srgb, var(--ff-primary) 55%, white)",
+          borderColor: "color-mix(in srgb, var(--ff-primary) 55%, white)",
+          fontWeight: 600,
+        }}
       >
         Undo
       </button>
@@ -141,7 +175,8 @@ export function UndoToastView(props: {
         type="button"
         onClick={props.onDismiss}
         aria-label="Dismiss"
-        className="rounded-md p-1 leading-none text-[color:var(--ff-muted)] transition-colors hover:bg-[color:color-mix(in_srgb,var(--ff-fg)_8%,transparent)] hover:text-[color:var(--ff-fg)]"
+        className="rounded-md p-1 leading-none transition-colors hover:bg-[color:rgb(255_255_255/0.1)]"
+        style={{ color: "rgb(247 245 240 / 0.65)" }}
       >
         ✕
       </button>

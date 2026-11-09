@@ -1,10 +1,9 @@
 // T15 — NPS segments bar (detractors / passives / promoters) per spec §14.1.5.
-// Pure CSS stacking, no chart library. Aurora: each segment is a two-stop
-// gradient of its semantic token (--ff-danger/--ff-warning/--ff-success) —
-// solid at the leading edge, washing out behind — so the bar carries gradient
-// energy while the red/amber/green reading survives in both schemes. The score
-// is a big mono gradient value; a muted mono ruler sits under the bar; legend
-// counts are mono and rows get a quiet hover wash.
+// Pure CSS stacking, no chart library. Meridian: a segmented 0–10 scale — each
+// band (0–6 / 7–8 / 9–10) fills with its semantic -soft token and carries a
+// strong 2px leading edge of the matching strong token, so the red/amber/green
+// reading survives on both paper and night surfaces. The score is a plain ink
+// mono value (no gradient); the ruler and legend counts are mono tabular-nums.
 
 "use client";
 
@@ -15,26 +14,24 @@ const SEGMENTS = [
     key: "detractors",
     label: "Detractors",
     hint: "0–6",
-    color: "var(--ff-danger)",
+    soft: "var(--ff-danger-soft)",
+    strong: "var(--ff-danger)",
   },
   {
     key: "passives",
     label: "Passives",
     hint: "7–8",
-    color: "var(--ff-warning)",
+    soft: "var(--ff-warning-soft)",
+    strong: "var(--ff-warning)",
   },
   {
     key: "promoters",
     label: "Promoters",
     hint: "9–10",
-    color: "var(--ff-success)",
+    soft: "var(--ff-success-soft)",
+    strong: "var(--ff-success)",
   },
 ] as const;
-
-/** Two-stop gradient of one semantic token: solid hue → 55% alpha wash. */
-function segmentFill(color: string): string {
-  return `linear-gradient(90deg, ${color} 0%, color-mix(in srgb, ${color} 55%, transparent) 100%)`;
-}
 
 export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
   const { totalResponses: total, detractors, passives, promoters, score } = aggregate;
@@ -47,10 +44,7 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
           {total} {total === 1 ? "response" : "responses"}
         </p>
         <p className="text-sm text-[var(--ff-muted)]">
-          <span
-            className="bg-clip-text font-mono text-3xl font-semibold leading-none tabular-nums text-transparent"
-            style={{ backgroundImage: "var(--ff-grad)" }}
-          >
+          <span className="font-mono text-3xl font-semibold leading-none tabular-nums text-[var(--ff-fg)]">
             {score}
           </span>{" "}
           NPS
@@ -58,7 +52,7 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
       </div>
 
       <div
-        className="mt-4 flex h-3 w-full gap-px overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)]"
+        className="mt-4 flex h-3 w-full gap-px overflow-hidden rounded-full bg-[var(--ff-bg-2)]"
         role="img"
         aria-label={`NPS ${score}: ${detractors} detractors, ${passives} passives, ${promoters} promoters`}
       >
@@ -69,7 +63,12 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
             <span
               key={seg.key}
               className="h-full"
-              style={{ width: width(n), background: segmentFill(seg.color) }}
+              style={{
+                width: width(n),
+                backgroundColor: seg.soft,
+                // strong leading edge marks each band's start (empty bands stay blank)
+                borderLeft: n > 0 ? `2px solid ${seg.strong}` : undefined,
+              }}
             />
           );
         })}
@@ -93,12 +92,12 @@ export function NpsBar({ aggregate }: { aggregate: NpsAggregate }) {
           return (
             <li
               key={seg.key}
-              className="-mx-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-[var(--ff-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-primary)_7%,transparent)]"
+              className="-mx-1.5 flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs text-[var(--ff-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--ff-bg-2)_60%,transparent)]"
             >
               <span
                 aria-hidden="true"
                 className="inline-block h-2 w-2 rounded-full"
-                style={{ backgroundColor: seg.color }}
+                style={{ backgroundColor: seg.strong }}
               />
               <span className="font-medium text-[var(--ff-fg)]">{seg.label}</span>
               <span className="font-mono tabular-nums">

@@ -1,5 +1,5 @@
 import { Icon } from '@/components/ui/icons';
-import { BTN_PRIMARY, BTN_SECONDARY } from '@/lib/ui';
+import { BTN_GHOST, BTN_PRIMARY, BTN_SECONDARY } from '@/lib/ui';
 import {
   isUpgrade,
   type PaidPlan,
@@ -12,12 +12,12 @@ import {
 // forbids upgrade prompts inside editing surfaces. All Stripe side effects
 // go through the server actions (injected gateway behind the billing service).
 //
-// Presentation notes (aurora glass): the card is NOT interactive, so there is
-// no hover lift; the current plan is signalled ONCE per channel — a violet
-// ring + soft glow + gradient spine on the card and a single violet badge in
-// the header row — and feature checks stay muted so the violet reads as the
-// only energy on the card. Explanatory texts live in the page-level footnote
-// instead of repeating per card.
+// Presentation notes (Meridian): the card is NOT interactive, so there is
+// no hover lift; the current plan is signalled ONCE per channel — a 1.5px
+// ultramarine border on the card and a single ultramarine badge in the
+// header row — and feature checks stay quiet success green. The price is
+// set in JetBrains Mono with tabular-nums; explanatory texts live in the
+// page-level footnote instead of repeating per card.
 
 export type PlanCardProps = {
   entry: PlanCatalogEntry;
@@ -53,21 +53,17 @@ export default function PlanCard({
           ? {
               borderColor: 'var(--ff-primary)',
               borderWidth: '1.5px',
-              background: 'color-mix(in srgb, var(--ff-primary) 6%, var(--ff-card))',
-              boxShadow: 'var(--ff-glow-soft), var(--ff-shadow-sm)',
             }
           : undefined
       }
     >
-      {isCurrent ? (
-        <span
-          aria-hidden="true"
-          className="absolute inset-x-0 top-0 h-[2px] overflow-hidden rounded-t-[var(--ff-radius)]"
-          style={{ background: 'var(--ff-grad)' }}
-        />
-      ) : null}
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold">{entry.name}</h3>
+        <h3
+          className="text-base font-semibold tracking-tight"
+          style={{ fontFamily: 'var(--ff-font-heading)' }}
+        >
+          {entry.name}
+        </h3>
         {isCurrent ? (
           <span
             className="ff-badge"
@@ -82,7 +78,10 @@ export default function PlanCard({
         ) : null}
       </div>
       <p className="mt-1 text-sm leading-relaxed text-[var(--ff-muted)]">{entry.tagline}</p>
-      <p className="mt-4 text-3xl font-semibold tabular-nums">
+      <p
+        className="mt-4 text-[28px] font-semibold tabular-nums"
+        style={{ fontFamily: 'var(--ff-font-mono)' }}
+      >
         ${entry.priceMonthlyUsd}
         <span className="text-sm font-normal text-[var(--ff-muted)]">/mo</span>
       </p>
@@ -93,7 +92,7 @@ export default function PlanCard({
             <Icon
               name="check"
               size={14}
-              className="mt-[0.3rem] shrink-0 text-[var(--ff-muted)]"
+              className="mt-[0.3rem] shrink-0 text-[var(--ff-success)]"
             />
             <span>{feature}</span>
           </li>
@@ -114,7 +113,10 @@ export default function PlanCard({
           </form>
         ) : (
           <form action={onPortal}>
-            <button type="submit" className={`${BTN_SECONDARY} w-full`}>
+            <button
+              type="submit"
+              className={`${entry.id === 'free' ? BTN_GHOST : BTN_SECONDARY} w-full`}
+            >
               {entry.id === 'free' ? 'Cancel via billing portal' : 'Switch via billing portal'}
             </button>
           </form>

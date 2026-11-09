@@ -1,11 +1,11 @@
 "use client";
 
 // The hero desk demo: one FormForge document, three render planes.
-// - The groove (a glass segmented control) flips the sheet between
+// - The groove (a paper segmented control) flips the sheet between
 //   form, page and embed. ARIA tabs; keyboard arrows move between stops.
 // - The desk "job" plays once when scrolled into view (CSS keyframes on a
-//   .ff-land-play class): the receipt chip settles, then a glowing
-//   "Submitted" chip pops in the sheet's corner. Without JS or with reduced
+//   .ff-land-play class): the receipt chip settles, then a green
+//   "Submitted" stamp pops in the sheet's corner. Without JS or with reduced
 //   motion the finished state simply shows (content visible with scripting
 //   off).
 

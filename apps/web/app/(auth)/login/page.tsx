@@ -45,13 +45,16 @@ export default async function LoginPage({
         </p>
       )}
 
+      {/* Credentials first; the Google block (hairline "or continue with"
+          + white slab) sits below the single ultramarine submit. */}
+      <AuthForm mode="login" />
       {/* SPEC-NOTE: server-rendered conditional — hidden when GOOGLE_CLIENT_ID is unset. */}
       <GoogleSignInButton />
-      <AuthForm mode="login" />
+
       <p className="ff-auth-alt">
         <Link
           href="/forgot"
-          className="underline-offset-4 transition-colors hover:text-[var(--ff-accent)] hover:underline"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-primary)] hover:underline"
         >
           Forgot your password?
         </Link>
@@ -60,7 +63,7 @@ export default async function LoginPage({
         New to FormForge?{" "}
         <Link
           href="/register"
-          className="underline-offset-4 transition-colors hover:text-[var(--ff-accent)] hover:underline"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-primary)] hover:underline"
         >
           Create an account
         </Link>

@@ -1,9 +1,10 @@
 // T15 — Submissions tab (spec §14.1.5): cursor-paginated table with one column
 // per question ("—" for empty), status filter, submitted_at sort, 5s poll so a
 // fresh submission shows within 5s, row click → detail drawer.
-// Aurora: ff-seg status filter, sticky glass thead (uppercase micro labels),
-// mono timestamps/tokens, violet row-hover wash, progressive column disclosure
-// on small screens, token-driven states.
+// Meridian: ff-seg status filter, recessed --ff-bg-2 thead with uppercase mono
+// micro labels, hairline row dividers with a quiet --ff-bg-2 hover wash, mono
+// timestamps/tokens, progressive column disclosure on small screens,
+// token-driven states.
 
 "use client";
 
@@ -47,7 +48,7 @@ const questionColClass = (index: number): string =>
   index === 0 ? "hidden md:table-cell" : "hidden lg:table-cell";
 
 const TH =
-  "px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--ff-muted)] whitespace-nowrap";
+  "px-3 py-2.5 text-left font-mono text-[11px] font-medium uppercase tracking-wide text-[var(--ff-muted)] whitespace-nowrap";
 const TD = "px-3 py-2.5";
 
 export interface SubmissionsTableProps {
@@ -243,7 +244,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                 <caption className="sr-only">
                   Submissions, sorted by submitted time ({sort === "newest" ? "newest first" : "oldest first"})
                 </caption>
-                <thead className="sticky top-0 z-10 border-b border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-card)_85%,transparent)] backdrop-blur-sm">
+                <thead className="sticky top-0 z-10 border-b border-[var(--ff-border)] bg-[var(--ff-bg-2)]">
                   <tr>
                     <th scope="col" className={TH}>
                       <button
@@ -297,7 +298,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                         }
                       }}
                       aria-label={`Open submission ${row.id}`}
-                      className="cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--ff-primary)_7%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ff-accent)]"
+                      className="cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--ff-bg-2)_50%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ff-accent)]"
                     >
                       <td className="whitespace-nowrap font-mono text-xs tabular-nums text-[var(--ff-muted)]">
                         {formatDateTimeShort(sortKeyOf(row))}
@@ -346,7 +347,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
 
           {/* Footer: cursor pagination controls (spec §4) */}
           {!state.loading && !state.error && state.rows.length > 0 ? (
-            <div className="flex items-center justify-between gap-3 border-t border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-primary)_3%,transparent)] px-4 py-3 text-xs text-[var(--ff-muted)]">
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--ff-border)] bg-[var(--ff-card-2)] px-4 py-3 text-xs text-[var(--ff-muted)]">
               <span className="font-mono tabular-nums">
                 Showing {state.rows.length} loaded
                 {state.pagesLoaded > 1 ? ` · ${state.pagesLoaded} pages` : ""}

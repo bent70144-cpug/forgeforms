@@ -1,8 +1,9 @@
 // T15 — Summary tab (spec §14.1.5): headline cards (responses, completion
 // rate), per-question aggregates — choice distributions, rating averages,
 // NPS segments — all rendered with dependency-free CSS bars.
-// Aurora: readable hierarchy with hairline section dividers (uppercase micro
-// headers, mono counts/timestamps), gradient hero values on averages.
+// Meridian: readable hierarchy with hairline section dividers (mono uppercase
+// micro headers, mono counts/timestamps), plain ink hero values — no gradient
+// text, no glow — and editorial quote cards for written answers.
 
 "use client";
 
@@ -17,7 +18,7 @@ import {
 } from "../../lib/results";
 import { BADGE_MUTED, BTN_PRIMARY, CARD } from "../../lib/ui";
 import { BarList } from "./BarList";
-import { CardsSkeleton, ErrorState, Skeleton, errorCodeOf } from "./Feedback";
+import { CardsSkeleton, ErrorState, QuoteCard, Skeleton, errorCodeOf } from "./Feedback";
 import { NpsBar } from "./NpsBar";
 import { StatCards } from "./StatCards";
 import { EmptyState } from "../ui/empty-state";
@@ -61,10 +62,7 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         <div>
           <p className="mb-3 text-sm text-[var(--ff-muted)]">
             Average{" "}
-            <span
-              className="bg-clip-text font-mono text-lg font-semibold tabular-nums text-transparent"
-              style={{ backgroundImage: "var(--ff-grad)" }}
-            >
+            <span className="font-mono text-lg font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.average)}
             </span>{" "}
             <span className="font-mono tabular-nums">/ {aggregate.scale}</span>
@@ -82,19 +80,19 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
       ) : aggregate.kind === "number" ? (
         <dl className="grid grid-cols-3 gap-4 text-sm">
           <div>
-            <dt className="text-xs font-medium text-[var(--ff-muted)]">Average</dt>
+            <dt className="text-[11px] font-medium uppercase tracking-wide text-[var(--ff-muted)]">Average</dt>
             <dd className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.average)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-[var(--ff-muted)]">Min</dt>
+            <dt className="text-[11px] font-medium uppercase tracking-wide text-[var(--ff-muted)]">Min</dt>
             <dd className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.min)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-[var(--ff-muted)]">Max</dt>
+            <dt className="text-[11px] font-medium uppercase tracking-wide text-[var(--ff-muted)]">Max</dt>
             <dd className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.max)}
             </dd>
@@ -104,19 +102,10 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         aggregate.recent.length === 0 ? (
           <p className="text-sm text-[var(--ff-muted)]">No written answers yet.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-2.5">
             {aggregate.recent.map((text, i) => (
-              <li
-                key={i}
-                className="rounded-r-lg border-l-2 border-[color-mix(in_srgb,var(--ff-primary)_50%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_4%,transparent)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)]"
-              >
-                <span aria-hidden="true" className="mr-1 text-[var(--ff-muted)]">
-                  “
-                </span>
-                {text}
-                <span aria-hidden="true" className="ml-1 text-[var(--ff-muted)]">
-                  ”
-                </span>
+              <li key={i}>
+                <QuoteCard text={text} />
               </li>
             ))}
           </ul>
@@ -244,9 +233,9 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
         </p>
       ) : (
         <>
-          {/* section divider: label — hairline — generation timestamp (mono) */}
+          {/* section divider: mono label — hairline — generation timestamp (mono) */}
           <div className="flex items-center gap-4 pt-1">
-            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--ff-muted)]">
+            <h2 className="shrink-0 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ff-muted)]">
               Question breakdown
             </h2>
             <span aria-hidden="true" className="h-px flex-1 bg-[var(--ff-border)]" />

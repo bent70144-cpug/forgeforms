@@ -8,7 +8,7 @@
 // Memoized per spec §13: all collaborators arrive as stable props (actions
 // object + referencedIds are memoized in Canvas), so a card only re-renders
 // when its own block reference / position / selection changes.
-import { Fragment, memo, useEffect, useState, type KeyboardEvent } from "react";
+import { Fragment, memo, useEffect, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { Block } from "@formforge/schema";
 import { getBlockDef, type AnyBlockDef } from "@formforge/blocks";
 import type { CanvasActions } from "@/lib/builder/canvas-ops";
@@ -128,11 +128,27 @@ function BlockCardImpl({
     }
   };
 
-  // Aurora glass card: tokenized deep-indigo surface; the selected card earns
-  // the violet ring + soft glow. Transitions are transform/opacity only.
+  // Meridian card: a white sheet on the document sheet — 1px hairline, soft
+  // paper shadow at rest; the selected card earns a 1.5px ultramarine border
+  // plus a 4% ultramarine tint. No glow, no lift — print-like elevation.
   const cardClassName = selected
-    ? "relative w-full cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border-strong)] bg-[color:var(--ff-card)] p-4 text-left text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft)] [outline:2px_solid_var(--ff-primary)] [outline-offset:2px]"
-    : "relative w-full cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] p-4 text-left text-[color:var(--ff-fg)] outline-1 outline-offset-2 outline-transparent transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] hover:-translate-y-px hover:[outline-color:var(--ff-border-strong)] focus-visible:[outline:2px_solid_var(--ff-primary)] focus-visible:[outline-offset:2px]";
+    ? "relative w-full cursor-pointer rounded-[var(--ff-radius)] border bg-[color:color-mix(in_srgb,var(--ff-primary)_4%,var(--ff-bg))] p-4 text-left text-[color:var(--ff-fg)] focus-visible:[outline:2px_solid_var(--ff-primary)] focus-visible:[outline-offset:2px]"
+    : "relative w-full cursor-pointer rounded-[var(--ff-radius)] border bg-[color:var(--ff-bg)] p-4 text-left text-[color:var(--ff-fg)] transition-[border-color,box-shadow] duration-200 ease-[var(--ff-ease-out)] hover:[border-color:var(--ff-border-strong)] focus-visible:[outline:2px_solid_var(--ff-primary)] focus-visible:[outline-offset:2px]";
+
+  const cardStyle: CSSProperties = selected
+    ? {
+        borderWidth: "1.5px",
+        borderColor: "var(--ff-primary)",
+        boxShadow: "var(--ff-shadow-sm)",
+        contentVisibility: "auto",
+        containIntrinsicSize: "80px",
+      }
+    : {
+        borderColor: "var(--ff-border)",
+        boxShadow: "var(--ff-shadow-sm)",
+        contentVisibility: "auto",
+        containIntrinsicSize: "80px",
+      };
 
   return (
     <article
@@ -153,7 +169,7 @@ function BlockCardImpl({
       }}
       onKeyDown={handleKeyDown}
       className={cardClassName}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "80px" }}
+      style={cardStyle}
     >
       {selected ? (
         <BlockToolbar
@@ -168,14 +184,30 @@ function BlockCardImpl({
 
       <BlockErrorBoundary block={block} onDelete={() => actions.remove(block.id)}>
         <header className="flex items-center gap-2 pr-2">
-          {/* Type-specific accent icon: small gradient tile (§design aurora). */}
+          {/* Type-specific accent icon: quiet ultramarine tint tile. */}
           <span
             aria-hidden="true"
-            style={{ background: "var(--ff-grad)" }}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] text-xs shadow-[var(--ff-glow)]"
+            style={{
+              background: "color-mix(in srgb, var(--ff-primary) 8%, transparent)",
+              color: "var(--ff-primary)",
+            }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-xs"
           >
             {blockIcon(block.kind)}
           </span>
+          {/* type chip — mono microtext (Meridian telemetry voice) */}
+          {primaryValue !== null && (
+            <span
+              aria-hidden="true"
+              className="shrink-0 whitespace-nowrap rounded-full px-1.5 py-0.5 text-[0.625rem] leading-none text-[color:var(--ff-muted)]"
+              style={{
+                fontFamily: "var(--ff-font-mono)",
+                border: "1px solid var(--ff-border)",
+              }}
+            >
+              {meta?.label ?? block.kind}
+            </span>
+          )}
           <span className="min-w-0 flex-1 text-sm font-medium">
             {primaryValue !== null ? (
               <InlineEditable

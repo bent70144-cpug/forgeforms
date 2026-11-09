@@ -24,24 +24,26 @@ export type EmbedSnapshot = {
 };
 
 // Embeds render inside host pages we don't control, so the widget must stay
-// NEUTRAL and LIGHT: these are the light-theme values from app/globals.css
-// re-pinned on the embed subtree, so a dark host OS theme never dark-flips
-// the widget itself. Styling only — no behavioural effect.
+// NEUTRAL and LIGHT: these are the Meridian light-theme values from
+// app/globals.css re-pinned on the embed subtree, so a dark host OS theme
+// never dark-flips the widget itself. Styling only — no behavioural effect.
 const LIGHT_TOKEN_PIN = {
-  "--ff-bg": "#faf8f3",
+  "--ff-bg": "#f7f5f0",
+  "--ff-bg-2": "#efece4",
   "--ff-card": "#ffffff",
-  "--ff-fg": "#211d18",
-  "--ff-muted": "#6f6862",
-  "--ff-border": "#e9e2d7",
-  "--ff-border-strong": "#d8cfc0",
-  "--ff-primary": "#211d18",
-  "--ff-primary-fg": "#fdfcfa",
-  "--ff-accent": "oklch(54% 0.165 29)",
-  "--ff-accent-soft": "oklch(74% 0.125 30)",
+  "--ff-fg": "#1a1d26",
+  "--ff-muted": "#686e7e",
+  "--ff-border": "#e5e1d6",
+  "--ff-border-strong": "#d1ccbd",
+  "--ff-primary": "#3d3bf3",
+  "--ff-primary-2": "#2b29c7",
+  "--ff-primary-fg": "#ffffff",
+  "--ff-accent": "#c2410c",
+  "--ff-accent-soft": "#ea580c",
   "--ff-accent-fg": "#ffffff",
-  "--ff-radius": "0.75rem",
-  "--ff-shadow-sm": "0 1px 2px rgb(42 32 22 / 0.05)",
-  "--ff-shadow-md": "0 1px 2px rgb(42 32 22 / 0.05), 0 8px 24px -12px rgb(42 32 22 / 0.16)",
+  "--ff-radius": "0.875rem",
+  "--ff-shadow-sm": "0 1px 2px rgb(26 29 38 / 0.06)",
+  "--ff-shadow-md": "0 1px 2px rgb(26 29 38 / 0.06), 0 12px 32px -16px rgb(26 29 38 / 0.16)",
 } as const;
 
 const QUESTION_KINDS = new Set([
@@ -137,7 +139,12 @@ function EmbedSnapshotView({ snapshot }: { snapshot: EmbedSnapshot }) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4">
       <header>
-        <h1 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">{snapshot.title}</h1>
+        <h1
+          className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]"
+          style={{ fontFamily: "var(--ff-font-heading)" }}
+        >
+          {snapshot.title}
+        </h1>
       </header>
       {questionBlocks.map((b) => (
         <div key={b.id}>
@@ -157,7 +164,7 @@ function EmbedSnapshotView({ snapshot }: { snapshot: EmbedSnapshot }) {
           This document has no interactive questions.
         </p>
       )}
-      <p className="mt-4 text-center text-[12px] text-[var(--ff-muted)]">Powered by FormForge</p>
+      <p className="mt-4 text-center font-mono text-[11px] uppercase tracking-[0.14em] text-[var(--ff-muted)]">Powered by FormForge</p>
     </div>
   );
 }
@@ -192,12 +199,16 @@ function UnavailableView({ docId }: { docId: string }) {
       <div className="ff-panel p-6">
         <span
           aria-hidden="true"
-          className="flex h-10 w-10 items-center justify-center rounded-[10px]"
-          style={{ background: "var(--ff-accent-soft)", color: "var(--ff-accent)" }}
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--ff-border)] bg-[var(--ff-bg-2)] text-[var(--ff-muted)]"
         >
-          <Icon name="fileText" size={20} />
+          <Icon name="fileText" size={18} />
         </span>
-        <h1 className="mt-4 text-base font-semibold text-[var(--ff-fg)]">Preview unavailable</h1>
+        <h1
+          className="mt-4 text-base font-semibold tracking-tight text-[var(--ff-fg)]"
+          style={{ fontFamily: "var(--ff-font-heading)" }}
+        >
+          Preview unavailable
+        </h1>
         <p className="mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
           The document{" "}
           <code className="rounded-[4px] border border-[var(--ff-border)] bg-[var(--ff-bg)] px-1.5 py-0.5 font-mono text-xs text-[var(--ff-fg)]">

@@ -8,6 +8,7 @@
 // and shows a message.
 
 import { useState, type KeyboardEvent } from "react";
+import { BTN_SECONDARY_SM } from "@/lib/ui";
 import { FF_SET_INPUT_CLASS } from "./FieldRow";
 import { MAX_NOTIFY_EMAILS, validateEmailDraft, type EmailDraftResult } from "./settings-helpers";
 
@@ -66,10 +67,11 @@ export function EmailListEditor({
 
   return (
     <div className="ff-field">
-      <label className="font-medium" htmlFor={inputId}>
+      {/* 14px/500 label — inline size beats the unlayered .ff-field > label rule */}
+      <label className="font-medium" htmlFor={inputId} style={{ fontSize: "0.875rem" }}>
         Notify emails ({emails.length}/{max})
       </label>
-      <div className="flex gap-1">
+      <div className="flex gap-1.5">
         <input
           id={inputId}
           type="email"
@@ -79,7 +81,7 @@ export function EmailListEditor({
           aria-invalid={error !== null}
           aria-describedby={error ? `${inputId}-error` : undefined}
           data-testid="ff-set-notify-email-input"
-          className={FF_SET_INPUT_CLASS}
+          className={`${FF_SET_INPUT_CLASS} min-w-0 flex-1`}
           onChange={(event) => {
             setDraft(event.target.value);
             if (error !== null) setError(null);
@@ -90,28 +92,42 @@ export function EmailListEditor({
           type="button"
           disabled={disabled || atLimit}
           onClick={commit}
-          className="ff-set-btn"
+          className={`${BTN_SECONDARY_SM} shrink-0 self-start`}
           aria-label="Add email recipient"
         >
           Add
         </button>
       </div>
       {error ? (
-        <p className="ff-set-note ff-set-note--error" role="alert" id={`${inputId}-error`} data-testid="ff-set-notify-email-error">
+        <p
+          className="ff-set-note ff-set-note--error"
+          role="alert"
+          id={`${inputId}-error`}
+          data-testid="ff-set-notify-email-error"
+          style={{ color: "var(--ff-danger)" }}
+        >
           {error}
         </p>
       ) : null}
       {emails.length > 0 && (
-        <ul className="m-0 flex list-none flex-col gap-1 p-0" data-testid="ff-set-notify-email-list">
-          {emails.map((email) => (
-            <li key={email.toLowerCase()} className="ff-set-chip">
-              <span className="min-w-0 truncate">{email}</span>
+        <ul
+          className="m-0 flex list-none flex-col p-0"
+          data-testid="ff-set-notify-email-list"
+        >
+          {emails.map((email, index) => (
+            <li
+              key={email.toLowerCase()}
+              className={`flex items-center justify-between gap-2 py-1.5 ${
+                index > 0 ? "border-t border-[color:var(--ff-border)]" : ""
+              }`}
+            >
+              <span className="min-w-0 truncate text-sm">{email}</span>
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => onRemove(email)}
                 aria-label={`Remove ${email}`}
-                className="ff-set-chip-remove"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[color:var(--ff-muted)] transition-colors duration-150 hover:bg-[color:var(--ff-danger-soft)] hover:text-[color:var(--ff-danger)] disabled:opacity-40"
               >
                 ×
               </button>

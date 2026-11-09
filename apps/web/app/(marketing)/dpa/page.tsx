@@ -3,10 +3,13 @@
 // (export, deletion, per-form retention). Static marketing surface; covered by
 // the public-page CSP group in lib/security/csp.ts.
 //
-// Article layout: 3xl prose column, anchor per section (mini TOC at top),
-// hairline section dividers with a violet→cyan gradient underline on each h2,
-// generous measure. The version line is the only date-like claim and is kept
-// verbatim from the source document — no dates invented.
+// Meridian editorial-document layout: a centered 45rem (~720px) prose column
+// on paper, mono eyebrow + Sora 600 title, the version line set in mono, a
+// quiet "On this page" mini TOC in a recessed well, hairline rules opening
+// each numbered section, and the rights list set like a printed definition
+// list (mono term line, ink description). The version line is the only
+// date-like claim and is kept verbatim from the source document — no dates
+// invented.
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -20,14 +23,21 @@ export const metadata = {
 };
 
 // Shared article recipes.
-const PARA_BASE =
-  "max-w-[68ch] text-[16.5px] leading-[1.75] text-[color-mix(in_srgb,var(--ff-fg)_88%,transparent)]";
+const PARA_BASE = "max-w-[68ch] text-[16.5px] leading-[1.7] text-[var(--ff-fg)]";
 const PARA = `mt-4 ${PARA_BASE}`;
+// Links read as ultramarine text at rest and take an underline on hover.
 const INLINE_LINK =
-  "font-medium underline decoration-[color-mix(in_srgb,var(--ff-accent)_50%,transparent)] underline-offset-4 transition-colors hover:decoration-[var(--ff-accent)]";
+  "font-medium text-[var(--ff-primary)] underline-offset-4 transition-colors hover:underline";
 const INLINE_CODE =
-  "rounded-[4px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] px-1 py-0.5 font-mono text-[0.8125em]";
-const LIST_ITEM = `mt-3 pl-1 marker:text-[var(--ff-accent)] ${PARA_BASE}`;
+  "rounded-[4px] border border-[var(--ff-border)] bg-[var(--ff-bg-2)] px-1 py-0.5 font-[family-name:var(--ff-font-mono)] text-[0.8125em] text-[var(--ff-fg)]";
+
+// Rights list set like a printed definition list: hairline rows, a mono term
+// line, and an ink description inheriting the article measure below it.
+const RIGHTS_LIST = `m-0 mt-4 max-w-[68ch] list-none p-0 ${PARA_BASE}`;
+const DEF_ITEM = "border-t border-[var(--ff-border)] py-4 first:border-t-0 first:pt-0 last:pb-0";
+const DEF_TERM =
+  "font-[family-name:var(--ff-font-mono)] text-[13px] font-semibold tracking-[0.01em] text-[var(--ff-fg)]";
+const DEF_BODY = "mt-1.5";
 
 type DpaSection = {
   anchor: string;
@@ -54,25 +64,35 @@ const SECTIONS: readonly DpaSection[] = [
     anchor: "your-rights",
     heading: "3. Your rights (and how to exercise them)",
     body: [
-      <ul key="rights" className="list-disc pl-5">
-        <li className={LIST_ITEM}>
-          <strong className="font-semibold text-[var(--ff-fg)]">Export:</strong> GET /api/v1/workspace/export (or
-          Dashboard → Settings → Export) downloads a complete JSON archive of your workspace: members, documents,
-          versions, submissions with answers, webhook endpoints (without secrets) and API tokens (without hashes).
+      <ul key="rights" className={RIGHTS_LIST}>
+        <li className={DEF_ITEM}>
+          <strong className={DEF_TERM}>Export:</strong>
+          <p className={DEF_BODY}>
+            GET /api/v1/workspace/export (or Dashboard → Settings → Export) downloads a complete JSON archive of
+            your workspace: members, documents, versions, submissions with answers, webhook endpoints (without
+            secrets) and API tokens (without hashes).
+          </p>
         </li>
-        <li className={LIST_ITEM}>
-          <strong className="font-semibold text-[var(--ff-fg)]">Workspace deletion:</strong> Dashboard → Settings →
-          Delete workspace. The workspace is marked deleted immediately and hard-purged after a 30-day grace window.
+        <li className={DEF_ITEM}>
+          <strong className={DEF_TERM}>Workspace deletion:</strong>
+          <p className={DEF_BODY}>
+            Dashboard → Settings → Delete workspace. The workspace is marked deleted immediately and hard-purged
+            after a 30-day grace window.
+          </p>
         </li>
-        <li className={LIST_ITEM}>
-          <strong className="font-semibold text-[var(--ff-fg)]">Account deletion:</strong> Dashboard → Settings →
-          Delete account. Your user record, sessions, tokens and memberships are removed immediately; workspaces where
-          you were the sole owner enter the same deletion grace window.
+        <li className={DEF_ITEM}>
+          <strong className={DEF_TERM}>Account deletion:</strong>
+          <p className={DEF_BODY}>
+            Dashboard → Settings → Delete account. Your user record, sessions, tokens and memberships are removed
+            immediately; workspaces where you were the sole owner enter the same deletion grace window.
+          </p>
         </li>
-        <li className={LIST_ITEM}>
-          <strong className="font-semibold text-[var(--ff-fg)]">Per-form retention:</strong> every form accepts a
-          retention setting (settings.retentionDays). Completed submissions older than the window are purged
-          automatically by our retention job. 0 / unset means keep until you delete.
+        <li className={DEF_ITEM}>
+          <strong className={DEF_TERM}>Per-form retention:</strong>
+          <p className={DEF_BODY}>
+            every form accepts a retention setting (settings.retentionDays). Completed submissions older than the
+            window are purged automatically by our retention job. 0 / unset means keep until you delete.
+          </p>
         </li>
       </ul>,
     ],
@@ -125,7 +145,7 @@ function ArrowUpIcon() {
       height={14}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -139,48 +159,42 @@ function ArrowUpIcon() {
 
 export default function DpaPage() {
   return (
-    <main id="top" className="mx-auto w-full max-w-3xl px-[clamp(1rem,3vw,1.5rem)] py-14 sm:py-16">
+    <main id="top" className="mx-auto w-full max-w-[45rem] px-[clamp(1rem,3vw,1.5rem)] py-14 sm:py-16">
       <article>
         <header>
-          <p className="m-0 flex items-center gap-2 text-[0.8125rem] font-medium text-[var(--ff-muted)]">
-            <span
-              aria-hidden="true"
-              className="h-1 w-6 rounded-full shadow-[var(--ff-glow)]"
-              style={{ backgroundImage: "var(--ff-grad)" }}
-            />
+          <p className="m-0 flex items-center gap-2 font-[family-name:var(--ff-font-mono)] text-[13px] font-medium uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+            <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--ff-accent)]" />
             FormForge legal
           </p>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
+          <h1 className="mt-5 text-[clamp(1.75rem,3vw,2.5rem)] font-semibold leading-[1.15] tracking-[-0.02em] text-balance text-[var(--ff-fg)]">
             Data Processing Addendum
           </h1>
           {/* Muted meta row — version line kept verbatim. */}
-          <p className="mt-4 text-sm text-[var(--ff-muted)]">
+          <p className="mt-4 font-[family-name:var(--ff-font-mono)] text-[13px] text-[var(--ff-muted)]">
             Version 1.0 — effective with the FormForge launch build.
           </p>
-          <p className="mt-2 max-w-[56ch] text-lg leading-relaxed text-[var(--ff-muted)]">
+          <p className="mt-3 max-w-[56ch] text-lg leading-[1.7] text-[var(--ff-muted)]">
             How FormForge processes personal data on your behalf.
           </p>
         </header>
 
-        <nav aria-label="On this page" className="ff-panel relative mt-10 overflow-hidden p-5">
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-70"
-            style={{ backgroundImage: "var(--ff-grad)" }}
-          />
-          <p className="m-0 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+        <nav
+          aria-label="On this page"
+          className="mt-10 rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-bg-2)] p-5 sm:p-6"
+        >
+          <p className="m-0 font-[family-name:var(--ff-font-mono)] text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
             On this page
           </p>
           {/* Two columns from sm up: six single-line links in one column left
-              ~60% of the 48rem panel dead. Pairs halve the height and fill. */}
-          <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0 sm:grid sm:grid-cols-2 sm:gap-x-8">
+              ~60% of the well dead. Pairs halve the height and fill. */}
+          <ul className="m-0 mt-4 flex list-none flex-col gap-2.5 p-0 sm:grid sm:grid-cols-2 sm:gap-x-8">
             {SECTIONS.map((s) => (
               <li key={s.anchor}>
                 <a
                   href={`#${s.anchor}`}
                   className="inline-flex items-center gap-1.5 text-sm text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-fg)]"
                 >
-                  <Icon name="chevronRight" size={12} className="shrink-0 text-[var(--ff-accent)]" />
+                  <Icon name="chevronRight" size={12} className="shrink-0 text-[var(--ff-muted)]" />
                   {s.heading}
                 </a>
               </li>
@@ -190,14 +204,7 @@ export default function DpaPage() {
 
         {SECTIONS.map((s) => (
           <section key={s.anchor} id={s.anchor} className="mt-10 scroll-mt-24 border-t border-[var(--ff-border)] pt-8">
-            <h2 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">{s.heading}</h2>
-            {/* gradient underline accent — decorative, fixed-width so it reads
-                as a rule rather than a selection highlight */}
-            <span
-              aria-hidden="true"
-              className="mt-2 mb-1 block h-[2px] w-12 rounded-full shadow-[var(--ff-glow)]"
-              style={{ backgroundImage: "var(--ff-grad)" }}
-            />
+            <h2 className="text-xl font-semibold leading-snug tracking-[-0.02em] text-[var(--ff-fg)]">{s.heading}</h2>
             {s.body.map((node, i) =>
               typeof node === "string" ? (
                 <p key={i} className={PARA}>

@@ -8,9 +8,10 @@
 // `limited` renders the §5.4 variant for unknown kinds: Duplicate + Delete
 // only (props are preserved; moving/convert is meaningless for unsupported
 // kinds and could corrupt the document).
-// Aurora glass chrome (2026 restyle): tokenized surfaces, gradient-neutral
-// glyphs, danger-tinted delete. Buttons keep their 44px touch targets; the
-// only transitions are transform/opacity (design-system rule).
+// Meridian chrome (2026 restyle): a white pill toolbar — 1px hairline border,
+// --ff-shadow-md, ghost icon buttons with the same tooltips, danger-tinted
+// delete. Buttons keep their 44px touch targets; the only transitions are
+// transform/opacity (design-system rule).
 import type { Block } from "@formforge/schema";
 import {
   clipboardEnvelope,
@@ -19,13 +20,13 @@ import {
 } from "@/lib/builder/canvas-ops";
 
 const TOOLBAR_BTN =
-  "flex h-11 w-11 items-center justify-center rounded-[10px] text-base text-[color:var(--ff-muted)] " +
-  "hover:bg-[color:color-mix(in_srgb,var(--ff-fg)_9%,transparent)] hover:text-[color:var(--ff-fg)] " +
+  "flex h-11 w-11 items-center justify-center rounded-full text-base text-[color:var(--ff-muted)] " +
+  "transition-colors duration-150 hover:bg-[color:var(--ff-bg-2)] hover:text-[color:var(--ff-fg)] " +
   "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[color:var(--ff-accent)] " +
   "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
 const MENU_BTN =
   "block w-full px-3 py-2 text-left text-sm font-medium text-[color:var(--ff-fg)] " +
-  "hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_12%,transparent)] " +
+  "transition-colors duration-150 hover:bg-[color:var(--ff-bg-2)] " +
   "disabled:cursor-not-allowed disabled:text-[color:var(--ff-muted)] disabled:hover:bg-transparent";
 
 /** Best-effort clipboard write (§6.4 copy/paste); cross-tab copy never throws. */
@@ -67,7 +68,7 @@ export function BlockToolbar({
     <div
       data-testid="block-toolbar"
       onClick={(event) => event.stopPropagation()}
-      className="absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] p-0.5 text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-lg)] backdrop-blur-xl"
+      className="absolute right-2 top-2 z-20 flex items-center gap-0.5 rounded-full border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] p-1 text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-md)]"
     >
       {/* Drag handle (§6.2 follow-up #7): real pointer/touch drag via the
           delegated listeners in useDragReorder (Canvas) — activation after
@@ -147,7 +148,7 @@ export function BlockToolbar({
           >
             ⋯
           </summary>
-          <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] py-1 text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl">
+          <div className="absolute right-0 top-full z-30 mt-1 w-52 overflow-hidden rounded-xl border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] py-1 text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-lg)]">
             <button
               type="button"
               className={MENU_BTN}

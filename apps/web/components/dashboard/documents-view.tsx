@@ -1,12 +1,13 @@
 'use client';
 
-// B3 — dashboard documents view (spec §14.1.2) — "aurora glass" command-center
-// pass: page header (eyebrow + Space Grotesk title + live count summary +
-// glowing New action), a frosted-glass toolbar (client-side title search +
-// grid/list segmented control), doc cards with gradient type tiles, status /
-// type badges and floor-pinned quick actions, and list rows with mono meta.
-// All data flow (list/duplicate/archive/copy), the persisted view toggle and
-// the archive-confirm modal are unchanged from the B3 build.
+// B3 — dashboard documents view (spec §14.1.2) — Meridian editorial pass:
+// page header (eyebrow + Sora title + live count summary with mono numerals +
+// the view's single ultramarine New action), a white hairline toolbar
+// (client-side title search + grid/list segmented control), white doc cards
+// with quiet recessed type tiles, status / type badges and floor-pinned ghost
+// quick actions, and list rows with mono meta. All data flow
+// (list/duplicate/archive/copy), the persisted view toggle and the
+// archive-confirm modal are unchanged from the B3 build.
 //
 // SPEC-NOTE (submissions count): §14.1.2 also lists a per-card submissions
 // count; that aggregate belongs to the results module (T05/T15) and is not
@@ -177,30 +178,47 @@ export function DocumentsView({
 
   return (
     <section aria-label="Documents">
-      {/* ── Page header — eyebrow, Space Grotesk title (global h1 font),
-          live count summary, glowing primary action ──────────────────── */}
+      {/* ── Page header — eyebrow, Sora title (global h1 font), live count
+          summary in mono numerals, the view's ONE primary action ──────── */}
       <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <div className="min-w-0">
           <p className="m-0 mb-1.5 flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[var(--ff-muted)]">
             <span
               aria-hidden="true"
-              className="h-1.5 w-1.5 rounded-full"
-              style={{ background: 'var(--ff-grad)' }}
+              className="h-1.5 w-1.5 rounded-[2px]"
+              style={{ background: 'var(--ff-primary)' }}
             />
             Workspace
           </p>
-          <h1 className="m-0 text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+          {/* Sora display heading — global h1 font + this clamp keeps it
+              quieter than the previous design's hero-scale type */}
+          <h1
+            className="m-0 font-semibold leading-[1.15] tracking-[-0.02em]"
+            style={{ fontSize: 'clamp(1.5rem, 3vw, 1.875rem)' }}
+          >
             Documents
           </h1>
           <p className="m-0 mt-1.5 text-sm text-[var(--ff-muted)]">
             {state.kind === 'ready' && docs ? (
               <>
-                <span className="font-semibold text-[var(--ff-fg)]">{docs.length}</span>{' '}
+                {/* mono numerals — quiet stats strip, tabular so counts don't
+                    shift while the workspace grows */}
+                <span
+                  className="font-semibold tabular-nums text-[var(--ff-fg)]"
+                  style={{ fontFamily: 'var(--ff-font-mono)' }}
+                >
+                  {docs.length}
+                </span>{' '}
                 {docs.length === 1 ? 'document' : 'documents'}
                 {publishedCount > 0 && (
                   <>
                     {' · '}
-                    <span className="font-medium text-[var(--ff-success)]">{publishedCount}</span>{' '}
+                    <span
+                      className="font-medium tabular-nums text-[var(--ff-success)]"
+                      style={{ fontFamily: 'var(--ff-font-mono)' }}
+                    >
+                      {publishedCount}
+                    </span>{' '}
                     published
                   </>
                 )}
@@ -220,19 +238,17 @@ export function DocumentsView({
         </button>
       </header>
 
-      {/* ── Toolbar — search + layout toggle on a frosted glass strip.
+      {/* ── Toolbar — search + layout toggle on a white hairline card.
           Wraps cleanly on mobile: search takes its own row, the toggle
           rides right below it. ───────────────────────────────────────── */}
       <div
         className="ff-toolbar"
         style={{
-          background: 'var(--ff-glass)',
-          border: '1px solid var(--ff-glass-border)',
-          borderRadius: '16px',
+          background: 'var(--ff-card)',
+          border: '1px solid var(--ff-border)',
+          borderRadius: 'var(--ff-radius)',
           padding: '0.625rem 0.75rem',
           boxShadow: 'var(--ff-shadow-sm)',
-          WebkitBackdropFilter: 'blur(16px)',
-          backdropFilter: 'blur(16px)',
         }}
       >
         <div className="relative w-full min-w-0 sm:max-w-xs">
@@ -306,7 +322,18 @@ export function DocumentsView({
           empty workspace above, with a one-click reset */}
       {noMatches && (
         <div className="ff-empty ff-empty--compact">
-          <div className="ff-empty-icon" aria-hidden="true">
+          {/* inline overrides quiet the shared .ff-empty-icon recipe (still
+              gradient-backed for other callers) to the Meridian circle */}
+          <div
+            className="ff-empty-icon"
+            aria-hidden="true"
+            style={{
+              background: 'var(--ff-bg-2)',
+              color: 'var(--ff-muted)',
+              boxShadow: 'inset 0 0 0 1px var(--ff-border)',
+              borderRadius: '999px',
+            }}
+          >
             <Icon name="search" size={18} />
           </div>
           <h2>No documents match “{query.trim()}”</h2>
@@ -332,7 +359,8 @@ export function DocumentsView({
                 <TypeTile type={doc.type} />
                 <Link
                   href={`/d/${doc.id}/results`}
-                  className="ff-doc-title min-w-0 flex-1 after:absolute after:inset-0"
+                  className="ff-doc-title min-w-0 flex-1 tracking-[-0.01em] after:absolute after:inset-0"
+                  style={{ fontFamily: 'var(--ff-font-heading)' }}
                 >
                   {doc.title}
                 </Link>
@@ -376,7 +404,8 @@ export function DocumentsView({
               <div className="min-w-0">
                 <Link
                   href={`/d/${doc.id}/results`}
-                  className="ff-doc-title block truncate text-[15px] font-medium transition-colors after:absolute after:inset-0 hover:text-[var(--ff-accent-soft)]"
+                  className="ff-doc-title block truncate text-[15px] font-semibold tracking-[-0.01em] transition-colors after:absolute after:inset-0 hover:text-[var(--ff-accent-soft)]"
+                  style={{ fontFamily: 'var(--ff-font-heading)' }}
                 >
                   {doc.title}
                 </Link>
@@ -455,9 +484,9 @@ export function DocumentsView({
 }
 
 /**
- * 36px rounded type tile — the aurora recipe: --ff-grad endpoints at low
- * opacity layered over the card surface, hairline violet ring, icon in
- * --ff-accent-soft. Tokens only, so light scheme flips automatically.
+ * 36px recessed type tile — the Meridian recipe: the paper well (--ff-bg-2)
+ * with a 1px hairline ring and a muted stroke icon. Tokens only, so the
+ * night scheme flips automatically.
  */
 function TypeTile({ type }: { type: string }) {
   return (
@@ -465,10 +494,9 @@ function TypeTile({ type }: { type: string }) {
       aria-hidden="true"
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
       style={{
-        background:
-          'linear-gradient(135deg, color-mix(in srgb, var(--ff-primary) 26%, transparent), color-mix(in srgb, var(--ff-primary-2) 20%, transparent)), var(--ff-card)',
-        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--ff-primary) 28%, transparent)',
-        color: 'var(--ff-accent-soft)',
+        background: 'var(--ff-bg-2)',
+        boxShadow: 'inset 0 0 0 1px var(--ff-border)',
+        color: 'var(--ff-muted)',
       }}
     >
       <Icon name={TYPE_TILE_ICONS[type] ?? 'file'} size={18} />
@@ -478,7 +506,7 @@ function TypeTile({ type }: { type: string }) {
 
 /**
  * §14.1.2 quick actions: open results, copy link, duplicate, archive.
- * Grid cards use a labeled "Open" + icon actions above a hairline separator;
+ * Grid cards use a ghost "Open" + ghost icon actions above a hairline separator;
  * list rows are icon-only. `relative z-10` keeps the buttons above the card's
  * stretched title link. The grid wrapper carries `group`-driven opacity so
  * the row brightens on card hover/focus without hiding controls from touch.
@@ -554,7 +582,7 @@ function DocumentActions({
 
   return (
     <div className="ff-doc-actions relative z-10 border-t border-[var(--ff-border)] pt-2.5 opacity-75 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
-      <Link href={openHref} className={BTN_SECONDARY_SM}>
+      <Link href={openHref} className={BTN_GHOST_SM}>
         Open
       </Link>
       <button

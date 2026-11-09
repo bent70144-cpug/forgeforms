@@ -19,6 +19,7 @@ import type { ThemeRadius } from "../../lib/bridge";
 import type { ThemeTokenKey } from "../../lib/bridge";
 import { contrastRatio, isHexColor, normalizeHex, passesAA, wcagLabel } from "../../lib/builder/contrast";
 import type { ThemePatch } from "../../lib/builder/ops";
+import { BADGE_POSITIVE, BADGE_WARNING, BTN_SECONDARY_SM, SEG, SEG_BTN } from "../../lib/ui";
 import {
   FONT_ALLOWLIST,
   THEME_PRESETS,
@@ -153,26 +154,29 @@ export function ThemePanel() {
   const primaryBadge = contrastBadgeInfo(theme.tokens["color.primaryFg"], theme.tokens["color.primary"]);
 
   return (
-    <div className="ff-th-panel" data-testid="theme-panel">
+    <div className="flex flex-col gap-4 p-3" data-testid="theme-panel">
       {/* --- Presets (§23) -------------------------------------------------- */}
-      <section aria-label="Presets" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Presets</h3>
-        <div className="ff-th-preset-grid" role="group" aria-label="Theme presets">
+      <section aria-label="Presets" className="flex flex-col gap-2 border-b border-[color:var(--ff-border)] pb-4">
+        <h3 className="sticky top-0 z-10 m-0 bg-[color:var(--ff-card)] pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-muted)]">
+          Presets
+        </h3>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Theme presets">
           {THEME_PRESETS.map((preset) => {
             const active = activePresetId === preset.id;
             return (
               <button
                 key={preset.id}
                 type="button"
-                className={`ff-th-preset transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] hover:-translate-y-0.5`}
+                className="flex flex-col items-stretch gap-1.5 rounded-lg border border-[color:var(--ff-border)] p-1.5 text-left transition-colors duration-150 ease-[var(--ff-ease-out)] hover:bg-[color:var(--ff-bg-2)] disabled:cursor-not-allowed"
                 aria-pressed={active}
                 data-preset-id={preset.id}
                 title={`Apply theme: ${preset.name}`}
+                style={active ? { outline: "2px solid var(--ff-primary)", outlineOffset: "2px" } : undefined}
                 onClick={() => applyPreset(preset, `Apply theme: ${preset.name}`)}
               >
                 <span
                   aria-hidden="true"
-                  className="ff-th-preset-preview"
+                  className="flex min-h-10 items-center justify-between px-2 py-1 text-xs font-semibold"
                   style={{
                     background: preset.tokens["color.bg"],
                     color: preset.tokens["color.fg"],
@@ -182,16 +186,17 @@ export function ThemePanel() {
                 >
                   <span>Aa</span>
                   <span
-                    className="ff-th-preset-pill"
+                    className="px-2 py-0.5 text-[10px]"
                     style={{
                       background: preset.tokens["color.primary"],
                       color: preset.tokens["color.primaryFg"],
+                      borderRadius: RADIUS_PX[preset.radius],
                     }}
                   >
                     Aa
                   </span>
                 </span>
-                <span className="ff-th-preset-name">{preset.name}</span>
+                <span className="text-xs text-[color:var(--ff-fg)]">{preset.name}</span>
               </button>
             );
           })}
@@ -199,23 +204,25 @@ export function ThemePanel() {
       </section>
 
       {/* --- Colors (§8.2: picker + hex + contrast badges) ------------------- */}
-      <section aria-label="Colors" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Colors</h3>
-        <div className="ff-th-color-rows">
+      <section aria-label="Colors" className="flex flex-col gap-2 border-b border-[color:var(--ff-border)] pb-4">
+        <h3 className="sticky top-0 z-10 m-0 bg-[color:var(--ff-card)] pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-muted)]">
+          Colors
+        </h3>
+        <div className="flex flex-col gap-1.5">
           {TOKEN_ROWS.map(({ key, label }) => {
             const committed = theme.tokens[key] ?? "";
             const value = drafts[key] ?? committed;
             const error = hexInputError(value);
             const badge = key === "color.fg" ? textBadge : key === "color.primaryFg" ? primaryBadge : null;
             return (
-              <div key={key} className="ff-th-row" data-token={key}>
-                <label className="ff-th-row-label" htmlFor={`ff-th-color-${key}`}>
+              <div key={key} className="flex min-h-9 items-center gap-2" data-token={key}>
+                <label className="w-[5.5rem] shrink-0 text-[13px] font-medium text-[color:var(--ff-fg)]" htmlFor={`ff-th-color-${key}`}>
                   {label}
                 </label>
                 <input
                   id={`ff-th-color-${key}`}
                   type="color"
-                  className="ff-th-color-input"
+                  className="h-7 w-7 shrink-0 cursor-pointer rounded-lg border border-[color:var(--ff-border)] bg-transparent p-0"
                   aria-label={`${label} color picker`}
                   value={normalizeHex(committed) ?? "#000000"}
                   onChange={(e) => {
@@ -225,7 +232,8 @@ export function ThemePanel() {
                 />
                 <input
                   type="text"
-                  className="ff-th-hex-input"
+                  className="w-24 rounded-lg border border-[color:var(--ff-border-strong)] bg-[color:color-mix(in_srgb,var(--ff-bg)_36%,var(--ff-card))] px-2 py-1 text-xs text-[color:var(--ff-fg)] outline-none transition-colors duration-150 focus-visible:border-[color:var(--ff-primary)] focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-primary)_22%,transparent)] disabled:opacity-50"
+                  style={{ fontFamily: "var(--ff-font-mono)" }}
                   aria-label={`${label} hex value`}
                   value={value}
                   placeholder={committed || "#000000"}
@@ -234,14 +242,14 @@ export function ThemePanel() {
                 />
                 {badge !== null && (
                   <span
-                    className={badge.pass ? "ff-th-badge" : "ff-th-badge ff-th-badge--warn"}
+                    className={badge.pass ? BADGE_POSITIVE : BADGE_WARNING}
                     data-testid={`contrast-badge-${key}`}
                   >
                     {badge.label}
                   </span>
                 )}
                 {error !== null && (
-                  <span className="ff-th-error" role="alert">
+                  <span className="text-xs text-[color:var(--ff-danger)]" role="alert">
                     {error}
                   </span>
                 )}
@@ -252,13 +260,15 @@ export function ThemePanel() {
       </section>
 
       {/* --- Fonts (§23 allowlist) ------------------------------------------- */}
-      <section aria-label="Fonts" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Fonts</h3>
-        <div className="ff-th-font-rows">
-          <label className="ff-th-row">
-            <span className="ff-th-row-label">Heading</span>
+      <section aria-label="Fonts" className="flex flex-col gap-2 border-b border-[color:var(--ff-border)] pb-4">
+        <h3 className="sticky top-0 z-10 m-0 bg-[color:var(--ff-card)] pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-muted)]">
+          Fonts
+        </h3>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex min-h-9 items-center gap-2">
+            <span className="w-[5.5rem] shrink-0 text-[13px] font-medium text-[color:var(--ff-fg)]">Heading</span>
             <select
-              className="ff-th-select"
+              className="ff-input min-w-0 flex-1"
               aria-label="Heading font"
               value={theme.fontHeading}
               onChange={(e) => applyPatch({ fontHeading: e.target.value }, `Set heading font: ${e.target.value}`)}
@@ -272,11 +282,11 @@ export function ThemePanel() {
                 </option>
               ))}
             </select>
-          </label>
-          <label className="ff-th-row">
-            <span className="ff-th-row-label">Body</span>
+          </div>
+          <div className="flex min-h-9 items-center gap-2">
+            <span className="w-[5.5rem] shrink-0 text-[13px] font-medium text-[color:var(--ff-fg)]">Body</span>
             <select
-              className="ff-th-select"
+              className="ff-input min-w-0 flex-1"
               aria-label="Body font"
               value={theme.fontBody}
               onChange={(e) => applyPatch({ fontBody: e.target.value }, `Set body font: ${e.target.value}`)}
@@ -290,19 +300,21 @@ export function ThemePanel() {
                 </option>
               ))}
             </select>
-          </label>
+          </div>
         </div>
       </section>
 
       {/* --- Radius (§8.2 segmented control) ---------------------------------- */}
-      <section aria-label="Corner radius" className="ff-th-section">
-        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Corner radius</h3>
-        <div className="ff-th-segmented" role="group" aria-label="Corner radius">
+      <section aria-label="Corner radius" className="flex flex-col gap-2 border-b border-[color:var(--ff-border)] pb-4">
+        <h3 className="sticky top-0 z-10 m-0 bg-[color:var(--ff-card)] pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-muted)]">
+          Corner radius
+        </h3>
+        <div className={SEG} role="group" aria-label="Corner radius">
           {RADII.map((radius) => (
             <button
               key={radius}
               type="button"
-              className="ff-th-seg-btn"
+              className={SEG_BTN}
               aria-pressed={theme.radius === radius}
               onClick={() => applyPatch({ radius }, `Set radius: ${radius}`)}
             >
@@ -313,10 +325,10 @@ export function ThemePanel() {
       </section>
 
       {/* --- Reset (§8.2: restore the preset) ---------------------------------- */}
-      <div className="ff-th-section ff-th-footer">
+      <div className="flex flex-col gap-2">
         <button
           type="button"
-          className="ff-th-btn"
+          className={BTN_SECONDARY_SM}
           data-testid="theme-reset"
           onClick={() => applyPreset(defaultPreset(), "Reset theme")}
         >

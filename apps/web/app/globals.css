@@ -5,6 +5,13 @@
    are generated even though they live outside apps/web (T11, T12). */
 @source "../../../packages/renderer/src";
 
+/* Map Tailwind's default font utilities onto the Meridian type system so
+   `font-mono` / `font-sans` resolve to JetBrains Mono / Inter. */
+@theme inline {
+  --font-sans: var(--ff-font-body);
+  --font-mono: var(--ff-font-mono);
+}
+
 /* ============================================================================
    FORMFORGE APP DESIGN SYSTEM — "Meridian" (2026 redesign #2)
    ----------------------------------------------------------------------------
@@ -236,7 +243,7 @@ summary:focus-visible {
   pointer-events: none;
 }
 
-/* primary — violet→cyan gradient with a soft glow */
+/* primary — solid ultramarine with a restrained lift glow */
 .ff-btn-primary,
 .ff-button-primary {
   background: var(--ff-grad);
@@ -280,6 +287,20 @@ summary:focus-visible {
 .ff-btn-ghost:hover,
 .ff-button-ghost:hover {
   background: color-mix(in srgb, var(--ff-fg) 6%, transparent);
+}
+
+/* ghost with destructive intent — quiet at rest, red on hover */
+.ff-btn-ghost--danger,
+.ff-button-ghost--danger {
+  background: transparent;
+  border-color: transparent;
+  color: var(--ff-danger);
+}
+
+.ff-btn-ghost--danger:hover,
+.ff-button-ghost--danger:hover {
+  background: color-mix(in srgb, var(--ff-danger) 8%, transparent);
+  border-color: color-mix(in srgb, var(--ff-danger) 35%, transparent);
 }
 
 /* destructive */
@@ -588,8 +609,6 @@ textarea.ff-input {
   padding: 0.875rem 1.5rem;
   border-bottom: 1px solid var(--ff-glass-border);
   background: var(--ff-glass);
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-  backdrop-filter: blur(16px) saturate(1.5);
 }
 
 .ff-app-header nav a {
@@ -600,7 +619,7 @@ textarea.ff-input {
 }
 
 .ff-app-header nav a:hover {
-  color: var(--ff-accent-soft);
+  color: var(--ff-primary);
 }
 
 .ff-app-header-meta {
@@ -943,9 +962,7 @@ textarea.ff-input {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: rgb(6 9 22 / 0.62);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  background: rgb(26 29 38 / 0.4);
   animation: ff-fade-in 200ms var(--ff-ease-out);
 }
 
@@ -997,12 +1014,10 @@ textarea.ff-input {
   flex-direction: column;
   width: min(32rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 2rem);
-  background: var(--ff-glass);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  backdrop-filter: blur(24px) saturate(1.5);
-  border: 1px solid var(--ff-glass-border);
-  border-radius: 20px;
-  box-shadow: var(--ff-glow-soft), var(--ff-shadow-lg);
+  background: var(--ff-card);
+  border: 1px solid var(--ff-border);
+  border-radius: 16px;
+  box-shadow: var(--ff-shadow-lg);
   outline: none;
   animation: ff-modal-in 200ms var(--ff-ease-out);
 }
@@ -1020,9 +1035,7 @@ textarea.ff-input {
   flex-direction: column;
   width: min(28rem, 92vw);
   max-width: 92vw;
-  background: var(--ff-glass);
-  -webkit-backdrop-filter: blur(24px) saturate(1.5);
-  backdrop-filter: blur(24px) saturate(1.5);
+  background: var(--ff-card);
   box-shadow: var(--ff-shadow-lg);
   outline: none;
 }
@@ -1072,7 +1085,7 @@ textarea.ff-input {
 .ff-skeleton {
   height: 7rem;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--ff-fg) 6%, var(--ff-card));
+  background: var(--ff-bg-2);
   animation: ff-pulse 1.4s ease-in-out infinite;
 }
 
@@ -1164,10 +1177,10 @@ textarea.ff-input {
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 14px;
-  background: var(--ff-grad);
-  color: #ffffff;
-  box-shadow: var(--ff-glow);
+  border-radius: 999px;
+  background: var(--ff-bg-2);
+  border: 1px solid var(--ff-border);
+  color: var(--ff-muted);
 }
 
 .ff-empty-description {
@@ -1225,7 +1238,7 @@ textarea.ff-input {
   transition-delay: calc(var(--i, 0) * 60ms);
 }
 
-/* Spotlight: a soft violet wash follows the mouse via --sx/--sy. */
+/* Spotlight: a soft ultramarine wash follows the mouse via --sx/--sy. */
 .ff-spot {
   position: relative;
   height: 100%;

@@ -28,24 +28,31 @@ import { SettingsPanel } from "./SettingsPanel";
 import { ThemePanel } from "./ThemePanel";
 import type { SaveStatusStore } from "./save-indicator";
 
-/* Aurora-glass chrome: the pane classes stay as drag-geometry/test hooks;
-   their solid --ff-card surface is lifted to the shared glass token inline
-   (unlayered .ff-pane CSS would beat layered Tailwind bg utilities) so the
-   builder's aurora wash shows through blurred behind every pane. */
-const GLASS: CSSProperties = {
+/* Meridian chrome (pane classes stay as drag-geometry/test hooks): sticky
+   chrome is the near-opaque --ff-glass token (solid white .94 — no blur, no
+   glassmorphism); side rails sit on plain paper so the white document sheet
+   in the canvas reads as the only floating surface. Inline longhand beats
+   the unlayered .ff-pane background for layered Tailwind utilities. */
+const CHROME: CSSProperties = {
   backgroundColor: "var(--ff-glass)",
-  WebkitBackdropFilter: "blur(14px) saturate(1.4)",
-  backdropFilter: "blur(14px) saturate(1.4)",
+};
+const RAIL: CSSProperties = {
+  backgroundColor: "var(--ff-bg)",
+};
+/* Overlays (tablet drawer / mobile sheets): solid card surface over the dim
+   scrim — print-like elevation instead of blur. */
+const SHEET: CSSProperties = {
+  backgroundColor: "var(--ff-card)",
 };
 
-/* The builder canvas field: the body's aurora recipe re-based on the app
-   action tokens, applied on .ff-builder itself (inline longhand beats the
-   class shorthand) so glass panes sample it via backdrop-filter. */
-const AURORA_FIELD: CSSProperties = {
+/* The builder workspace: the body's quiet meridian wash (paper field with
+   whisper-quiet ultramarine/terracotta/teal traces) applied on .ff-builder
+   itself (inline longhand beats the class shorthand). */
+const PAPER_FIELD: CSSProperties = {
   backgroundImage:
-    "radial-gradient(52rem 36rem at 10% -10%, color-mix(in srgb, var(--ff-primary) 14%, transparent), transparent 60%)," +
-    "radial-gradient(44rem 30rem at 96% 2%, color-mix(in srgb, var(--ff-primary-2) 9%, transparent), transparent 55%)," +
-    "radial-gradient(60rem 44rem at 50% 120%, color-mix(in srgb, var(--ff-accent) 7%, transparent), transparent 60%)",
+    "radial-gradient(52rem 36rem at 8% -12%, color-mix(in srgb, var(--ff-primary) 5%, transparent), transparent 60%)," +
+    "radial-gradient(44rem 30rem at 96% 4%, color-mix(in srgb, var(--ff-accent) 4%, transparent), transparent 55%)," +
+    "radial-gradient(60rem 44rem at 50% 118%, color-mix(in srgb, var(--ff-chart-3) 3%, transparent), transparent 60%)",
 };
 
 type Zone = "mobile" | "tablet" | "desktop";
@@ -162,12 +169,12 @@ export function BuilderShell({
   );
 
   return (
-    <div className="ff-builder" data-testid="builder-shell" style={AURORA_FIELD}>
+    <div className="ff-builder" data-testid="builder-shell" style={PAPER_FIELD}>
       {/* §12/§6.2: the ONE polite live region for the whole builder — block
           moves (Alt+↑/↓ and the toolbar arrows) announce "… moved to
           position N of M" through the ff:announce window event. */}
       <LiveAnnouncer />
-      <header className="ff-pane ff-pane--bottom shrink-0" style={GLASS}>
+      <header className="ff-pane ff-pane--bottom shrink-0" style={CHROME}>
         <TopBar
           saveStatusStore={saveStatusStore}
           onToggleSettings={zone === "tablet" ? () => setSettingsOpen(true) : undefined}
@@ -205,7 +212,7 @@ export function BuilderShell({
           <aside
             aria-label="Blocks"
             className="ff-pane ff-pane--left w-[272px] shrink-0 overflow-y-auto"
-            style={GLASS}
+            style={RAIL}
           >
             <LeftPane />
           </aside>
@@ -215,7 +222,7 @@ export function BuilderShell({
           <nav
             aria-label="Builder panes"
             className="ff-pane ff-pane--left flex w-14 shrink-0 flex-col items-center gap-2 py-3"
-            style={GLASS}
+            style={RAIL}
           >
             <button
               ref={railButtonRef}
@@ -248,7 +255,7 @@ export function BuilderShell({
           <aside
             aria-label="Settings"
             className="ff-pane ff-pane--right w-[320px] shrink-0 overflow-y-auto"
-            style={GLASS}
+            style={RAIL}
           >
             {paneTabs}
             {rightPane}
@@ -259,13 +266,13 @@ export function BuilderShell({
       {/* --- tablet: blocks rail overlay ---------------------------------------- */}
       {zone === "tablet" && railExpanded && (
         <div className="fixed inset-0 z-40" data-testid="rail-overlay">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={closeOverlays} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/30" onClick={closeOverlays} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Blocks"
             className="ff-pane ff-pane--left absolute inset-y-0 left-0 flex w-[272px] max-w-[85vw] flex-col shadow-xl"
-            style={GLASS}
+            style={SHEET}
           >
             {overlayHeader("Blocks", "Close blocks panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -278,13 +285,13 @@ export function BuilderShell({
       {/* --- tablet: settings slide-over drawer ---------------------------------- */}
       {zone === "tablet" && settingsOpen && (
         <div className="fixed inset-0 z-40" data-testid="settings-drawer">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={closeOverlays} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/30" onClick={closeOverlays} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Settings"
             className="ff-pane ff-pane--right absolute inset-y-0 right-0 flex w-[320px] max-w-[90vw] flex-col shadow-xl"
-            style={GLASS}
+            style={SHEET}
           >
             {overlayHeader("Settings", "Close settings panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -300,7 +307,7 @@ export function BuilderShell({
         <nav
           aria-label="Builder panes"
           className="ff-pane ff-pane--top flex shrink-0"
-          style={{ ...GLASS, paddingBottom: "env(safe-area-inset-bottom)" }}
+          style={{ ...CHROME, paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <button
             ref={blocksSheetButtonRef}
@@ -327,13 +334,13 @@ export function BuilderShell({
       {/* --- mobile: ~70vh bottom sheets ------------------------------------------- */}
       {zone === "mobile" && sheet !== null && (
         <div className="fixed inset-0 z-40" data-testid="bottom-sheet">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={closeOverlays} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/30" onClick={closeOverlays} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label={sheet === "blocks" ? "Blocks" : "Settings"}
             className="ff-pane ff-pane--top absolute inset-x-0 bottom-0 flex h-[70vh] flex-col rounded-t-2xl shadow-2xl"
-            style={GLASS}
+            style={SHEET}
           >
             {overlayHeader(sheet === "blocks" ? "Blocks" : "Settings", sheet === "blocks" ? "Close blocks panel" : "Close settings panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -389,15 +396,12 @@ function PaneTabs() {
             className={`ff-pane-tab min-h-8 rounded-md px-2.5 text-sm font-medium ${selected ? "ff-pane-tab--active" : ""}`}
             onClick={() => dispatch({ type: "setPanel", panel: tab.panel })}
           >
-            {/* violet active indicator — app gradient + soft glow */}
+            {/* ultramarine active indicator — solid dot, no glow */}
             {selected && (
               <span
                 aria-hidden="true"
                 className="h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{
-                  background: "var(--ff-grad)",
-                  boxShadow: "0 0 8px color-mix(in srgb, var(--ff-primary) 60%, transparent)",
-                }}
+                style={{ background: "var(--ff-primary)" }}
               />
             )}
             {tab.label}

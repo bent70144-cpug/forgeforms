@@ -25,6 +25,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, type MouseEvent as ReactMouseEvent } from "react";
 import type { ConversationalRendererProps } from "@formforge/renderer/conversational";
+import { BADGE_WARNING, SEG, SEG_BTN } from "@/lib/ui";
 import {
   buildPreviewInput,
   PREVIEW_DEVICE_WIDTHS,
@@ -95,7 +96,12 @@ export function PreviewModal({
   const isMobile = session.device === "mobile";
 
   return (
-    <div className="ff-prev-overlay" data-testid="preview-modal" onMouseDown={onOverlayMouseDown(onClose)}>
+    <div
+      className="ff-prev-overlay"
+      data-testid="preview-modal"
+      style={{ background: "rgb(26 29 38 / 0.4)" }}
+      onMouseDown={onOverlayMouseDown(onClose)}
+    >
       <div
         ref={session.panelRef}
         className="ff-prev-panel"
@@ -103,11 +109,20 @@ export function PreviewModal({
         aria-modal="true"
         aria-label="Draft preview"
         tabIndex={-1}
+        style={{ boxShadow: "var(--ff-shadow-lg)" }}
       >
         <header className="ff-prev-header">
           <div className="ff-prev-title">
-            <h2 className="ff-prev-title-text">Draft preview</h2>
-            <span className="ff-prev-chip-draft" title="Previewing the current draft, not the published snapshot">
+            <h2
+              className="ff-prev-title-text"
+              style={{ fontFamily: "var(--ff-font-heading)", letterSpacing: "-0.01em" }}
+            >
+              Draft preview
+            </h2>
+            <span
+              className={BADGE_WARNING}
+              title="Previewing the current draft, not the published snapshot"
+            >
               DRAFT
             </span>
           </div>
@@ -125,9 +140,10 @@ export function PreviewModal({
               </a>
             )}
 
-            <div className="ff-prev-seg" role="group" aria-label="Preview device">
+            <div className={SEG} role="group" aria-label="Preview device">
               <button
                 type="button"
+                className={SEG_BTN}
                 aria-pressed={!isMobile}
                 onClick={() => session.setDevice("desktop")}
                 data-testid="preview-device-desktop"
@@ -136,6 +152,7 @@ export function PreviewModal({
               </button>
               <button
                 type="button"
+                className={SEG_BTN}
                 aria-pressed={isMobile}
                 onClick={() => session.setDevice("mobile")}
                 data-testid="preview-device-mobile"
@@ -147,7 +164,7 @@ export function PreviewModal({
             <div className="ff-prev-params">
               <input
                 type="text"
-                className="ff-prev-params-input bg-[color:var(--ff-glass)]! backdrop-blur-md"
+                className="ff-prev-params-input"
                 aria-label="Prefill URL params"
                 placeholder="?email=test@x.io&name=Ada"
                 value={session.paramsText}
@@ -220,7 +237,19 @@ export function PreviewModal({
             <div
               key={session.restartNonce}
               className={isMobile ? "ff-prev-frame ff-prev-frame--mobile" : "ff-prev-frame"}
-              style={deviceWidth !== null ? { width: deviceWidth } : undefined}
+              style={
+                isMobile
+                  ? {
+                      ...(deviceWidth !== null ? { width: deviceWidth } : {}),
+                      // Hardware bezel — pinned ink so it reads as a device in
+                      // both schemes (same constant as the overlay scrim).
+                      border: "10px solid #1a1d26",
+                      boxShadow: "var(--ff-shadow-lg)",
+                    }
+                  : deviceWidth !== null
+                    ? { width: deviceWidth }
+                    : undefined
+              }
             >
               <div className="ff-prev-frame-inner">
                 <PreviewSurface

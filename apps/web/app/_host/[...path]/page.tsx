@@ -77,8 +77,10 @@ export default async function CustomHostPage({ params }: HostPageProps) {
   return (
     <>
       <ScrollRenderer snapshot={snapshot} />
-      {/* T29 (spec §17): "Report abuse" link on every public page. */}
-      <footer className="px-5 pb-8 pt-4 text-center">
+      {/* T29 (spec §17): "Report abuse" link on every public page. Footer
+          spacing mirrors the path-based plane (/p/[slug]); the canvas above is
+          the renderer's document theme, so no extra chrome is painted here. */}
+      <footer className="px-5 pb-10 pt-6 text-center">
         <ReportAbuseLink documentRef={snapshot.documentId} />
       </footer>
     </>

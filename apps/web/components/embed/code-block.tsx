@@ -3,13 +3,15 @@
 // Copy-to-clipboard code block for the /embed docs page.
 // Client component (bundled by Next — safe under the strict-nonce CSP on
 // /embed/*: no inline <script> — inline *styles* are allowed by the public
-// CSP's style-src 'unsafe-inline'). Premium "aurora glass" panel: gradient
-// top bar with a language chip, tokenized mono body, glow border on hover.
+// CSP's style-src 'unsafe-inline'). Meridian "ink well": the inverse of the
+// paper canvas — ink background, paper text, hairline border, quiet mono
+// language label and a ghost-on-dark copy button. Syntax colors are token
+// mixes lifted toward the paper pole so they stay readable on the well in
+// both light and night mode.
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 import { Icon } from "@/components/ui/icons";
-import { ICON_BTN } from "@/lib/ui";
 
 /* ---------- token highlighter (dependency-free, presentation-only) ----------
  * A tiny scanner splits the snippet into colored spans. The plain text of the
@@ -18,15 +20,18 @@ import { ICON_BTN } from "@/lib/ui";
  */
 type TokKind = "str" | "tag" | "attr" | "kw" | "num" | "call" | "com" | "pun" | "txt";
 
+/* Every hue is mixed toward var(--ff-bg) (paper): on the ink well that lifts
+ * contrast past WCAG AA, and when night mode flips the well to light ink the
+ * same mix darkens the hues back into contrast. */
 const TOK_CLASS: Record<TokKind, string> = {
-  str: "text-[color:var(--ff-accent)]",
-  tag: "text-[color:color-mix(in_srgb,var(--ff-primary-2)_80%,var(--ff-fg))]",
-  attr: "text-[color:color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]",
-  kw: "text-[color:color-mix(in_srgb,var(--ff-primary)_76%,var(--ff-fg))] font-medium",
-  num: "text-[color:var(--ff-warning)]",
-  call: "text-[color:var(--ff-primary-2)]",
-  com: "text-[color:var(--ff-muted)] italic",
-  pun: "text-[color:var(--ff-muted)]",
+  str: "text-[color:color-mix(in_srgb,var(--ff-accent)_62%,var(--ff-bg))]",
+  tag: "text-[color:color-mix(in_srgb,var(--ff-primary)_68%,var(--ff-bg))]",
+  attr: "text-[color:color-mix(in_srgb,var(--ff-primary)_54%,var(--ff-bg))]",
+  kw: "text-[color:color-mix(in_srgb,var(--ff-primary)_58%,var(--ff-bg))] font-medium",
+  num: "text-[color:color-mix(in_srgb,var(--ff-warning)_64%,var(--ff-bg))]",
+  call: "text-[color:color-mix(in_srgb,var(--ff-primary-2)_66%,var(--ff-bg))]",
+  com: "text-[color:color-mix(in_srgb,var(--ff-muted)_62%,var(--ff-bg))] italic",
+  pun: "text-[color:color-mix(in_srgb,var(--ff-muted)_62%,var(--ff-bg))]",
   txt: "",
 };
 
@@ -36,7 +41,7 @@ function pushGap(out: Tok[], code: string, from: number, to: number): void {
   if (to > from) out.push({ t: code.slice(from, to), c: "txt" });
 }
 
-/** HTML-ish: strings cyan, tag names sky, attribute words violet, punctuation muted. */
+/** HTML-ish: strings terracotta, tag names ultramarine, attribute words a lighter ultramarine, punctuation muted. */
 function tokenizeHtml(code: string): Tok[] {
   const out: Tok[] = [];
   const re = /("[^"]*"|'[^']*')|(<\/?[A-Za-z][\w-]*|\/?>)|(=)|([A-Za-z_][\w-]*)/g;
@@ -56,7 +61,7 @@ function tokenizeHtml(code: string): Tok[] {
 const JS_KEYWORD =
   /^(?:var|let|const|function|return|new|if|else|typeof|true|false|null|undefined|window|document)$/;
 
-/** JS-ish: comments muted, strings cyan, keywords violet, numbers amber, calls sky. */
+/** JS-ish: comments muted, strings terracotta, keywords ultramarine, numbers amber, calls deep ultramarine. */
 function tokenizeJs(code: string): Tok[] {
   const out: Tok[] = [];
   const re =
@@ -88,20 +93,14 @@ function tokenize(code: string, label?: string): Tok[] {
   return [{ t: code, c: "txt" }];
 }
 
-const BAR_STYLE: CSSProperties = {
-  background:
-    "linear-gradient(135deg, color-mix(in srgb, var(--ff-primary) 22%, var(--ff-card)) 0%, color-mix(in srgb, var(--ff-primary-2) 16%, var(--ff-card)) 100%)",
-};
-
-const LANG_CHIP_STYLE: CSSProperties = {
-  background: "var(--ff-grad)",
-  color: "var(--ff-primary-fg)",
-};
-
 const BODY_STYLE: CSSProperties = {
-  background: "var(--ff-bg-2)",
   fontFamily: "var(--ff-font-mono)",
 };
+
+/** Paper-mixed text/icon helpers for the ink well (contrast-safe both modes). */
+const WELL_TEXT = "color-mix(in srgb, var(--ff-bg) 92%, var(--ff-fg))";
+const WELL_MUTED = "color-mix(in srgb, var(--ff-bg) 62%, var(--ff-fg))";
+const WELL_HAIRLINE = "color-mix(in srgb, var(--ff-bg) 16%, transparent)";
 
 export function CodeBlock({ code, label }: { code: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -129,16 +128,16 @@ export function CodeBlock({ code, label }: { code: string; label?: string }) {
 
   return (
     <figure
-      className="group relative mt-3 overflow-hidden rounded-[14px] border border-[var(--ff-glass-border)] shadow-[var(--ff-shadow-sm)] transition-[border-color,box-shadow] duration-200 hover:border-[var(--ff-border-strong)] hover:shadow-[var(--ff-glow-soft)]"
-      style={{ background: "var(--ff-card)" }}
+      className="relative mt-3 overflow-hidden rounded-[var(--ff-radius)] border border-[color:var(--ff-border-strong)] shadow-[var(--ff-shadow-sm)] transition-shadow duration-200 hover:shadow-[var(--ff-shadow-md)]"
+      style={{ background: "var(--ff-fg)", color: WELL_TEXT }}
     >
       <figcaption
-        className="flex items-center justify-between gap-2 border-b border-[var(--ff-glass-border)] px-3 py-2"
-        style={BAR_STYLE}
+        className="flex items-center justify-between gap-2 border-b px-3 py-2"
+        style={{ borderColor: WELL_HAIRLINE }}
       >
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
-          style={LANG_CHIP_STYLE}
+          className="inline-flex items-center gap-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em]"
+          style={{ color: WELL_MUTED }}
         >
           <Icon name="code" size={11} />
           {label ?? "code"}
@@ -146,14 +145,18 @@ export function CodeBlock({ code, label }: { code: string; label?: string }) {
         <button
           type="button"
           onClick={() => void onCopy()}
-          className={ICON_BTN}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md transition-colors duration-200 hover:bg-[color:color-mix(in_srgb,var(--ff-bg)_10%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ color: WELL_MUTED, outlineColor: WELL_MUTED }}
           aria-label={copied ? "Copied" : "Copy code"}
         >
           <Icon name={copied ? "check" : "copy"} size={14} />
         </button>
       </figcaption>
 
-      <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed text-[var(--ff-fg)]" style={BODY_STYLE}>
+      <pre
+        className="overflow-x-auto p-4 text-[13px] leading-relaxed"
+        style={{ ...BODY_STYLE, color: WELL_TEXT }}
+      >
         <code>
           {toks.map((tok, i) =>
             tok.c === "txt" ? (
@@ -166,9 +169,6 @@ export function CodeBlock({ code, label }: { code: string; label?: string }) {
           )}
         </code>
       </pre>
-
-      {/* hairline gradient energy strip (also keeps <figcaption> a valid first child) */}
-      <div aria-hidden="true" className="h-px w-full" style={{ background: "var(--ff-grad)" }} />
     </figure>
   );
 }

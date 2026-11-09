@@ -1,9 +1,10 @@
-/* FormForge marketing home — "Aurora Glass" (2026 redesign, page /)
+/* FormForge marketing home — "Meridian" (2026 redesign, page /)
    ----------------------------------------------------------------------------
-   Dark-first deep-indigo marketing page: glass chrome, violet→cyan gradient
-   energy, an aurora color field drifting behind everything, and the interactive
-   desk demo as the hero's form preview. Scoped to .ff-land so the app's own
-   --ff-* system (globals.css) is untouched. Tokens live in ./tokens.css.
+   Light-first editorial marketing page: a warm paper canvas, ink typography,
+   an ultramarine primary with a terracotta signal, crisp 1px rules, white
+   cards on soft paper shadows, and the interactive desk demo as the hero's
+   form preview. Scoped to .ff-land so the app's own --ff-* system
+   (globals.css) is untouched. Tokens live in ./tokens.css.
    Kept from the previous deal: every link, route and product fact; the
    .ff-reveal / .ff-spot progressive-enhancement contracts (styled in
    globals.css, enhanced below for the landing only). */
@@ -57,9 +58,9 @@ body {
   position: relative;
   background:
     radial-gradient(
-      110rem 70rem at 50% -14rem,
-      color-mix(in srgb, var(--color-accent) 9%, transparent),
-      transparent 62%
+      90rem 46rem at 50% -12rem,
+      color-mix(in srgb, var(--color-accent) 4%, transparent),
+      transparent 60%
     ),
     var(--color-paper);
   color: var(--color-ink);
@@ -91,60 +92,58 @@ body {
   text-decoration: none;
 }
 
-/* --- aurora field: three drifting glows behind the whole page --------------- */
+/* --- meridian field: whisper-quiet washes behind the whole page -------------- */
 
-.ff-land-aurora {
+.ff-land-wash {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
 }
 
-/* everything real sits above the aurora (the header is sticky, not relative) */
-.ff-land > :not(.ff-land-aurora):not(.ff-land-header) {
+/* everything real sits above the washes (the header is sticky, not relative) */
+.ff-land > :not(.ff-land-wash):not(.ff-land-header) {
   position: relative;
   z-index: 1;
 }
 
-.ff-land-aurora-blob {
+.ff-land-wash-blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(84px);
-  opacity: 0.5;
+  filter: blur(72px);
 }
 
-.ff-land-aurora-blob--1 {
+.ff-land-wash-blob--1 {
   width: 56vw;
   height: 56vw;
   min-width: 480px;
   min-height: 480px;
   top: -18vw;
   left: -12vw;
-  background: radial-gradient(closest-side, var(--aurora-1), transparent 72%);
+  background: radial-gradient(closest-side, var(--wash-1), transparent 72%);
   animation: ff-land-drift-a var(--dur-drift) var(--ease-in-out) infinite alternate;
 }
 
-.ff-land-aurora-blob--2 {
+.ff-land-wash-blob--2 {
   width: 44vw;
   height: 44vw;
   min-width: 420px;
   min-height: 420px;
   top: -6vw;
   right: -14vw;
-  background: radial-gradient(closest-side, var(--aurora-2), transparent 72%);
+  background: radial-gradient(closest-side, var(--wash-2), transparent 72%);
   animation: ff-land-drift-b calc(var(--dur-drift) * 1.3) var(--ease-in-out) infinite
     alternate;
 }
 
-.ff-land-aurora-blob--3 {
+.ff-land-wash-blob--3 {
   width: 52vw;
   height: 52vw;
   min-width: 460px;
   min-height: 460px;
   top: 72%;
   left: 28vw;
-  opacity: 0.32;
-  background: radial-gradient(closest-side, var(--aurora-3), transparent 72%);
+  background: radial-gradient(closest-side, var(--wash-3), transparent 72%);
   animation: ff-land-drift-a calc(var(--dur-drift) * 1.6) var(--ease-in-out) infinite
     alternate-reverse;
 }
@@ -175,7 +174,7 @@ body {
   padding-inline: var(--gutter);
 }
 
-/* --- nav: sticky glass with a gradient wordmark ----------------------------- */
+/* --- nav: sticky paper chrome with an ultramarine wordmark ------------------- */
 
 .ff-land-header {
   position: sticky;
@@ -183,8 +182,8 @@ body {
   z-index: 40;
   background: var(--glass-bg);
   border-bottom: 1px solid var(--glass-line);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .ff-land-nav {
@@ -208,11 +207,8 @@ body {
   color: var(--color-ink);
 }
 
-.ff-land-wordmark-grad {
-  background: var(--grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.ff-land-wordmark-accent {
+  color: var(--color-accent);
 }
 
 .ff-land-logo-mark {
@@ -221,19 +217,17 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  background: var(--grad);
-  box-shadow:
-    0 0 18px -2px rgb(108 92 255 / 0.65),
-    inset 0 1px 0 rgb(255 255 255 / 0.35);
+  background: var(--color-accent);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
 }
 
 .ff-land-logo-mark::after {
-  /* the forged block: a lit core inside the gradient tile */
+  /* the forged block: a paper core pressed into the ultramarine tile */
   content: "";
   position: absolute;
   inset: 7px;
   border-radius: 3px;
-  background: rgb(255 255 255 / 0.92);
+  background: rgb(255 255 255 / 0.95);
 }
 
 .ff-land-nav-links {
@@ -262,7 +256,7 @@ body {
   font-size: var(--text-sm);
 }
 
-/* --- gradient / glass buttons ------------------------------------------------ */
+/* --- buttons: one solid ultramarine primary; the rest are white cards -------- */
 
 .ff-land-btn {
   display: inline-flex;
@@ -288,35 +282,30 @@ body {
 }
 
 .ff-land-btn--ink {
-  background-image: var(--grad);
+  background: var(--color-accent);
   color: var(--color-accent-ink);
-  box-shadow:
-    var(--glow),
-    inset 0 1px 0 rgb(255 255 255 / 0.2);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
 }
 
 .ff-land-btn--card {
-  background: color-mix(in srgb, var(--color-cotton) 70%, transparent);
+  background: var(--color-paper-3);
   border-color: var(--color-rule-2);
   color: var(--color-ink);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
 }
 
 .ff-land-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .ff-land-btn--ink:hover {
-  box-shadow:
-    var(--glow-lift),
-    inset 0 1px 0 rgb(255 255 255 / 0.2);
+  background: var(--color-accent-deep);
+  box-shadow: var(--glow);
 }
 
 .ff-land-btn--card:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-rule-2));
-  background: color-mix(in srgb, var(--color-cotton) 88%, transparent);
+  border-color: color-mix(in srgb, var(--color-ink) 25%, var(--color-rule-2));
+  box-shadow: var(--shadow-card);
 }
 
 .ff-land-btn:active {
@@ -357,15 +346,15 @@ body {
   font-size: var(--text-display);
   font-weight: var(--display-weight);
   letter-spacing: var(--tracking-display);
-  line-height: 1.05;
-  max-width: 15ch;
+  line-height: 1.12;
+  max-width: 20ch;
 }
 
 .ff-land-h2 {
   font-size: var(--text-section);
   font-weight: var(--display-weight);
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.15;
   max-width: 26ch;
 }
 
@@ -389,22 +378,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* the one gradient-text accent per headline */
-.ff-land-grad-text {
-  background: var(--grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+/* the one ultramarine accent per headline */
+.ff-land-accent-text {
+  color: var(--color-accent);
 }
 
-@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
-  .ff-land-grad-text {
-    background: none;
-    color: var(--color-accent-2);
-  }
-}
-
-/* mono uppercase eyebrow above section headings */
+/* mono uppercase eyebrow above section headings (terracotta signal) */
 .ff-land-eyebrow {
   margin: 0;
   font-family: var(--font-outlier);
@@ -414,17 +393,16 @@ body {
   color: var(--color-accent-2);
 }
 
-/* glass pill with a gradient dot (hero kicker) */
+/* paper pill with an ultramarine dot (hero kicker) */
 .ff-land-pill {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--glass-line);
-  background: color-mix(in srgb, var(--color-cotton) 55%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-rule);
+  background: var(--color-paper-3);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
   font-size: var(--text-sm);
   color: var(--color-ink-2);
   margin: 0;
@@ -435,8 +413,8 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--grad);
-  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--color-accent) 60%, transparent);
+  background: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
 
 /* --- sections ---------------------------------------------------------------- */
@@ -510,7 +488,7 @@ body {
   align-items: center;
 }
 
-/* the demo column: aurora glow rides behind the desk, not on it */
+/* the demo column: a whisper of wash rides behind the desk, not on it */
 .ff-land-hero-demo {
   position: relative;
   isolation: isolate;
@@ -531,19 +509,19 @@ body {
   background:
     radial-gradient(
       60% 55% at 68% 22%,
-      color-mix(in srgb, var(--color-accent) 34%, transparent),
+      color-mix(in srgb, var(--color-accent) 10%, transparent),
       transparent 72%
     ),
     radial-gradient(
       52% 60% at 24% 82%,
-      color-mix(in srgb, var(--color-accent-2) 26%, transparent),
+      color-mix(in srgb, var(--color-accent-2) 7%, transparent),
       transparent 74%
     );
-  filter: blur(52px);
+  filter: blur(48px);
   pointer-events: none;
 }
 
-/* --- the desk: floating glass form preview -------------------------------------- */
+/* --- the desk: a white sheet pressed onto a paper mat ---------------------------- */
 
 .ff-land-desk {
   position: relative;
@@ -554,30 +532,18 @@ body {
   gap: var(--space-m);
   padding: clamp(16px, 3vw, 32px);
   border-radius: var(--radius-card-lg);
-  border: 1px solid var(--glass-line);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-cotton) 80%, transparent),
-    color-mix(in srgb, var(--color-paper-2) 85%, transparent)
-  );
-  box-shadow:
-    var(--cast-stock),
-    inset 0 1px 0 rgb(255 255 255 / 0.06);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--color-rule);
+  background: var(--color-desk);
+  box-shadow: var(--cast-stock);
 }
 
 .ff-land-sheet {
   position: relative;
   width: min(460px, 100%);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-paper) 88%, transparent),
-    color-mix(in srgb, var(--color-cotton) 70%, transparent)
-  );
-  border: 1px solid var(--color-rule);
+  background: var(--color-paper-3);
+  border: 1px solid var(--color-rule-2);
   border-radius: var(--radius-card);
-  box-shadow: var(--cast-stock);
+  box-shadow: var(--shadow-card);
   padding: clamp(20px, 3vw, 30px);
 }
 
@@ -618,7 +584,7 @@ body {
   padding: 0 14px;
   border: 1px solid var(--color-rule-2);
   border-radius: var(--radius-input);
-  background: color-mix(in srgb, var(--color-paper) 80%, transparent);
+  background: var(--color-paper);
   color: var(--color-print);
   font-family: var(--font-body);
   font-size: var(--text-md);
@@ -626,7 +592,7 @@ body {
 }
 
 .ff-land-field input:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-rule-2));
+  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-rule-2));
 }
 
 /* the receipt chip, tucked over the sheet's foot */
@@ -635,16 +601,14 @@ body {
   right: clamp(-14px, -1vw, -6px);
   bottom: calc(var(--space-m) * -1);
   transform: rotate(1.5deg);
-  background: color-mix(in srgb, var(--color-cotton) 92%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-paid) 35%, var(--color-rule));
+  background: var(--color-paper-3);
+  border: 1px solid color-mix(in srgb, var(--color-paid) 40%, var(--color-rule));
   border-radius: 14px;
   box-shadow:
-    var(--cast-stock),
+    var(--shadow-card),
     var(--paid-glow);
   padding: 10px 14px;
   max-width: 70%;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .ff-land-reply small {
@@ -657,7 +621,7 @@ body {
   font-weight: 500;
 }
 
-/* the settled state: a glowing "Submitted" chip */
+/* the settled state: a green "Submitted" stamp */
 .ff-land-press-mark {
   position: absolute;
   top: 14px;
@@ -673,12 +637,12 @@ body {
   padding: 7px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid color-mix(in srgb, var(--color-paid) 40%, transparent);
-  background: color-mix(in srgb, var(--color-paid) 12%, transparent);
+  background: color-mix(in srgb, var(--color-paid) 8%, var(--color-paper-3));
   box-shadow: var(--paid-glow);
   pointer-events: none;
 }
 
-/* --- the groove: glass segmented control for the three render planes ------------- */
+/* --- the groove: paper segmented control for the three render planes ------------- */
 
 .ff-land-groove {
   position: relative;
@@ -687,9 +651,9 @@ body {
   grid-auto-columns: 1fr;
   padding: 4px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--color-rule);
-  background: color-mix(in srgb, var(--color-paper) 70%, transparent);
-  box-shadow: inset 0 2px 6px rgb(3 6 18 / 0.35);
+  border: 1px solid var(--color-rule-2);
+  background: var(--color-paper-3);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
 }
 
 .ff-land-groove-btn {
@@ -719,10 +683,10 @@ body {
   bottom: 4px;
   left: 4px;
   width: calc((100% - 8px) / 3);
-  background: color-mix(in srgb, var(--color-accent) 30%, var(--color-cotton));
-  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  background: var(--color-paper);
+  border: 1px solid var(--color-rule-2);
   border-radius: var(--radius-pill);
-  box-shadow: 0 4px 16px -4px rgb(108 92 255 / 0.5);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
   transition: transform var(--dur-long) var(--ease-in-out);
 }
 
@@ -797,14 +761,14 @@ body {
   text-wrap: pretty;
 }
 
-/* embed plane: the code card */
+/* embed plane: the code card sits in a recessed paper well */
 .ff-land-code {
   margin: 0 0 18px;
   font-family: var(--font-outlier);
   font-size: 0.8125rem;
   line-height: 1.6;
-  color: var(--color-accent-2);
-  background: color-mix(in srgb, var(--color-paper) 75%, transparent);
+  color: var(--color-ink);
+  background: var(--color-paper-2);
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-input);
   padding: 12px 16px;
@@ -887,10 +851,8 @@ body {
   font-family: var(--font-outlier);
   font-size: 1.5rem;
   line-height: 1.2;
-  background: var(--grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
 }
 
 .ff-land-proof-label {
@@ -916,7 +878,8 @@ body {
   padding: 26px;
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-card-lg);
-  background: color-mix(in srgb, var(--color-cotton) 78%, transparent);
+  background: var(--color-paper-3);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
   transition:
     border-color var(--dur-short) var(--ease-out),
     box-shadow var(--dur-short) var(--ease-out),
@@ -924,12 +887,12 @@ body {
 }
 
 .ff-land .ff-spot:hover {
-  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-rule));
-  box-shadow: var(--glow-soft);
+  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-rule));
+  box-shadow: var(--shadow-card);
   transform: translateY(-2px);
 }
 
-/* a violet wash tracks the cursor via the card's --sx/--sy custom properties */
+/* an ultramarine wash tracks the cursor via the card's --sx/--sy properties */
 .ff-land .ff-spot::before {
   content: "";
   position: absolute;
@@ -939,8 +902,8 @@ body {
   pointer-events: none;
   background: radial-gradient(
     340px circle at var(--sx, 50%) var(--sy, 50%),
-    color-mix(in srgb, var(--color-accent) 18%, transparent),
-    transparent 72%
+    color-mix(in srgb, var(--color-accent) 8%, transparent),
+    transparent 70%
   );
   transition: opacity 240ms var(--ease-out);
 }
@@ -968,14 +931,9 @@ body {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  color: var(--color-accent-2);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--color-accent) 22%, transparent),
-    color-mix(in srgb, var(--color-accent-2) 12%, transparent)
-  );
-  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  color: var(--color-accent);
+  background: var(--color-paper-2);
+  border: 1px solid var(--color-rule);
 }
 
 .ff-land-feature-title {
@@ -1001,8 +959,8 @@ body {
   color: var(--color-accent-2);
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  border: 1px solid color-mix(in srgb, var(--color-accent-2) 30%, transparent);
-  background: color-mix(in srgb, var(--color-accent-2) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent-2) 35%, transparent);
+  background: color-mix(in srgb, var(--color-accent-2) 7%, var(--color-paper-3));
 }
 
 /* --- template showcase --------------------------------------------------------------- */
@@ -1025,7 +983,8 @@ body {
   padding: 14px;
   border-radius: var(--radius-card-lg);
   border: 1px solid var(--color-rule);
-  background: color-mix(in srgb, var(--color-cotton) 62%, transparent);
+  background: var(--color-paper-3);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
   transition:
     transform var(--dur-short) var(--ease-out),
     border-color var(--dur-short) var(--ease-out),
@@ -1033,12 +992,13 @@ body {
 }
 
 .ff-land-tpl-card:hover {
-  transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-rule));
-  box-shadow: var(--glow-soft);
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--color-accent) 32%, var(--color-rule));
+  box-shadow: var(--shadow-card);
 }
 
-/* pure-CSS mini preview: gradient wash keyed to the template's real accent */
+/* pure-CSS mini preview: a quiet tinted plate keyed to the template's real
+   accent (the --tpl-accent gradient comes from the page data) */
 .ff-land-tpl-preview {
   position: relative;
   display: flex;
@@ -1051,7 +1011,7 @@ body {
   border: 1px solid var(--color-rule);
   background: linear-gradient(
     160deg,
-    color-mix(in srgb, var(--color-paper-2) 92%, transparent),
+    var(--color-paper-2),
     var(--color-paper)
   );
 }
@@ -1060,8 +1020,8 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--tpl-grad, var(--grad));
-  opacity: 0.26;
+  background: var(--tpl-accent, var(--grad));
+  opacity: 0.18;
 }
 
 .ff-land-tpl-preview > * {
@@ -1077,18 +1037,18 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgb(238 241 255 / 0.28);
+  background: rgb(26 29 38 / 0.18);
 }
 
 .ff-land-tpl-bar {
   height: 8px;
   border-radius: var(--radius-pill);
-  background: rgb(238 241 255 / 0.16);
+  background: rgb(26 29 38 / 0.1);
 }
 
 .ff-land-tpl-bar--grad {
   width: 44%;
-  background: var(--grad);
+  background: var(--tpl-accent, var(--grad));
   opacity: 0.9;
 }
 
@@ -1179,7 +1139,8 @@ body {
   padding: 24px;
   border-radius: var(--radius-card-lg);
   border: 1px solid var(--color-rule);
-  background: color-mix(in srgb, var(--color-cotton) 62%, transparent);
+  background: var(--color-paper-3);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
 }
 
 .ff-land-step-num {
@@ -1190,9 +1151,9 @@ body {
   border-radius: 12px;
   font-family: var(--font-outlier);
   font-size: 1rem;
-  color: var(--color-accent-2);
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 38%, transparent);
+  color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-paper-3));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 28%, transparent);
 }
 
 .ff-land-step-title {
@@ -1238,9 +1199,10 @@ body {
   flex-direction: column;
   gap: 4px;
   padding: 18px 20px;
-  border-radius: var(--radius-input);
+  border-radius: var(--radius-card);
   border: 1px solid var(--color-rule);
-  background: color-mix(in srgb, var(--color-cotton) 62%, transparent);
+  background: var(--color-paper-3);
+  box-shadow: 0 1px 2px var(--color-press-shadow);
 }
 
 .ff-land-fact dt {
@@ -1258,7 +1220,7 @@ body {
   text-wrap: pretty;
 }
 
-/* --- CTA band: glass panel with a gradient edge glow ------------------------------------ */
+/* --- CTA band: a white card with an ultramarine letterhead rule ------------------------- */
 
 .ff-land-close {
   position: relative;
@@ -1271,48 +1233,20 @@ body {
   gap: 18px;
   padding: clamp(48px, 8vw, 104px) clamp(24px, 6vw, 96px);
   border-radius: var(--radius-card-lg);
-  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-rule));
-  background:
-    radial-gradient(
-      120% 150% at 50% -30%,
-      color-mix(in srgb, var(--color-accent) 18%, transparent),
-      transparent 58%
-    ),
-    color-mix(in srgb, var(--color-cotton) 85%, transparent);
-  box-shadow: var(--glow-soft);
+  border: 1px solid var(--color-rule);
+  background: var(--color-paper-3);
+  box-shadow: var(--shadow-card);
 }
 
 .ff-land-close::before {
-  /* the gradient edge, brightest along the top */
+  /* the letterhead rule: a solid ultramarine bar across the top edge */
   content: "";
   position: absolute;
   top: 0;
-  left: 12%;
-  right: 12%;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-accent) 80%, transparent),
-    color-mix(in srgb, var(--color-accent-2) 70%, transparent),
-    transparent
-  );
-  pointer-events: none;
-}
-
-.ff-land-close::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  bottom: -42%;
-  left: 18%;
-  right: 18%;
-  height: 70%;
-  background: radial-gradient(
-    50% 60% at 50% 100%,
-    color-mix(in srgb, var(--color-accent-2) 16%, transparent),
-    transparent 70%
-  );
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-accent);
   pointer-events: none;
 }
 
@@ -1333,29 +1267,14 @@ body {
   position: relative;
 }
 
-/* --- footer: colophon under a gradient hairline ------------------------------------------- */
+/* --- footer: colophon on a recessed paper band ------------------------------------------- */
 
 .ff-land-footer {
   position: relative;
   margin-top: var(--section-gap);
   padding-block: 44px 56px;
-  background: color-mix(in srgb, var(--color-paper-2) 55%, transparent);
-}
-
-.ff-land-footer::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--color-accent) 45%, transparent),
-    color-mix(in srgb, var(--color-accent-2) 40%, transparent),
-    transparent
-  );
+  background: var(--color-paper-2);
+  border-top: 1px solid var(--color-rule);
 }
 
 .ff-land-footer-brand {
@@ -1399,7 +1318,7 @@ body {
 .ff-land-legal {
   margin: 28px 0 0;
   font-size: var(--text-sm);
-  color: color-mix(in srgb, var(--color-muted) 75%, transparent);
+  color: var(--color-muted);
 }
 
 /* --- responsive: every composition stacks in reading order under 60rem ---------------------- */
@@ -1412,7 +1331,7 @@ body {
   }
 
   .ff-land-h1 {
-    max-width: 18ch;
+    max-width: 20ch;
   }
 
   .ff-land-domain {
@@ -1527,7 +1446,7 @@ body {
 
   /* hero demo: the receipt chip is tucked over the sheet's foot; on phones
      the last field sits closer to that foot, so reserve a blank strip under
-     it and let the chip press into empty glass instead of the value. */
+     it and let the chip press into empty mat instead of the value. */
   .ff-land-plane-form .ff-land-field + .ff-land-field {
     margin-bottom: 4.5rem;
   }

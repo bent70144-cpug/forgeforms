@@ -84,7 +84,12 @@ export function IssuesList({ open, issues, onClose, goTo, labelFor }: IssuesList
         className="ff-pub-drawer"
       >
         <header className="ff-pub-drawer-head">
-          <h2 className="ff-pub-drawer-title">Publish issues</h2>
+          <h2
+            className="ff-pub-drawer-title"
+            style={{ fontFamily: "var(--ff-font-heading)", letterSpacing: "-0.01em" }}
+          >
+            Publish issues
+          </h2>
           <button type="button" className="ff-icon-btn" aria-label="Close publish issues" onClick={onClose}>
             <span aria-hidden="true">✕</span>
           </button>
@@ -110,14 +115,37 @@ export function IssuesList({ open, issues, onClose, goTo, labelFor }: IssuesList
                     return (
                       <li
                         key={`${issue.code}-${issue.path ?? index}`}
-                        className={warning ? "ff-pub-issue ff-pub-issue--warning" : "ff-pub-issue"}
+                        className={
+                          warning
+                            ? "ff-pub-issue ff-pub-issue--warning hover:bg-[color:var(--ff-bg-2)]!"
+                            : "ff-pub-issue hover:bg-[color:var(--ff-bg-2)]!"
+                        }
+                        style={{
+                          background: "var(--ff-card)",
+                          borderLeftColor: warning ? "var(--ff-warning)" : "var(--ff-danger)",
+                        }}
                       >
-                        {/* Severity badge + stable §8.1 code chip (design: BADGE_*) */}
+                        {/* Severity dot + badge + stable §8.1 code chip (mono) */}
                         <div className="flex flex-wrap items-center gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{ background: warning ? "var(--ff-warning)" : "var(--ff-danger)" }}
+                          />
                           <span className={warning ? BADGE_WARNING : BADGE_DANGER}>
                             {warning ? "Warning" : "Blocking"}
                           </span>
-                          <span className="ff-pub-code" data-code={issue.code}>
+                          <span
+                            className="ff-pub-code"
+                            data-code={issue.code}
+                            style={{
+                              fontFamily: "var(--ff-font-mono)",
+                              background: warning
+                                ? "color-mix(in srgb, var(--ff-warning) 16%, transparent)"
+                                : "color-mix(in srgb, var(--ff-danger) 12%, transparent)",
+                              color: warning ? "var(--ff-warning)" : "var(--ff-danger)",
+                            }}
+                          >
                             {issue.code}
                           </span>
                         </div>

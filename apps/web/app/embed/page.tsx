@@ -1,9 +1,9 @@
 // Embed docs page: /embed (issue #22 — "public docs page for embed code").
 // Server component; the snippet URLs are rendered with the live request origin
 // so copy-paste works without a build-time env var. Renders WITHOUT the
-// marketing layout, so it carries its own token canvas (aurora glass: glow
-// backdrop + glass explainer hero); the only client JS is the bundled
-// CodeBlock (copy-to-clipboard) — CSP-safe on /embed/*.
+// marketing layout, so it carries its own token canvas (Meridian editorial:
+// paper canvas, white explainer hero, ink-dark code wells); the only client JS
+// is the bundled CodeBlock (copy-to-clipboard) — CSP-safe on /embed/*.
 //
 // NOTE (route precedence): this static route does not collide with the dynamic
 // /embed/[docId] frame — Next.js resolves static segments first.
@@ -13,7 +13,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 
 import { CodeBlock } from "@/components/embed/code-block";
-import { BADGE_ACCENT } from "@/lib/ui";
+import { BADGE_ACCENT, BTN_PRIMARY } from "@/lib/ui";
 import { EMBED_LOADER_VERSION } from "../api/public/embed/embed.js/loader";
 
 export const dynamic = "force-dynamic";
@@ -32,29 +32,11 @@ async function appOrigin(): Promise<string> {
 
 const LOADER_PATH = "/api/public/embed/embed.js";
 
-const HERO_STYLE: CSSProperties = {
-  background: "var(--ff-glass)",
-  backdropFilter: "blur(18px)",
-  WebkitBackdropFilter: "blur(18px)",
-  boxShadow: "var(--ff-glow-soft)",
-};
-
 const HEADING_STYLE: CSSProperties = { fontFamily: "var(--ff-font-heading)" };
 
-// Gradient-text accent word (token-driven, no deps).
-function Grad({ children }: { children: ReactNode }) {
-  return (
-    <span
-      style={{
-        backgroundImage: "var(--ff-grad)",
-        color: "transparent",
-        WebkitBackgroundClip: "text",
-        backgroundClip: "text",
-      }}
-    >
-      {children}
-    </span>
-  );
+// Accent word in the headline — solid ultramarine, no gradient chrome.
+function Accent({ children }: { children: ReactNode }) {
+  return <span className="text-[var(--ff-primary)]">{children}</span>;
 }
 
 // Inline code chip — same recipe for attribute names, values and aliases.
@@ -78,9 +60,8 @@ function BrandRow() {
         aria-hidden="true"
         className="flex h-7 w-7 items-center justify-center rounded-lg"
         style={{
-          background: "var(--ff-grad)",
+          background: "var(--ff-primary)",
           color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-glow)",
         }}
       >
         <svg
@@ -105,33 +86,11 @@ function BrandRow() {
   );
 }
 
-// Aurora glow backdrop — decorative only, clipped to the viewport, painted
-// behind the (positioned) content via DOM order (no negative z-index, which
-// would slip under the root's opaque canvas).
-function AuroraBackdrop() {
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div
-        className="absolute -top-48 left-1/2 h-[32rem] w-[56rem] -translate-x-1/2 rounded-full opacity-25"
-        style={{ background: "radial-gradient(closest-side, var(--ff-primary), transparent)" }}
-      />
-      <div
-        className="absolute right-[-12rem] top-1/3 h-[26rem] w-[26rem] rounded-full opacity-15"
-        style={{ background: "radial-gradient(closest-side, var(--ff-accent), transparent)" }}
-      />
-      <div
-        className="absolute bottom-[-10rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full opacity-10"
-        style={{ background: "radial-gradient(closest-side, var(--ff-primary-2), transparent)" }}
-      />
-    </div>
-  );
-}
-
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-14 border-t border-[var(--ff-border)] pt-8">
       <h2 className="flex items-center gap-3 text-xl font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
-        <span aria-hidden="true" className="h-5 w-1 shrink-0 rounded-full" style={{ background: "var(--ff-grad)" }} />
+        <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--ff-accent)" }} />
         {title}
       </h2>
       {children}
@@ -187,18 +146,16 @@ export default async function EmbedDocsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--ff-bg)] text-[var(--ff-fg)]">
-      <AuroraBackdrop />
       <main className="relative mx-auto w-full max-w-3xl px-6 py-12">
         <div className="flex justify-center">
           <BrandRow />
         </div>
 
-        {/* Glass explainer hero — gradient badge, heading accent, mono snippet preview. */}
-        <section className="ff-panel relative mt-10 overflow-hidden p-6 text-center sm:p-10" style={HERO_STYLE}>
-          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px" style={{ background: "var(--ff-grad)" }} />
+        {/* Editorial hero — white panel on paper, Sora headline, one primary CTA. */}
+        <section className="ff-panel mt-10 p-6 text-center sm:p-10">
           <span className={BADGE_ACCENT}>Public docs · loader v{EMBED_LOADER_VERSION}</span>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance" style={HEADING_STYLE}>
-            Embed forms <Grad>anywhere</Grad>
+            Embed forms <Accent>anywhere</Accent>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-[var(--ff-muted)]">
             Publish a document, then paste one script tag into any page. The loader (v{EMBED_LOADER_VERSION}) injects the
@@ -210,6 +167,11 @@ export default async function EmbedDocsPage() {
             code={`<script src="${loaderUrl}" data-formforge-doc="doc_xxxxxxxx" async></script>`}
             label="HTML"
           />
+          <div className="mt-6 flex justify-center">
+            <Link href="/embed/demo" className={BTN_PRIMARY}>
+              See the live demo
+            </Link>
+          </div>
         </section>
 
         <Section title="Inline — the standard div">

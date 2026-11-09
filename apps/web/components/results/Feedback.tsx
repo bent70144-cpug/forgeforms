@@ -1,5 +1,7 @@
 // T15 — shared loading / error states (spec §14.2: skeletons, never blank
-// screens; errors are friendly first, technical on demand). Empty states moved
+// screens; errors are friendly first, technical on demand) plus the editorial
+// QuoteCard used for written answers (white card, 1px hairline, oversized
+// Sora quotation mark in a terracotta 10% tint, ink text). Empty states moved
 // to the shared primitive (components/ui/empty-state.tsx).
 
 "use client";
@@ -46,8 +48,34 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={`animate-pulse rounded-[10px] bg-[color-mix(in_srgb,var(--ff-fg)_6%,var(--ff-card))] motion-reduce:animate-none ${className}`}
+      className={`animate-pulse rounded-[var(--ff-radius)] bg-[color-mix(in_srgb,var(--ff-fg)_6%,var(--ff-card))] motion-reduce:animate-none ${className}`}
     />
+  );
+}
+
+/**
+ * Editorial quote card for written answers: white surface, 1px hairline, an
+ * oversized Sora opening mark in a quiet terracotta 10% tint, ink text at
+ * 15px. Decorative mark is aria-hidden — the answer text is read verbatim.
+ */
+export function QuoteCard({ text }: { text: string }) {
+  return (
+    <figure className="rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4">
+      <span
+        aria-hidden="true"
+        className="-mb-3 block select-none font-semibold leading-[0.6]"
+        style={{
+          fontFamily: "var(--ff-font-heading)",
+          fontSize: "2.75rem",
+          color: "color-mix(in srgb, var(--ff-accent) 10%, transparent)",
+        }}
+      >
+        “
+      </span>
+      <blockquote className="mt-2 break-words text-[15px] leading-relaxed text-[var(--ff-fg)]">
+        {text}
+      </blockquote>
+    </figure>
   );
 }
 

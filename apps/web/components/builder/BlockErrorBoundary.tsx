@@ -6,10 +6,11 @@
 import { Component, type ReactNode } from "react";
 import type { Block } from "@formforge/schema";
 
-/** §semantic warning tint — tokenized, flips with the light/dark scheme. */
+/** §semantic warning card (Meridian): --ff-warning-soft fill with a 1px
+ *  warning-tinted hairline — tokenized, flips with the light/dark scheme. */
 const WARN_TINT = {
   borderColor: "color-mix(in srgb, var(--ff-warning) 38%, transparent)",
-  background: "color-mix(in srgb, var(--ff-warning) 9%, transparent)",
+  background: "var(--ff-warning-soft)",
 } as const;
 
 function propsJson(props: Record<string, unknown>): string {
@@ -34,15 +35,21 @@ export function BlockErrorFallback({
       style={WARN_TINT}
       className="rounded-xl border p-4"
     >
-      <p className="font-medium text-[color:var(--ff-warning)]">This block has an error</p>
+      <p className="text-sm font-medium text-[color:var(--ff-warning)]">This block has an error</p>
       <p className="mt-1 text-sm text-[color:var(--ff-muted)]">
         The preview failed to render. Your content is preserved.
       </p>
       <details className="mt-2">
-        <summary className="cursor-pointer text-sm font-medium text-[color:var(--ff-warning)] underline">
+        <summary
+          className="cursor-pointer text-[0.6875rem] font-medium uppercase tracking-[0.06em] text-[color:var(--ff-warning)] underline"
+          style={{ fontFamily: "var(--ff-font-mono)" }}
+        >
           View stored props
         </summary>
-        <pre className="mt-2 max-h-40 overflow-auto rounded-lg border border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] p-2 text-xs text-[color:var(--ff-muted)]">
+        <pre
+          className="mt-2 max-h-40 overflow-auto rounded-lg border border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] p-2 text-[0.6875rem] text-[color:var(--ff-muted)]"
+          style={{ fontFamily: "var(--ff-font-mono)" }}
+        >
           {propsJson(block.props)}
         </pre>
       </details>

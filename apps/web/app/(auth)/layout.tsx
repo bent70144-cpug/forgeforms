@@ -2,25 +2,18 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 // Shared chrome for /login, /register, /forgot and /reset-password — the
-// "aurora field" welcome mat. The .ff-auth-* recipes in globals.css carry
-// the glass card, muted alt rows and the hairline divider; this file adds
-// the brand moment around them: a gradient logo mark top-center, violet/cyan
-// radial glows pooled behind the card and a thin footer. Server components
-// only — no client JS, no new deps.
+// Meridian welcome mat. The .ff-auth-* recipes in globals.css carry the
+// white panel card, muted alt rows and the hairline divider; this file adds
+// the brand moment around them: a quiet ultramarine logo mark top-center on
+// the paper canvas (the whisper-quiet radial wash lives on <body> in
+// globals.css) and a thin footer. Server components only — no client JS,
+// no new deps.
 //
 // Vertical rhythm on tall viewports: brand pinned to the top edge, the card
 // centered in the leftover space (margin-block:auto on <main> absorbs the
 // free space ahead of justify-content), footer at the bottom edge. When the
 // card outgrows the viewport the auto margins collapse to zero and the
 // column scrolls naturally, so the top of the card always stays reachable.
-
-/* Violet/cyan pools behind the card — tokenized so the light scheme flips
-   automatically (no hard-coded white/black anywhere). */
-const AURORA_GLOWS = [
-  "radial-gradient(36rem 22rem at 50% 34%, color-mix(in srgb, var(--ff-primary) 16%, transparent), transparent 68%)",
-  "radial-gradient(26rem 18rem at 80% 16%, color-mix(in srgb, var(--ff-accent) 10%, transparent), transparent 70%)",
-  "radial-gradient(30rem 20rem at 14% 76%, color-mix(in srgb, var(--ff-primary-2) 9%, transparent), transparent 70%)",
-].join(", ");
 
 /* Card heading: display face, tight tracking. Inline style rather than a
    Tailwind utility because `.ff-auth-card h1` in globals.css is unlayered
@@ -42,9 +35,9 @@ export function AuthHeading({ children }: { children: ReactNode }) {
   );
 }
 
-/* Gradient tile + wordmark — the same lightning bolt as the app-shell brand
-   mark, but wearing the full violet→cyan gradient and a glow so the auth
-   pages get a real brand moment. Pure CSS/inline SVG; no assets. */
+/* Ultramarine tile + wordmark — the same lightning bolt as the app-shell
+   brand mark, but quiet: solid primary surface, radius token, no glow.
+   Pure CSS/inline SVG; no assets. */
 function BrandLockup() {
   return (
     <Link
@@ -54,11 +47,11 @@ function BrandLockup() {
     >
       <span
         aria-hidden="true"
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+        className="flex h-11 w-11 shrink-0 items-center justify-center"
         style={{
-          background: "var(--ff-grad)",
+          background: "var(--ff-primary)",
           color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-glow)",
+          borderRadius: "var(--ff-radius)",
         }}
       >
         <svg
@@ -67,7 +60,7 @@ function BrandLockup() {
           height={20}
           fill="none"
           stroke="currentColor"
-          strokeWidth={2.25}
+          strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
@@ -97,26 +90,35 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     // minHeight: 100dvh inline — tracks mobile browser chrome better than the
     // 100vh in .ff-auth-layout and out-ranks it (inline vs stylesheet).
-    <div className="ff-auth-layout relative" style={{ minHeight: "100dvh" }}>
-      {/* Aurora pools behind the card. Painted first; the siblings below are
-          positioned, so content stacks above this translucent wash. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{ backgroundImage: AURORA_GLOWS }}
-      />
-
-      <header className="relative">
+    <div className="ff-auth-layout" style={{ minHeight: "100dvh" }}>
+      <header>
         <BrandLockup />
       </header>
 
-      <main className="relative flex w-full justify-center" style={{ marginBlock: "auto" }}>
+      <main className="flex w-full justify-center" style={{ marginBlock: "auto" }}>
         <div className="ff-auth-card">{children}</div>
       </main>
 
-      {/* Thin footer — terms/privacy live on the marketing half; keep this
-          quiet so the card stays the moment. */}
-      <footer className="relative text-xs text-[var(--ff-muted)]">© 2026 FormForge</footer>
+      {/* Thin footer — quiet legal links. Terms/privacy copy lives on the
+          marketing half; these point at the two legal routes that exist so
+          the card stays the moment of the page. */}
+      <footer className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-[var(--ff-muted)]">
+        <span>© 2026 FormForge</span>
+        <span aria-hidden="true">·</span>
+        <Link
+          href="/dpa"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-fg)] hover:underline"
+        >
+          DPA
+        </Link>
+        <span aria-hidden="true">·</span>
+        <Link
+          href="/report-abuse"
+          className="underline-offset-4 transition-colors hover:text-[var(--ff-fg)] hover:underline"
+        >
+          Report abuse
+        </Link>
+      </footer>
     </div>
   );
 }

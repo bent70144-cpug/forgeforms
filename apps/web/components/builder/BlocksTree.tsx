@@ -20,7 +20,7 @@
 // Typing/selection on the canvas never touch this component's scroll state,
 // so the §13 <16 ms keystroke budget is unaffected.
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type UIEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type UIEvent } from "react";
 import { useBuilder } from "./context";
 import { blockDisplayLabel, blockIcon, getBlockMeta, isContainerKind } from "@/lib/builder/blockMeta";
 import type { Block } from "@/lib/bridge";
@@ -326,6 +326,16 @@ export function BlocksTree() {
       {renderedRows.map((row, i) => {
         const idx = range.start + i;
         const issues = validateLabelPresence(row.block);
+        // Meridian selected row: ultramarine 8% tint + a 2px left ultramarine
+        // bar (inset shadow follows the row radius). Height is untouched —
+        // the §13 windowing math depends on the fixed 32px row box.
+        const rowChrome: CSSProperties =
+          state.selection === row.block.id
+            ? {
+                background: "color-mix(in srgb, var(--ff-primary) 8%, transparent)",
+                boxShadow: "inset 2px 0 0 0 var(--ff-primary)",
+              }
+            : {};
         return (
           <li
             key={row.block.id}
@@ -334,11 +344,11 @@ export function BlocksTree() {
             aria-selected={state.selection === row.block.id}
             aria-expanded={row.expandable ? row.expanded : undefined}
             tabIndex={row.block.id === activeId ? 0 : -1}
-            className="ff-tree-row"
+            className="ff-tree-row [&:not([aria-selected='true']):hover]:bg-[color:var(--ff-bg-2)]!"
             style={
               windowed
-                ? { height: TREE_ROW_HEIGHT_PX, paddingLeft: row.depth * 14 + 8 }
-                : { paddingLeft: row.depth * 14 + 8 }
+                ? { height: TREE_ROW_HEIGHT_PX, paddingLeft: row.depth * 14 + 8, ...rowChrome }
+                : { paddingLeft: row.depth * 14 + 8, ...rowChrome }
             }
             data-block-id={row.block.id}
             onClick={() => select(row.block.id)}
@@ -358,7 +368,7 @@ export function BlocksTree() {
             ) : (
               <span className="ff-tree-toggle" aria-hidden="true" />
             )}
-            <span aria-hidden="true" className="w-4 shrink-0 text-center text-[13px] text-[color:var(--ff-primary)] opacity-90">
+            <span aria-hidden="true" className="w-4 shrink-0 text-center text-[13px] text-[color:var(--ff-muted)]">
               {blockIcon(row.block.kind)}
             </span>
             <span className="ff-tree-label" dir="auto">{blockDisplayLabel(row.block)}</span>

@@ -69,15 +69,24 @@ export function ReauthDialog({
         }
       }}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-hidden="true" />
+      <div
+        className="absolute inset-0"
+        style={{ background: "rgb(26 29 38 / 0.4)" }}
+        aria-hidden="true"
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Session expired"
         data-testid="reauth-dialog"
-        className="relative mx-auto mt-[18vh] w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] p-6 text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
+        className="relative mx-auto mt-[18vh] w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] p-6 text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-lg)]"
       >
-        <h2 className="text-base font-semibold">Session expired</h2>
+        <h2
+          className="m-0 text-base font-semibold"
+          style={{ fontFamily: "var(--ff-font-heading)", letterSpacing: "-0.01em" }}
+        >
+          Session expired
+        </h2>
         <p className="mt-2 text-sm text-[color:var(--ff-muted)]">
           Your session expired, so FormForge stopped saving. Nothing was lost.
         </p>

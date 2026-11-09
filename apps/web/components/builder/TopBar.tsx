@@ -106,13 +106,18 @@ export function TopBar({
           }}
           aria-label="Document title"
           className="ff-input min-w-0 max-w-80 flex-1 font-semibold"
+          style={{
+            fontFamily: "var(--ff-font-heading)",
+            letterSpacing: "-0.01em",
+            caretColor: "var(--ff-primary)",
+          }}
         />
       ) : (
         <span className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={startEdit}
-            className="truncate rounded-lg px-2 py-1 text-[0.9375rem] font-semibold tracking-tight transition-colors hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_10%,transparent)]"
+            className="truncate rounded-md px-2 py-1 text-[0.9375rem] font-semibold tracking-[-0.02em] transition-colors hover:bg-[color:var(--ff-bg-2)]"
             style={{ fontFamily: "var(--ff-font-heading)" }}
             title="Click to rename"
             dir="auto"

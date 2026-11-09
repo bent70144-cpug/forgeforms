@@ -1,8 +1,10 @@
 // T15 — semantic status pill, rebuilt on the design-system badge tokens:
 // completed → BADGE_POSITIVE, draft → BADGE_WARNING, spam → BADGE_DANGER.
-// Every hue comes from --ff-success/--ff-warning/--ff-danger via the shared
-// .ff-badge recipes, so the light scheme flips automatically — no raw Tailwind
-// colors, no dark: variants. The leading 6px dot inherits the hue (bg-current).
+// Every hue comes from the Meridian semantics via the shared .ff-badge
+// recipes — soft token background (--ff-success/warning/danger-soft) with the
+// matching strong text color — so the scheme flips automatically, no raw
+// Tailwind colors, no dark: variants. The leading 6px dot inherits the hue
+// (bg-current).
 
 import type { SubmissionStatus } from "../../lib/results";
 import { BADGE_DANGER, BADGE_POSITIVE, BADGE_WARNING } from "../../lib/ui";

@@ -1,9 +1,10 @@
 // Standalone AI surface for a document: draft + edit-with-AI workbench
 // (spec §15 M8). The builder (T05) will embed the same components in its
 // panes; this route keeps the flows reachable and manually testable.
-// Aurora redesign: the gradient-spark header ("Describe it — AI drafts it"),
-// two-column workbench grid and document meta card live in AiWorkbench
-// (client) so the quota badge can react to AI responses.
+// Meridian redesign: the Sora headline ("Describe it — AI drafts it"),
+// terracotta "AI workbench" kicker chip, two-zone hairline layout and the
+// current-document meta card live in AiWorkbench (client) so the quota badge
+// can react to AI responses.
 import { AiWorkbench } from "../../../../../components/ai";
 
 export const metadata = {

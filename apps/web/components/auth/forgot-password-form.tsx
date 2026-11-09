@@ -6,7 +6,6 @@ import { useActionState, useId } from "react";
 import { forgotPasswordAction, type AuthFormState } from "@/lib/auth/actions";
 import { BANNER, BANNER_ERROR, BTN_PRIMARY } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
-import { FocusSpine } from "@/components/auth/auth-form";
 
 const initialState: AuthFormState = {};
 
@@ -30,17 +29,14 @@ export function ForgotPasswordForm() {
 
       <div className="ff-field">
         <label htmlFor={emailId}>Email</label>
-        <div className="group relative">
-          <input
-            id={emailId}
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            placeholder="you@example.com"
-          />
-          <FocusSpine />
-        </div>
+        <input
+          id={emailId}
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@example.com"
+        />
       </div>
 
       <button

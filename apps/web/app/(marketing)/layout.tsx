@@ -12,31 +12,18 @@ export const metadata: Metadata = {
 };
 
 // Shared chrome for public marketing surfaces (templates gallery, legal docs).
-// "Aurora Glass" edition: a sticky frosted-glass header (var(--ff-glass) +
-// --ff-glass-border) with a gradient wordmark and an aurora hairline, and a
-// matching glass footer carrying the same hairline. Every color rides the
-// --ff-* tokens, so the light scheme flips automatically via
+// "Meridian" edition: a sticky solid-paper header (var(--ff-glass), no blur)
+// over a 1px hairline, a Sora 700 wordmark, and nav links in ink with a 2px
+// ultramarine underline accent on hover. The footer sits on the recessed
+// --ff-bg-2 well behind a hairline top rule, with quiet muted columns. Every
+// color rides the --ff-* tokens, so the night scheme flips automatically via
 // prefers-color-scheme. Pure server components — no client JS.
 
-const HEADER_FOOTER_GLASS = {
-  backgroundColor: "var(--ff-glass)",
-  WebkitBackdropFilter: "blur(16px) saturate(1.5)",
-  backdropFilter: "blur(16px) saturate(1.5)",
-} as const;
-
-/** Violet→cyan hairline that fades out at both ends (the "aurora" seam). */
-function AuroraHairline({ className }: { className?: string }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`pointer-events-none absolute inset-x-0 h-px ${className ?? ""}`}
-      style={{
-        background:
-          "linear-gradient(90deg, transparent, color-mix(in srgb, var(--ff-primary) 55%, transparent) 30%, color-mix(in srgb, var(--ff-accent) 45%, transparent) 70%, transparent)",
-      }}
-    />
-  );
-}
+/** Editorial nav link: ink by default, muted on hover, ultramarine underline.
+ *  min tap height on small screens, text height from sm up. Display is set
+ *  per link (hidden/sm:inline-flex) so the classes don't fight. */
+const NAV_LINK =
+  "min-h-[2.5rem] items-center text-[var(--ff-fg)] no-underline transition-colors duration-200 motion-reduce:transition-none hover:text-[var(--ff-muted)] hover:underline hover:decoration-[var(--ff-primary)] hover:decoration-2 hover:underline-offset-[6px] sm:min-h-0";
 
 function BrandMark() {
   return (
@@ -47,8 +34,7 @@ function BrandMark() {
     >
       <span
         aria-hidden="true"
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[var(--ff-primary-fg)] shadow-[var(--ff-glow)]"
-        style={{ backgroundImage: "var(--ff-grad)" }}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-[8px] bg-[var(--ff-primary)] text-[var(--ff-primary-fg)]"
       >
         <svg
           viewBox="0 0 24 24"
@@ -65,10 +51,7 @@ function BrandMark() {
           <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
         </svg>
       </span>
-      <span
-        className="bg-clip-text text-[1.0625rem] font-semibold tracking-tight text-transparent"
-        style={{ backgroundImage: "var(--ff-grad)" }}
-      >
+      <span className="text-[1.0625rem] font-bold tracking-[-0.02em] text-[var(--ff-fg)] [font-family:var(--ff-font-heading)]">
         FormForge
       </span>
     </Link>
@@ -83,7 +66,7 @@ function FooterGroup({
   links: ReadonlyArray<{ label: string; href: string; external?: boolean }>;
 }) {
   const linkClass =
-    "text-[0.875rem] text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)]";
+    "text-[0.875rem] text-[var(--ff-muted)] no-underline transition-colors duration-200 motion-reduce:transition-none hover:text-[var(--ff-fg)]";
   return (
     <div className="flex flex-col gap-3">
       <h2 className="m-0 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
@@ -114,30 +97,19 @@ function FooterGroup({
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header
-        className="sticky top-0 z-40 border-b border-[var(--ff-glass-border)]"
-        style={HEADER_FOOTER_GLASS}
-      >
-        <AuroraHairline className="bottom-0" />
-        <div className="relative mx-auto flex h-[3.75rem] max-w-6xl items-center justify-between gap-4 px-[clamp(1rem,3vw,1.5rem)]">
+      {/* Sticky chrome: solid paper at 0.94 opacity, one hairline underneath.
+          The header carries the single primary CTA; everything else is quiet. */}
+      <header className="sticky top-0 z-40 border-b border-[var(--ff-border)] bg-[var(--ff-glass)]">
+        <div className="mx-auto flex h-[3.75rem] max-w-6xl items-center justify-between gap-4 px-[clamp(1rem,3vw,1.5rem)]">
           <BrandMark />
           <nav aria-label="Site" className="flex items-center gap-4 text-[0.875rem] sm:gap-6">
-            <Link
-              href="/templates"
-              className="text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)]"
-            >
+            <Link href="/templates" className={`inline-flex ${NAV_LINK}`}>
               Templates
             </Link>
-            <Link
-              href="/dpa"
-              className="hidden text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)] sm:inline-flex"
-            >
+            <Link href="/dpa" className={`hidden sm:inline-flex ${NAV_LINK}`}>
               DPA
             </Link>
-            <Link
-              href="/login"
-              className="hidden text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)] sm:inline-flex"
-            >
+            <Link href="/login" className={`hidden sm:inline-flex ${NAV_LINK}`}>
               Log in
             </Link>
             <Link href="/register" className={BTN_PRIMARY}>
@@ -149,16 +121,9 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
       <div className="flex-1">{children}</div>
 
-      <footer
-        className="relative border-t border-[var(--ff-glass-border)]"
-        style={{
-          ...HEADER_FOOTER_GLASS,
-          backgroundImage:
-            "radial-gradient(44rem 16rem at 50% 130%, color-mix(in srgb, var(--ff-primary) 10%, transparent), transparent 70%)",
-        }}
-      >
-        <AuroraHairline className="top-0" />
-        <div className="relative mx-auto max-w-6xl px-[clamp(1rem,3vw,1.5rem)] py-10 sm:py-12">
+      {/* Recessed well: footer on --ff-bg-2 behind a hairline top rule. */}
+      <footer className="border-t border-[var(--ff-border)] bg-[var(--ff-bg-2)]">
+        <div className="mx-auto max-w-6xl px-[clamp(1rem,3vw,1.5rem)] py-12 sm:py-14">
           <div className="grid gap-10 md:grid-cols-[minmax(0,20rem)_1fr]">
             <div className="flex flex-col gap-3">
               <BrandMark />

@@ -73,15 +73,23 @@ function deselectAtRoot(event: MouseEvent<HTMLElement>, select: (id: string | nu
   if (event.target === event.currentTarget) select(null);
 }
 
-/* Builder-canvas texture (aurora redesign): a low-opacity dot grid tinted
-   with the DOCUMENT's border token — the canvas root carries the doc theme
-   vars (canvasThemeVars), so the pattern adapts to light/dark doc themes.
-   The app-level violet glow tokens (--ff-glow/--ff-grad) are resolved at
-   :root and stay usable inside the themed subtree. */
+/* Builder-canvas texture (Meridian): a low-opacity dot grid tinted with the
+   DOCUMENT's border token — the canvas root carries the doc theme vars
+   (canvasThemeVars), so the pattern adapts to light/dark doc themes. It
+   textures the paper workspace around the white document sheet. */
 const DOT_GRID: CSSProperties = {
   backgroundImage:
     "radial-gradient(color-mix(in srgb, var(--ff-border) 55%, transparent) 1px, transparent 1.4px)",
   backgroundSize: "22px 22px",
+};
+
+/** The document sheet: width-constrained white column floating on the paper
+ *  workspace (Meridian: border + print-like shadow do the elevation work). */
+const SHEET_STYLE: CSSProperties = {
+  background: "var(--ff-bg)", // document paper — theme-live (§5.1)
+  border: "1px solid var(--ff-border)",
+  borderRadius: "6px",
+  boxShadow: "var(--ff-shadow-md)",
 };
 
 /** Non-block chrome card for the welcome step (§5.1). */
@@ -107,17 +115,16 @@ function StartScreenCard({ type, onOpen }: { type: DocumentType; onOpen: () => v
     >
       <span
         aria-hidden="true"
-        className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[calc(var(--ff-radius)*0.55)]"
-        style={{ background: "var(--ff-grad)", boxShadow: "var(--ff-glow)" }}
+        className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full"
+        style={{
+          background: "color-mix(in srgb, var(--ff-border) 45%, var(--ff-bg))",
+          color: "var(--ff-muted)",
+        }}
       >
-        {/* text on the fixed app gradient is always white — the document
-            theme shadows --ff-primary-fg inside the canvas subtree */}
-        <span className="text-white">
-          <Icon name="plus" size={18} />
-        </span>
+        <Icon name="plus" size={18} />
       </span>
       <h2
-        className="mt-0 text-xl font-semibold text-[color:var(--ff-fg)]"
+        className="mt-0 text-xl font-semibold tracking-[-0.02em] text-[color:var(--ff-fg)]"
         style={{ fontFamily: "var(--ff-font-heading)" }}
       >
         {title}
@@ -318,29 +325,30 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
       aria-label="Form editor"
       data-testid="builder-canvas"
       onClick={(event) => deselectAtRoot(event, select)}
-      className="ff-canvas min-h-full w-full overflow-x-hidden overflow-y-auto transition-colors"
+      className="ff-canvas min-h-full w-full overflow-x-hidden overflow-y-auto px-4 py-8 transition-colors sm:px-6"
       style={{
         ...themeStyle,
         fontFamily: "var(--ff-font-body)",
         color: "var(--ff-fg)",
-        // doc-theme paper stays the base surface (§5.1 theme-live canvas);
-        // the dot grid + drag ring are token-tinted so they adapt to it
-        backgroundColor: "var(--ff-bg)",
+        // the workspace stays the app's paper (transparent — .ff-builder's
+        // meridian field shows through); the document sheet below is the
+        // theme-live surface. Dot grid + drag ring are token-tinted.
         ...DOT_GRID,
-        // drag-over highlight: a violet (document-primary) ring around the
-        // drop field while a block is being dragged (§6.2)
+        // drag-over highlight: an ultramarine (document-primary) ring around
+        // the drop field while a block is being dragged (§6.2)
         ...(drag
           ? { boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--ff-primary) 30%, transparent)" }
           : null),
       }}
     >
       <div
-        className="relative mx-auto w-full max-w-[720px] px-4 py-8 sm:px-6"
+        className="relative mx-auto w-full max-w-[720px] px-4 py-8 sm:px-8 sm:py-10"
+        style={SHEET_STYLE}
         onClick={(event) => deselectAtRoot(event, select)}
       >
-        {/* §6.2 drop indicator — absolutely positioned inside the content
-            column (no layout shift); pointer-events-none, aria-hidden. The
-            app gradient + glow preview the destination slot. */}
+        {/* §6.2 drop indicator — absolutely positioned inside the document
+            sheet (no layout shift); pointer-events-none, aria-hidden. A solid
+            ultramarine bar with a quiet tint ring previews the slot. */}
         {drag ? (
           <div
             aria-hidden="true"
@@ -349,9 +357,8 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
             className="pointer-events-none absolute inset-x-4 z-20 h-0.5 rounded-full"
             style={{
               top: drag.indicatorTop,
-              background: "var(--ff-grad)",
-              boxShadow:
-                "0 0 0 3px color-mix(in srgb, var(--ff-primary) 16%, transparent), var(--ff-glow)",
+              background: "var(--ff-primary)",
+              boxShadow: "0 0 0 3px color-mix(in srgb, var(--ff-primary) 15%, transparent)",
             }}
           />
         ) : null}
@@ -409,8 +416,12 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
               </span>
             </span>
             <span
-              className="shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium text-[color:var(--ff-muted)]"
-              style={{ borderColor: "var(--ff-border)" }}
+              className="shrink-0 rounded-full border px-2 py-0.5 text-[0.6875rem] font-medium text-[color:var(--ff-muted)]"
+              style={{
+                borderColor: "var(--ff-border)",
+                fontFamily: "var(--ff-font-mono)",
+                letterSpacing: "0.02em",
+              }}
             >
               Ending
             </span>

@@ -33,18 +33,22 @@ export function InsertionRow({ index, parentId, actions }: InsertionRowProps) {
       data-insert-index={index}
       data-insert-parent={parentId ?? "root"}
     >
-      {/* Accent line + gradient orb: opacity-only transitions (design rule). */}
+      {/* Dashed ultramarine insertion rule + quiet "+" chip: opacity-only
+          transitions (design rule). */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-[color:var(--ff-primary)] opacity-0 transition-opacity duration-200 group-hover:opacity-60 group-focus-within:opacity-60"
+        className="pointer-events-none absolute inset-x-0 top-1/2 h-0 -translate-y-1/2 border-t-2 border-dashed border-[color:var(--ff-primary)] opacity-0 transition-opacity duration-200 group-hover:opacity-50 group-focus-within:opacity-50"
       />
       <button
         type="button"
         aria-label="Insert block here"
         title="Insert block here"
         onClick={() => emitOpenPicker({ index, parentId })}
-        style={{ background: "var(--ff-grad)" }}
-        className="relative z-10 flex h-6 w-6 scale-95 items-center justify-center rounded-full text-sm font-semibold leading-none text-[color:var(--ff-primary-fg)] opacity-0 shadow-[var(--ff-glow)] transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 hover:scale-110 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--ff-accent)]"
+        className="relative z-10 flex h-5 w-5 scale-95 items-center justify-center rounded-full border text-[0.6875rem] font-semibold leading-none text-[color:var(--ff-primary)] opacity-0 transition-[transform,opacity,background-color,color] duration-200 ease-[var(--ff-ease-out)] group-hover:scale-100 group-hover:opacity-100 group-focus-within:scale-100 group-focus-within:opacity-100 hover:bg-[color:var(--ff-primary)] hover:text-[color:var(--ff-primary-fg)] focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--ff-accent)]"
+        style={{
+          background: "var(--ff-bg)",
+          borderColor: "var(--ff-primary)",
+        }}
       >
         +
       </button>

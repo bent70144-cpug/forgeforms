@@ -34,8 +34,11 @@ function Chip({ children }: { children: ReactNode }) {
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
+  // Dev-lab section header: mono uppercase label separated by a hairline rule.
   return (
-    <h2 className="mt-8 text-base font-semibold tracking-tight text-[var(--ff-fg)]">{children}</h2>
+    <h2 className="mt-10 border-t border-[var(--ff-border)] pt-6 font-mono text-xs font-medium uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+      {children}
+    </h2>
   );
 }
 
@@ -77,7 +80,7 @@ export default function HarnessClient({ docId }: { docId: string }) {
         The frame below is rendered by <Chip>FormEmbedRender</Chip>; it resizes itself when the child
         posts <Chip>ff:height</Chip>.
       </p>
-      <div className="mt-3 overflow-hidden rounded-[12px] border border-[var(--ff-border)] bg-white p-4 shadow-[var(--ff-shadow-md)]">
+      <div className="mt-3 overflow-hidden rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4 shadow-[var(--ff-shadow-md)]">
         <FormEmbedRender props={{ ...formEmbedDefaultProps(), documentId: docId }} />
       </div>
 
@@ -86,7 +89,7 @@ export default function HarnessClient({ docId }: { docId: string }) {
         A bare frame the harness listens to directly — real <Chip>ff:ready</Chip>/<Chip>ff:height</Chip>{" "}
         messages arrive from the embed shell (only height/complete pass the harness guards).
       </p>
-      <div className="mt-3 overflow-hidden rounded-[12px] border border-[var(--ff-border)] bg-white p-4 shadow-[var(--ff-shadow-md)]">
+      <div className="mt-3 overflow-hidden rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-4 shadow-[var(--ff-shadow-md)]">
         <iframe
           ref={frameRef}
           src={`/embed/${docId}`}
@@ -121,15 +124,32 @@ export default function HarnessClient({ docId }: { docId: string }) {
       </div>
 
       <SectionTitle>Event log</SectionTitle>
-      <div className="mt-3 max-h-64 space-y-1 overflow-y-auto rounded-[10px] bg-[#211d18] p-3 font-mono text-xs leading-relaxed text-[#f4eee5]">
-        {log.length === 0 ? <p className="text-[#a89f93]">Waiting for messages…</p> : null}
+      {/* Ink telemetry well — the sanctioned ink-well treatment (var(--ff-fg)
+          as bg, paper-mixed text) so it flips coherently in night mode. */}
+      <div
+        className="mt-3 max-h-64 space-y-1 overflow-y-auto rounded-[var(--ff-radius)] border p-3 font-mono text-xs leading-relaxed"
+        style={{
+          background: "var(--ff-fg)",
+          color: "color-mix(in srgb, var(--ff-bg) 92%, var(--ff-fg))",
+          borderColor: "color-mix(in srgb, var(--ff-bg) 16%, transparent)",
+        }}
+      >
+        {log.length === 0 ? (
+          <p style={{ color: "color-mix(in srgb, var(--ff-bg) 58%, var(--ff-fg))" }}>Waiting for messages…</p>
+        ) : null}
         {log.map((entry, index) => (
           <p key={`${entry.at}-${index}`} className="break-words">
-            <span className="text-[#a89f93]">[{entry.at}]</span>{" "}
+            <span style={{ color: "color-mix(in srgb, var(--ff-bg) 58%, var(--ff-fg))" }}>[{entry.at}]</span>{" "}
             <Icon
               name={entry.kind === "junk" ? "x" : "check"}
               size={12}
-              className={`inline-block align-[-1px] ${entry.kind === "junk" ? "text-[#f87171]" : "text-[var(--ff-accent-soft)]"}`}
+              className="inline-block align-[-1px]"
+              style={{
+                color:
+                  entry.kind === "junk"
+                    ? "color-mix(in srgb, var(--ff-danger) 72%, var(--ff-bg))"
+                    : "color-mix(in srgb, var(--ff-success) 72%, var(--ff-bg))",
+              }}
             />{" "}
             <strong>{entry.kind}</strong> {entry.detail}
           </p>

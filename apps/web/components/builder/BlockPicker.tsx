@@ -11,10 +11,12 @@
 // block. Focus is trapped while open and restored to the previously focused
 // element on close (spec §12).
 
-// Aurora glass palette (2026 restyle): frosted modal, tokenized search field,
-// categorized option grid with gradient icon tiles, violet active ring and a
-// transform-only hover lift. A11y contract (listbox/option, activedescendant,
-// focus trap) is unchanged from spec §12.
+// Meridian palette (2026 restyle): a white flyover panel on the paper scrim —
+// 1px hairline border, print-like --ff-shadow-lg, terracotta uppercase category
+// kickers, hairline grid tiles with a --ff-bg-2 icon square, and a 1.5px
+// ultramarine ring for the keyboard-selected option. No glass, no gradient
+// chrome. A11y contract (listbox/option, activedescendant, focus trap) is
+// unchanged from spec §12.
 
 import {
   useCallback,
@@ -244,7 +246,8 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
   return (
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        className="absolute inset-0"
+        style={{ background: "rgb(26 29 38 / 0.4)" }}
         aria-hidden="true"
         onClick={onClose}
       />
@@ -253,10 +256,10 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
         role="dialog"
         aria-modal="true"
         aria-label="Add a block"
-        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
+        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] text-[color:var(--ff-fg)] shadow-[var(--ff-shadow-lg)]"
       >
         {/* Search — the §6.1 command-palette anchor (tokenized input). */}
-        <div className="border-b border-[color:var(--ff-glass-border)] p-3">
+        <div className="border-b border-[color:var(--ff-border)] p-3">
           <input
             ref={inputRef}
             type="text"
@@ -293,13 +296,13 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
             groups.map((group) => (
               <div key={group.family} role="presentation" className="mb-1 last:mb-0">
                 <div
-                  className="sticky top-0 z-10 rounded-md px-2 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--ff-muted)]"
-                  style={{ background: "color-mix(in srgb, var(--ff-card) 92%, transparent)" }}
+                  className="sticky top-0 z-10 px-2 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ff-accent)]"
+                  style={{ background: "var(--ff-card)" }}
                   aria-hidden="true"
                 >
                   {group.label}
                 </div>
-                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                   {group.kinds.map((meta) => {
                     const i = indexByKind.get(meta.kind) ?? 0;
                     const active = i === activeIndex;
@@ -312,26 +315,29 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
                         aria-label={`${meta.label}${meta.hint ? ` — ${meta.hint}` : ""}`}
                         onClick={() => insertKind(meta)}
                         onMouseMove={() => setActiveIndex(i)}
-                        className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 text-sm transition-[transform,opacity] duration-150 ease-[var(--ff-ease-out)] hover:-translate-y-px ${
+                        className={`flex cursor-pointer items-center gap-2.5 rounded-xl border border-[color:var(--ff-border)] px-2.5 py-2 text-sm transition-colors duration-150 ease-[var(--ff-ease-out)] hover:bg-[color:var(--ff-bg-2)] ${
                           active
-                            ? "border-[color:var(--ff-primary)] bg-[color:color-mix(in_srgb,var(--ff-primary)_14%,transparent)]"
-                            : "border-transparent hover:border-[color:var(--ff-border)] hover:bg-[color:color-mix(in_srgb,var(--ff-fg)_5%,transparent)]"
+                            ? "-outline-offset-1 outline outline-[1.5px] outline-[color:var(--ff-primary)] bg-[color:color-mix(in_srgb,var(--ff-primary)_6%,transparent)]"
+                            : ""
                         }`}
                       >
                         <span
                           aria-hidden="true"
-                          style={{ background: "var(--ff-grad)" }}
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-sm shadow-[var(--ff-glow)]"
+                          style={{ background: "var(--ff-bg-2)" }}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-sm"
                         >
                           {blockIcon(meta.kind) || meta.icon}
                         </span>
                         <span className="flex min-w-0 flex-col">
-                          <span className="truncate font-medium">{meta.label}</span>
+                          <span className="truncate font-medium text-[color:var(--ff-fg)]">{meta.label}</span>
                           {meta.hint ? (
                             <span className="truncate text-xs text-[color:var(--ff-muted)]">{meta.hint}</span>
                           ) : null}
                         </span>
-                        <span className="ml-auto shrink-0 font-mono text-[10px] uppercase tracking-wide text-[color:var(--ff-muted)]">
+                        <span
+                          className="ml-auto shrink-0 text-[10px] uppercase tracking-wide text-[color:var(--ff-muted)]"
+                          style={{ fontFamily: "var(--ff-font-mono)" }}
+                        >
                           {meta.kind}
                         </span>
                       </div>
@@ -343,7 +349,7 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
           )}
         </div>
 
-        <div className="border-t border-[color:var(--ff-glass-border)] px-4 py-2 text-[11px] text-[color:var(--ff-muted)]">
+        <div className="border-t border-[color:var(--ff-border)] px-4 py-2 text-[11px] text-[color:var(--ff-muted)]">
           ↑↓ navigate · Enter insert · Esc close
         </div>
       </div>

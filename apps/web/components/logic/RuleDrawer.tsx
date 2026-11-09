@@ -7,11 +7,13 @@
 // Every mutation applies immediately through the ops channel (rule.upsert /
 // rule.remove / block.update / settings.update) and autosaves.
 //
-// Aurora redesign (task 10/13): the shared Drawer primitive already provides
-// the glass panel; inside it, conditions/actions live in inset rows with mono
-// IF/AND chips (clear field/operator/value rhythm), each rule card carries a
-// mono logic-summary chip strip mirroring the canvas edge labels, the add-rule
-// CTA is the gradient primary button, and hidden-field tokens are mono chips.
+// Meridian redesign (task 10/13): the shared Drawer primitive provides the
+// white sheet; inside it, conditions/actions live in hairline card rows with
+// mono IF/AND/THEN chips (clear field/operator/value rhythm), each rule card
+// carries a mono logic-summary chip strip mirroring the canvas edge labels,
+// the add-rule CTA is the one ultramarine action, lint issues for the open
+// scope render as --ff-warning-soft strips with a 3px left border, and delete
+// actions are quiet ghosts that turn --ff-danger on hover.
 // Rule-editing state/handlers and the ops channel are unchanged.
 
 import { useEffect, useMemo, useRef, useState, type InputHTMLAttributes, type SelectHTMLAttributes } from "react";
@@ -36,6 +38,7 @@ import {
   type RuleDraft,
 } from "@/lib/logic/rules";
 import { DEFAULT_HIDDEN_FIELDS } from "@/lib/logic/hidden";
+import { logicLintErrors } from "@/lib/logic/graph";
 
 export type ScopeInfo = {
   /** Canvas node id: "start", a blockId, or "end:<endingId>". */
@@ -90,7 +93,7 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
   return (
     <button
       type="button"
-      className={`${ICON_BTN} h-8! w-8! shrink-0 hover:text-[var(--ff-danger)]! max-lg:h-10! max-lg:w-10!`}
+      className={`${ICON_BTN} h-8! w-8! shrink-0 hover:bg-[color-mix(in_srgb,var(--ff-danger)_8%,transparent)]! hover:text-[var(--ff-danger)]! max-lg:h-10! max-lg:w-10!`}
       aria-label={label}
       onClick={onClick}
     >
@@ -98,10 +101,6 @@ function RemoveButton({ label, onClick }: { label: string; onClick: () => void }
     </button>
   );
 }
-
-/** Ghost-tinted add action (accent 6% over card, accent 20% hairline). */
-const BTN_TINTED_SM =
-  "ff-btn ff-btn-sm border-[color-mix(in_srgb,var(--ff-accent)_20%,transparent)]! bg-[color-mix(in_srgb,var(--ff-accent)_6%,var(--ff-card))]! text-[var(--ff-fg)]! hover:-translate-y-px hover:shadow-[var(--ff-shadow-sm)]";
 
 /** Inline "+ …" text action for adding conditions/actions inside a rule card. */
 function AddInlineButton({ label, onClick }: { label: string; onClick: () => void }) {
@@ -130,21 +129,21 @@ function SectionHeader({ icon, title, count }: { icon: IconName; title: string; 
   );
 }
 
-/** Shared card surface for rule cards + config sections inside the glass drawer. */
+/** White hairline card for rule cards + config sections inside the drawer. */
 const CARD_SOFT =
-  "rounded-[14px] border border-[var(--ff-glass-border)] bg-[color-mix(in_srgb,var(--ff-card)_72%,var(--ff-bg))] p-3.5 shadow-[var(--ff-shadow-sm)]";
+  "rounded-[var(--ff-radius)] border border-[var(--ff-border)] bg-[var(--ff-card)] p-3.5 shadow-[var(--ff-shadow-sm)]";
 
-/** Inset row for one condition / one action (field · operator · value). */
+/** Hairline card row for one condition / one action (field · operator · value). */
 const ROW_SOFT =
-  "flex flex-wrap items-center gap-2 rounded-xl border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-bg)_45%,var(--ff-card))] px-2.5 py-2";
+  "flex flex-wrap items-center gap-2 rounded-xl border border-[var(--ff-border)] bg-[var(--ff-card-2)] px-2.5 py-2";
 
-/** Mono IF / AND prefix chip on a condition row. */
+/** Mono IF / AND / THEN prefix chip on a condition row. */
 const COND_CHIP =
-  "inline-flex h-5 shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_12%,transparent)] px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]";
+  "inline-flex h-5 shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_8%,transparent)] px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]";
 
-/** Mono summary chip strip — mirrors the rule the way canvas edge labels do. */
+/** Mono summary chip strip — white pill matching the canvas edge labels. */
 const SUMMARY_CHIP =
-  "inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-[var(--ff-glass-border)] bg-[color-mix(in_srgb,var(--ff-bg)_55%,var(--ff-card))] px-2 py-1 font-mono text-[11px] leading-4 text-[var(--ff-muted)]";
+  "inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-[var(--ff-border)] bg-[var(--ff-card)] px-2 py-1 font-mono text-[11px] leading-4 text-[var(--ff-muted)]";
 
 /** Compact operator glyphs for the summary chips (isEmpty stays verbal). */
 const OP_GLYPHS: Partial<Record<RuleCondition["op"], string>> = {
@@ -202,6 +201,17 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
     [body.logic?.rules, scope.id],
   );
 
+  // Lint errors that touch this scope: diagnostics carry blockId = the rule's
+  // scope, so match on it (plus ruleId for robustness). Display-only — the
+  // same engine helper the toolbar + FlowPreview use; no state changes.
+  const scopeLint = useMemo(() => {
+    const scopeRuleIds = new Set(rules.map((rule) => rule.id));
+    return logicLintErrors(body).filter(
+      (error) =>
+        error.blockId === scope.id || (error.ruleId !== undefined && scopeRuleIds.has(error.ruleId)),
+    );
+  }, [body, scope.id, rules]);
+
   return (
     <Drawer open onClose={onClose} title="Rules" description={scope.label} width="26rem">
       <div className="flex flex-col gap-4 pb-2" data-testid="rule-drawer" aria-label={`Rules for ${scope.label}`}>
@@ -235,6 +245,30 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
                 </span>
               </div>
               <RuleSummaryChips rules={rules} fallback={fallback} />
+              {scopeLint.length > 0 && (
+                <div
+                  className="flex flex-col gap-1.5"
+                  data-testid="rule-drawer-lint"
+                  role="status"
+                  aria-label="Lint issues for this scope"
+                >
+                  {scopeLint.map((lintError, i) => (
+                    <p
+                      key={i}
+                      className="rounded-[10px] border border-[color-mix(in_srgb,var(--ff-warning)_30%,transparent)] bg-[var(--ff-warning-soft)] px-2.5 py-2 text-xs leading-relaxed text-[var(--ff-warning)]"
+                      style={{ borderLeft: "3px solid var(--ff-warning)" }}
+                    >
+                      <span className="inline-flex items-start gap-1.5">
+                        <Icon name="alert" size={12} className="mt-0.5 shrink-0" />
+                        <span>
+                          {lintError.ruleId !== undefined && `Rule "${lintError.ruleId}": `}
+                          {lintError.message}
+                        </span>
+                      </span>
+                    </p>
+                  ))}
+                </div>
+              )}
               {rules.map((rule) => (
                 <RuleCard
                   key={rule.id}
@@ -268,7 +302,7 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
                 {fallback === null && (
                   <button
                     type="button"
-                    className={`${BTN_TINTED_SM} inline-flex items-center gap-1.5`}
+                    className={`${BTN_SECONDARY_SM} inline-flex items-center gap-1.5`}
                     aria-label="+ In all other cases"
                     onClick={() => {
                       const draft = newRuleDraft(scope.id);
@@ -351,9 +385,10 @@ function RuleCard({
     <section className={CARD_SOFT} data-testid={`rule-${rule.id}`}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-xs font-medium text-[var(--ff-muted)]">
+          {/* Sora rule title (headings take the display font from globals.css). */}
+          <h4 className="text-[13px] font-semibold tracking-[-0.01em] text-[var(--ff-fg)]">
             {draft.isFallback ? "In all other cases" : "IF (all match — AND)"}
-          </span>
+          </h4>
           <span className="truncate font-mono text-[10px] text-[var(--ff-muted)]">{rule.id}</span>
         </div>
         <RemoveButton label="Remove rule" onClick={() => onApply([removeRuleOp(rule.id)])} />

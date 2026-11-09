@@ -1,7 +1,8 @@
-// Aurora redesign: the preview renders as a document frame — a hairline chrome
-// header ("Draft preview" badge + mono counts), a paper-like inset with
-// hairline rows (hidden blocks dimmed, nested children in a wash + hairline
-// container), and the raw JSON on a tokenized ink surface behind a
+// Meridian redesign: the preview renders as a white document sheet — 1px
+// hairline border and a soft --ff-shadow-sm resting on the paper canvas, a
+// card-2 chrome header ("Draft preview" terracotta badge + mono counts),
+// hairline block rows (hidden blocks dimmed, nested children in a wash +
+// hairline container), and the raw JSON on a quiet --ff-bg-2 well behind a
 // <details>. The schema-shaped data mapping (blockTitle, children recursion)
 // is unchanged.
 import type { DocumentBody } from "@formforge/core/ai";
@@ -61,10 +62,11 @@ export function BodyPreview({ body }: { body: DocumentBody }) {
   return (
     <div
       aria-label="AI draft preview"
-      className="overflow-hidden rounded-[14px] border"
+      className="overflow-hidden rounded-[14px]"
       style={{
-        borderColor: "var(--ff-border-strong)",
-        background: "color-mix(in srgb, var(--ff-bg) 40%, var(--ff-card))",
+        background: "var(--ff-card)",
+        border: "1px solid var(--ff-border)",
+        boxShadow: "var(--ff-shadow-sm)",
       }}
     >
       {/* Frame chrome: identity badge + schema counts. */}
@@ -72,7 +74,7 @@ export function BodyPreview({ body }: { body: DocumentBody }) {
         className="flex flex-wrap items-center gap-2 border-b px-3.5 py-2.5"
         style={{
           borderColor: "var(--ff-border)",
-          background: "color-mix(in srgb, var(--ff-fg) 3%, transparent)",
+          background: "var(--ff-card-2)",
         }}
       >
         <span className={BADGE_ACCENT}>
@@ -115,7 +117,7 @@ export function BodyPreview({ body }: { body: DocumentBody }) {
         </ul>
       ) : null}
 
-      {/* Raw JSON on a tokenized ink surface (light-scheme safe). */}
+      {/* Raw JSON on a recessed --ff-bg-2 well. */}
       <div className="border-t px-3.5 py-2.5" style={{ borderColor: "var(--ff-border)" }}>
         <details className="text-xs">
           <summary className="cursor-pointer text-xs text-[var(--ff-muted)] underline underline-offset-2 transition-colors hover:text-[var(--ff-fg)]">
@@ -125,7 +127,7 @@ export function BodyPreview({ body }: { body: DocumentBody }) {
             className="mt-2 max-h-64 overflow-auto rounded-[10px] border p-3 font-mono text-xs leading-relaxed"
             style={{
               borderColor: "var(--ff-border)",
-              background: "color-mix(in srgb, var(--ff-bg) 60%, var(--ff-bg-2))",
+              background: "var(--ff-bg-2)",
               color: "var(--ff-fg)",
             }}
           >
