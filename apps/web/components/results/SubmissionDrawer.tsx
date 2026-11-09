@@ -1,8 +1,10 @@
 // T15 — submission detail drawer (spec §14.1.5): timestamp, token, status,
 // variables, hidden fields, meta + every answer grouped by block with labels
 // from the document snapshot. Detail comes from GET /documents/:id/submissions/:sid.
-// B5: rendered through the shared Drawer primitive (Esc/backdrop close, scroll
-// lock, focus trap + restore all live there); sections keep their data flow.
+// Aurora: rendered through the shared glass Drawer primitive (Esc/backdrop
+// close, scroll lock, focus trap + restore all live there); sections keep
+// their data flow, with quiet uppercase section labels, muted question labels
+// above strong answers, and mono for ids/timestamps/records.
 
 "use client";
 
@@ -46,6 +48,15 @@ function scalar(value: unknown): string {
   }
 }
 
+/** Quiet uppercase section label shared by every drawer section. */
+function SectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--ff-muted)]">
+      {children}
+    </h3>
+  );
+}
+
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
@@ -69,7 +80,7 @@ function RecordSection({
   const entries = Object.entries(record);
   return (
     <section>
-      <h3 className="text-sm font-semibold text-[var(--ff-fg)]">{title}</h3>
+      <SectionTitle>{title}</SectionTitle>
       {entries.length === 0 ? (
         <p className="mt-2 text-sm text-[var(--ff-muted)]">{emptyHint}</p>
       ) : (
@@ -148,10 +159,14 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
         ) : null}
 
         <section>
-          <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Metadata</h3>
+          <SectionTitle>Metadata</SectionTitle>
           <dl className="mt-1 divide-y divide-[var(--ff-border)]">
-            <MetaRow label="Submitted">{formatDateTime(submittedAt)}</MetaRow>
-            <MetaRow label="Started">{formatDateTime(view.startedAt)}</MetaRow>
+            <MetaRow label="Submitted">
+              <span className="font-mono text-xs">{formatDateTime(submittedAt)}</span>
+            </MetaRow>
+            <MetaRow label="Started">
+              <span className="font-mono text-xs">{formatDateTime(view.startedAt)}</span>
+            </MetaRow>
             <MetaRow label="Status"><StatusPill status={view.status} /></MetaRow>
             <MetaRow label="Version">
               <span className="font-mono text-xs">{view.versionId || "—"}</span>
@@ -164,9 +179,11 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
         </section>
 
         <section>
-          <h3 className="text-sm font-semibold text-[var(--ff-fg)]">Answers</h3>
-          <p className="mt-0.5 text-xs text-[var(--ff-muted)]">Grouped by block, labels from the document snapshot.</p>
-          <ul className="mt-3 space-y-3">
+          <SectionTitle>Answers</SectionTitle>
+          <p className="mt-0.5 text-xs text-[var(--ff-muted)]">
+            Grouped by block, labels from the document snapshot.
+          </p>
+          <ul className="mt-3 space-y-2.5">
             {questionBlocks.map((block) => {
               const value = view.answers?.[block.id];
               const text = formatAnswer(block, value);
@@ -174,19 +191,22 @@ export function SubmissionDrawer({ docId, client, submission, blocks, onClose }:
               return (
                 <li
                   key={block.id}
-                  className={`rounded-xl border p-3 ${
+                  className={`rounded-xl border p-3.5 ${
                     empty
                       ? "border-dashed border-[var(--ff-border)]"
-                      : "border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_2%,var(--ff-bg))]"
+                      : "border-[color-mix(in_srgb,var(--ff-primary)_30%,var(--ff-border))] bg-[color-mix(in_srgb,var(--ff-primary)_5%,var(--ff-card))]"
                   }`}
                 >
+                  {/* question as a muted eyebrow, answer carries the weight */}
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-[13px] font-medium text-[var(--ff-fg)]">{questionLabel(block)}</p>
+                    <p className="min-w-0 text-xs font-medium leading-snug text-[var(--ff-muted)]">
+                      {questionLabel(block)}
+                    </p>
                     <span className={`${BADGE_MUTED} shrink-0 font-mono`}>{block.kind}</span>
                   </div>
                   <p
-                    className={`mt-1 whitespace-pre-wrap break-words text-sm ${
-                      empty ? "text-[var(--ff-muted)]" : "text-[var(--ff-fg)]"
+                    className={`mt-1.5 whitespace-pre-wrap break-words text-sm ${
+                      empty ? "text-[var(--ff-muted)]" : "font-medium text-[var(--ff-fg)]"
                     }`}
                   >
                     {empty ? "Empty" : text}

@@ -13,6 +13,9 @@
 // recipe from components/builder/save-indicator (the store seam itself lives
 // behind the runtime, which this page doesn't own); toolbar shows question +
 // lint summary; the state machine (rules, undo/redo, autosave) is untouched.
+//
+// Aurora polish (task 10/13): gradient flow tile beside the page title and
+// token-tinted inline code chips in the explainer — presentation only.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createTransport } from "@/lib/builder/transport";
@@ -165,6 +168,13 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
       <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           {backLink}
+          <span
+            aria-hidden="true"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] text-[var(--ff-primary-fg)] shadow-[inset_0_1px_0_rgb(255_255_255/0.25),var(--ff-glow)]"
+            style={{ background: "var(--ff-grad)" }}
+          >
+            <Icon name="flow" size={18} />
+          </span>
           <div className="flex min-w-0 items-baseline gap-2.5">
             <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-fg)]">Logic</h1>
             {snapshot && snapshot.meta.title !== "" && (
@@ -254,13 +264,13 @@ export function LogicBuilder({ docId, backLink, resultsLink }: LogicBuilderProps
             <section className={`${CARD} p-5`} aria-label="How the logic builder works">
               <p className="text-sm leading-relaxed text-[var(--ff-muted)]">
                 <strong className="font-medium text-[var(--ff-fg)]">How it works:</strong> nodes follow
-                document order (default flow); dashed edges are rule{" "}
-                <code className="rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1 font-mono text-xs">
+                document order (default flow); dashed cyan edges are rule{" "}
+                <code className="rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] px-1 py-px font-mono text-xs text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]">
                   goto
                 </code>
                 s. Click Start or a question to add rules — IF conditions are AND-ed, THEN runs
                 goto/set, and “in all other cases” is the fallback. Rule edits autosave via{" "}
-                <code className="rounded bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1 font-mono text-xs">
+                <code className="rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_10%,transparent)] px-1 py-px font-mono text-xs text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]">
                   PATCH /api/v1/documents/:id
                 </code>{" "}
                 ops.

@@ -96,4 +96,25 @@
   --cast-stock-lift: 0 24px 56px -20px rgb(6 9 22 / 0.75), 0 0 32px -8px rgb(108 92 255 / 0.3);
   --press-groove: inset 1px 1.5px 2px rgb(3 6 18 / 0.4),
     inset -1px -1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px rgb(122 134 213 / 0.16);
+
+  /* --- aurora extensions (2026 landing redesign; additive only) ----------- */
+
+  /* glass chrome */
+  --glass-bg: color-mix(in srgb, var(--color-paper) 68%, transparent);
+  --glass-line: rgb(122 134 213 / 0.16);
+
+  /* radii */
+  --radius-card-lg: 20px;
+
+  /* aurora field: drifting color behind the page */
+  --aurora-1: rgb(108 92 255 / 0.4);
+  --aurora-2: rgb(34 211 238 / 0.3);
+  --aurora-3: rgb(139 92 246 / 0.28);
+  --dur-drift: 28s;
+
+  /* lifted gradient button glow */
+  --glow-lift: 0 14px 44px -10px rgb(108 92 255 / 0.65);
+
+  /* success glow (the "Submitted" state on the desk demo) */
+  --paid-glow: 0 0 24px -6px rgb(74 222 128 / 0.45);
 }

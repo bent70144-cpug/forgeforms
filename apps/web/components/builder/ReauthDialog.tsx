@@ -21,6 +21,7 @@
 
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import type { UnauthenticatedEvent } from "@/lib/builder/autosave";
+import { BTN_GHOST, BTN_PRIMARY, BTN_SECONDARY, BANNER_WARNING } from "@/lib/ui";
 
 export type ReauthDialogProps = {
   /** Active re-auth prompt from the controller (null → render nothing). */
@@ -68,19 +69,19 @@ export function ReauthDialog({
         }
       }}
     >
-      <div className="absolute inset-0 bg-stone-900/40" aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-hidden="true" />
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Session expired"
         data-testid="reauth-dialog"
-        className="relative mx-auto mt-[18vh] w-[calc(100%-2rem)] max-w-md rounded-xl border border-stone-200 bg-white p-6 shadow-xl dark:border-stone-700 dark:bg-stone-900"
+        className="relative mx-auto mt-[18vh] w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] p-6 text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
       >
         <h2 className="text-base font-semibold">Session expired</h2>
-        <p className="mt-2 text-sm text-stone-600 dark:text-stone-300">
+        <p className="mt-2 text-sm text-[color:var(--ff-muted)]">
           Your session expired, so FormForge stopped saving. Nothing was lost.
         </p>
-        <p className="mt-2 text-xs text-stone-500 dark:text-stone-400">
+        <p className={`${BANNER_WARNING} mt-3`} role="note">
           {prompt.pendingCount > 0
             ? `Your ${prompt.pendingCount} unsaved ${
                 prompt.pendingCount === 1 ? "change is" : "changes are"
@@ -96,14 +97,14 @@ export function ReauthDialog({
             rel="noopener noreferrer"
             data-ff-default-focus="true"
             data-testid="reauth-sign-in"
-            className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+            className={BTN_PRIMARY}
           >
             Sign in
           </a>
           <button
             type="button"
             data-testid="reauth-resume"
-            className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"
+            className={BTN_SECONDARY}
             disabled={checking}
             onClick={handleResume}
           >
@@ -112,7 +113,7 @@ export function ReauthDialog({
           <button
             type="button"
             data-testid="reauth-dismiss"
-            className="ml-auto rounded-md border border-stone-200 px-3 py-2 text-sm text-stone-400 dark:border-stone-700"
+            className={`${BTN_GHOST} ml-auto`}
             onClick={onDismiss}
           >
             Dismiss

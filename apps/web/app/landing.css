@@ -1,5 +1,12 @@
-/* Hallmark · v2.0.0 · redesign full · page / · genre modern-minimal · theme Coral dealt 1/3 (seed formforge-multi-tenant-saas-forms-27e8·798f5a2a·2026-11-06·r0) · shape: Stage hero · signature: the desk form demo, "Submitted" pressed into the stock · kept: every link, route and product fact · redesign: full (existing app stylesheet — this section is namespaced under .ff-land, stamp lives here) */
-/* critique: F4 dismissed on record (cotton=quiet, ink=primary recipes of the theme) · review agents: typography Approve (7 applied) · motion/a11y Block→fixed (aria-selected cue, copy-fail status, nav wrap, h3/h4 order, durations, one-signal hover) */
+/* FormForge marketing home — "Aurora Glass" (2026 redesign, page /)
+   ----------------------------------------------------------------------------
+   Dark-first deep-indigo marketing page: glass chrome, violet→cyan gradient
+   energy, an aurora color field drifting behind everything, and the interactive
+   desk demo as the hero's form preview. Scoped to .ff-land so the app's own
+   --ff-* system (globals.css) is untouched. Tokens live in ./tokens.css.
+   Kept from the previous deal: every link, route and product fact; the
+   .ff-reveal / .ff-spot progressive-enhancement contracts (styled in
+   globals.css, enhanced below for the landing only). */
 
 @import "./tokens.css";
 
@@ -37,7 +44,7 @@
   font-display: swap;
 }
 
-/* --- Floor 4: no horizontal scroll anywhere; sticky keeps working --------- */
+/* --- Floor 4: no horizontal scroll anywhere; sticky keeps working ---------- */
 
 html,
 body {
@@ -47,7 +54,14 @@ body {
 /* --- the world (tokens live in tokens.css) --------------------------------- */
 
 .ff-land {
-  background-color: var(--color-paper);
+  position: relative;
+  background:
+    radial-gradient(
+      110rem 70rem at 50% -14rem,
+      color-mix(in srgb, var(--color-accent) 9%, transparent),
+      transparent 62%
+    ),
+    var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
   font-size: var(--text-md);
@@ -56,13 +70,13 @@ body {
   min-height: 100vh;
 }
 
-/* browser surfaces carry the design (F16) */
+/* browser surfaces carry the design */
 .ff-land {
   scrollbar-color: var(--color-rule-2) transparent;
 }
 
 .ff-land ::selection {
-  background: color-mix(in oklab, var(--color-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 40%, transparent);
   color: var(--color-ink);
 }
 
@@ -71,17 +85,86 @@ body {
   outline-offset: 2px;
 }
 
-.ff-land a:not(.ff-land-btn) {
+/* links are chrome-styled per component; this is the safe base */
+.ff-land a {
   color: inherit;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 0.18em;
-  text-decoration-thickness: 1px;
-  transition: text-decoration-color var(--dur-micro) var(--ease-out);
+  text-decoration: none;
 }
 
-.ff-land a:not(.ff-land-btn):hover {
-  text-decoration-color: var(--color-accent-2);
+/* --- aurora field: three drifting glows behind the whole page --------------- */
+
+.ff-land-aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* everything real sits above the aurora (the header is sticky, not relative) */
+.ff-land > :not(.ff-land-aurora):not(.ff-land-header) {
+  position: relative;
+  z-index: 1;
+}
+
+.ff-land-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(84px);
+  opacity: 0.5;
+}
+
+.ff-land-aurora-blob--1 {
+  width: 56vw;
+  height: 56vw;
+  min-width: 480px;
+  min-height: 480px;
+  top: -18vw;
+  left: -12vw;
+  background: radial-gradient(closest-side, var(--aurora-1), transparent 72%);
+  animation: ff-land-drift-a var(--dur-drift) var(--ease-in-out) infinite alternate;
+}
+
+.ff-land-aurora-blob--2 {
+  width: 44vw;
+  height: 44vw;
+  min-width: 420px;
+  min-height: 420px;
+  top: -6vw;
+  right: -14vw;
+  background: radial-gradient(closest-side, var(--aurora-2), transparent 72%);
+  animation: ff-land-drift-b calc(var(--dur-drift) * 1.3) var(--ease-in-out) infinite
+    alternate;
+}
+
+.ff-land-aurora-blob--3 {
+  width: 52vw;
+  height: 52vw;
+  min-width: 460px;
+  min-height: 460px;
+  top: 72%;
+  left: 28vw;
+  opacity: 0.32;
+  background: radial-gradient(closest-side, var(--aurora-3), transparent 72%);
+  animation: ff-land-drift-a calc(var(--dur-drift) * 1.6) var(--ease-in-out) infinite
+    alternate-reverse;
+}
+
+@keyframes ff-land-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6vw, 4vh, 0) scale(1.12);
+  }
+}
+
+@keyframes ff-land-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-5vw, 6vh, 0) scale(1);
+  }
 }
 
 /* --- canvas ---------------------------------------------------------------- */
@@ -92,40 +175,79 @@ body {
   padding-inline: var(--gutter);
 }
 
-/* --- nav: edge-aligned, one line ------------------------------------------ */
+/* --- nav: sticky glass with a gradient wordmark ----------------------------- */
+
+.ff-land-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--glass-bg);
+  border-bottom: 1px solid var(--glass-line);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+}
 
 .ff-land-nav {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-xs) var(--space-md);
-  min-height: 64px;
-  padding-block: var(--space-sm);
+  gap: 12px 20px;
+  min-height: 68px;
+  padding-block: 12px;
 }
 
 .ff-land-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--font-display);
   font-weight: var(--display-weight);
-  font-size: 1.125rem;
+  font-size: 1.1875rem;
   letter-spacing: -0.02em;
-  text-decoration: none;
   color: var(--color-ink);
+}
+
+.ff-land-wordmark-grad {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ff-land-logo-mark {
+  position: relative;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--grad);
+  box-shadow:
+    0 0 18px -2px rgb(108 92 255 / 0.65),
+    inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+
+.ff-land-logo-mark::after {
+  /* the forged block: a lit core inside the gradient tile */
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.92);
 }
 
 .ff-land-nav-links {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
+  gap: 4px;
 }
 
 .ff-land-nav-link {
-  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 10px;
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--color-muted);
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--radius-input);
   transition: color var(--dur-micro) var(--ease-out);
 }
 
@@ -136,56 +258,81 @@ body {
 /* nav actions stay quieter than the hero's */
 .ff-land-nav-cta {
   min-height: 40px;
-  padding: 0 var(--space-md);
+  padding: 0 18px;
   font-size: var(--text-sm);
 }
 
-/* --- letterpress controls --------------------------------------------------- */
+/* --- gradient / glass buttons ------------------------------------------------ */
 
 .ff-land-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-xs);
+  gap: 8px;
   min-height: 48px;
-  padding: 0 var(--space-lg);
-  border: 0;
+  padding: 0 22px;
+  border: 1px solid transparent;
   border-radius: var(--radius-stock);
   font-family: var(--font-body);
   font-size: var(--text-md);
   font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
-  transition: transform var(--dur-short) var(--ease-out),
-    box-shadow var(--dur-short) var(--ease-out);
-}
-
-.ff-land-btn--card {
-  background-color: var(--color-cotton);
-  background-image: var(--tex-cotton);
-  color: var(--color-print);
-  text-shadow: 0.5px 0.75px 0 var(--color-cotton);
-  box-shadow: var(--edge-stock), var(--cast-stock);
+  transition:
+    transform var(--dur-short) var(--ease-out),
+    box-shadow var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    background-color var(--dur-short) var(--ease-out);
 }
 
 .ff-land-btn--ink {
-  background: var(--color-board);
-  color: var(--color-board-type);
-  text-shadow: 0 -0.75px 0 var(--color-ink);
-  box-shadow: var(--cast-stock);
+  background-image: var(--grad);
+  color: var(--color-accent-ink);
+  box-shadow:
+    var(--glow),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+.ff-land-btn--card {
+  background: color-mix(in srgb, var(--color-cotton) 70%, transparent);
+  border-color: var(--color-rule-2);
+  color: var(--color-ink);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
 }
 
 .ff-land-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--edge-stock), var(--cast-stock-lift);
+  transform: translateY(-2px);
 }
 
 .ff-land-btn--ink:hover {
-  box-shadow: var(--cast-stock-lift);
+  box-shadow:
+    var(--glow-lift),
+    inset 0 1px 0 rgb(255 255 255 / 0.2);
+}
+
+.ff-land-btn--card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-rule-2));
+  background: color-mix(in srgb, var(--color-cotton) 88%, transparent);
 }
 
 .ff-land-btn:active {
-  transform: translateY(1px);
+  transform: translateY(0);
+}
+
+.ff-land-btn--small {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: var(--text-sm);
+}
+
+.ff-land-btn--lg {
+  min-height: 54px;
+  padding: 0 28px;
+  font-size: 1.0625rem;
 }
 
 .ff-land-btn:disabled,
@@ -203,22 +350,15 @@ body {
   color: var(--color-ink);
   text-wrap: balance;
   overflow-wrap: break-word;
+  margin: 0;
 }
 
 .ff-land-h1 {
   font-size: var(--text-display);
   font-weight: var(--display-weight);
   letter-spacing: var(--tracking-display);
-  line-height: 1.08;
-  max-width: 20ch;
-}
-
-.ff-land-lead {
-  font-size: var(--text-lead);
-  line-height: 1.5;
-  color: var(--color-muted);
-  max-width: 48ch;
-  text-wrap: pretty;
+  line-height: 1.05;
+  max-width: 15ch;
 }
 
 .ff-land-h2 {
@@ -226,10 +366,20 @@ body {
   font-weight: var(--display-weight);
   letter-spacing: -0.02em;
   line-height: 1.1;
-  max-width: 30ch;
+  max-width: 26ch;
+}
+
+.ff-land-lead {
+  margin: 0;
+  font-size: var(--text-lead);
+  line-height: 1.55;
+  color: var(--color-muted);
+  max-width: 48ch;
+  text-wrap: pretty;
 }
 
 .ff-land-small {
+  margin: 0;
   font-size: var(--text-sm);
   color: var(--color-muted);
 }
@@ -239,93 +389,222 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* the one gradient-text accent per headline */
+.ff-land-grad-text {
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .ff-land-grad-text {
+    background: none;
+    color: var(--color-accent-2);
+  }
+}
+
+/* mono uppercase eyebrow above section headings */
+.ff-land-eyebrow {
+  margin: 0;
+  font-family: var(--font-outlier);
+  font-size: 0.8125rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-accent-2);
+}
+
+/* glass pill with a gradient dot (hero kicker) */
+.ff-land-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--glass-line);
+  background: color-mix(in srgb, var(--color-cotton) 55%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-size: var(--text-sm);
+  color: var(--color-ink-2);
+  margin: 0;
+}
+
+.ff-land-pill-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--grad);
+  box-shadow: 0 0 12px 2px color-mix(in srgb, var(--color-accent) 60%, transparent);
+}
+
 /* --- sections ---------------------------------------------------------------- */
 
 .ff-land-section {
-  padding-block: 0;
   padding-top: var(--section-gap);
 }
 
-.ff-land-band {
-  background: var(--color-board);
-  color: var(--color-board-type);
-  padding-block: var(--section-gap-s);
+.ff-land-sect-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: clamp(32px, 5vw, 56px);
 }
 
-/* --- the hero desk (Stage: text 5, desk 7) ----------------------------------- */
+.ff-land-sect-head--split {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 32px;
+}
+
+.ff-land-sect-head-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.ff-land-sect-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-outlier);
+  font-size: var(--text-sm);
+  color: var(--color-accent-2);
+  padding-bottom: 2px;
+}
+
+.ff-land-sect-link svg {
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.ff-land-sect-link:hover svg {
+  transform: translateX(3px);
+}
+
+/* --- hero ---------------------------------------------------------------------- */
 
 .ff-land-hero {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: var(--space-3xl);
+  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
+  gap: clamp(40px, 6vw, 80px);
   align-items: center;
-  padding-block: var(--space-xl) 0;
+  padding-block: clamp(56px, 9vw, 128px) clamp(48px, 7vw, 96px);
 }
 
 .ff-land-hero-copy {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-lg);
+  gap: 20px;
 }
 
 .ff-land-hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md);
+  gap: 14px;
   align-items: center;
 }
 
+/* the demo column: aurora glow rides behind the desk, not on it */
+.ff-land-hero-demo {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.ff-land-hero-demo::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(540px, 94%);
+  height: 88%;
+  background:
+    radial-gradient(
+      60% 55% at 68% 22%,
+      color-mix(in srgb, var(--color-accent) 34%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      52% 60% at 24% 82%,
+      color-mix(in srgb, var(--color-accent-2) 26%, transparent),
+      transparent 74%
+    );
+  filter: blur(52px);
+  pointer-events: none;
+}
+
+/* --- the desk: floating glass form preview -------------------------------------- */
+
 .ff-land-desk {
-  background-color: var(--color-desk);
-  background-image: radial-gradient(90% 120% at 0% 30%, var(--color-cotton), transparent 62%),
-    var(--tex-desk);
-  border-radius: var(--radius-card);
-  box-shadow: var(--edge-stock);
-  padding: clamp(20px, 4vw, 48px);
+  position: relative;
+  width: min(500px, 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-lg);
+  gap: var(--space-m);
+  padding: clamp(16px, 3vw, 32px);
+  border-radius: var(--radius-card-lg);
+  border: 1px solid var(--glass-line);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-cotton) 80%, transparent),
+    color-mix(in srgb, var(--color-paper-2) 85%, transparent)
+  );
+  box-shadow:
+    var(--cast-stock),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .ff-land-sheet {
   position: relative;
-  width: min(440px, 100%);
-  background-color: var(--color-cotton);
-  background-image: linear-gradient(100deg, var(--color-cotton), transparent 45%),
-    var(--tex-cotton);
-  color: var(--color-print);
-  border-radius: var(--radius-stock);
-  box-shadow: var(--edge-stock), var(--cast-stock);
-  padding: clamp(20px, 3vw, 32px);
-  transform: rotate(-0.5deg);
+  width: min(460px, 100%);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-paper) 88%, transparent),
+    color-mix(in srgb, var(--color-cotton) 70%, transparent)
+  );
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-card);
+  box-shadow: var(--cast-stock);
+  padding: clamp(20px, 3vw, 30px);
 }
 
 .ff-land-sheet-title {
+  margin: 0 0 12px;
   font-family: var(--font-display);
   font-size: 1.375rem;
   font-weight: var(--display-weight);
   letter-spacing: -0.01em;
   line-height: 1.2;
-  margin: 0 0 var(--space-sm);
 }
 
 .ff-land-sheet-rule {
   border: 0;
   border-top: var(--rule-hair) solid var(--color-rule);
-  margin: 0 0 var(--space-md);
+  margin: 0 0 var(--space-m);
 }
 
 /* sample form fields (read-only preview) */
 .ff-land-field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: 6px;
 }
 
 .ff-land-field + .ff-land-field {
-  margin-top: var(--space-md);
+  margin-top: 18px;
 }
 
 .ff-land-field label {
@@ -336,77 +615,91 @@ body {
 
 .ff-land-field input {
   min-height: 44px;
-  padding: 0 var(--space-md);
+  padding: 0 14px;
   border: 1px solid var(--color-rule-2);
   border-radius: var(--radius-input);
-  background: var(--color-paper);
+  background: color-mix(in srgb, var(--color-paper) 80%, transparent);
   color: var(--color-print);
   font-family: var(--font-body);
   font-size: var(--text-md);
+  transition: border-color var(--dur-micro) var(--ease-out);
 }
 
-/* the reply card, tucked over the sheet's foot */
+.ff-land-field input:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-rule-2));
+}
+
+/* the receipt chip, tucked over the sheet's foot */
 .ff-land-reply {
   position: absolute;
   right: clamp(-14px, -1vw, -6px);
-  bottom: calc(var(--space-md) * -1);
+  bottom: calc(var(--space-m) * -1);
   transform: rotate(1.5deg);
-  background-color: var(--color-cotton);
-  background-image: var(--tex-cotton);
-  color: var(--color-print);
-  border-radius: var(--radius-input);
-  box-shadow: var(--edge-stock), var(--cast-stock);
-  padding: var(--space-sm) var(--space-md);
+  background: color-mix(in srgb, var(--color-cotton) 92%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-paid) 35%, var(--color-rule));
+  border-radius: 14px;
+  box-shadow:
+    var(--cast-stock),
+    var(--paid-glow);
+  padding: 10px 14px;
   max-width: 70%;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .ff-land-reply small {
   display: block;
   font-size: var(--text-sm);
-  color: var(--color-muted);
+  color: var(--color-paid);
 }
 
 .ff-land-reply strong {
   font-weight: 500;
 }
 
-/* the settled state, pressed into the stock */
+/* the settled state: a glowing "Submitted" chip */
 .ff-land-press-mark {
   position: absolute;
-  top: var(--space-md);
-  right: var(--space-md);
-  transform: rotate(-3deg);
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: var(--display-weight);
-  letter-spacing: -0.02em;
+  top: 14px;
+  right: 14px;
+  margin: 0;
+  transform: rotate(2deg);
+  font-family: var(--font-outlier);
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   line-height: 1;
   color: var(--color-paid);
-  filter: url("#ff-land-press");
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--color-paid) 40%, transparent);
+  background: color-mix(in srgb, var(--color-paid) 12%, transparent);
+  box-shadow: var(--paid-glow);
   pointer-events: none;
 }
 
-/* --- the groove: one document, three planes ---------------------------------- */
+/* --- the groove: glass segmented control for the three render planes ------------- */
 
 .ff-land-groove {
   position: relative;
   display: inline-grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  padding: var(--space-2xs);
-  border-radius: 12px;
-  box-shadow: var(--press-groove);
-  background-color: var(--color-paper-2);
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-rule);
+  background: color-mix(in srgb, var(--color-paper) 70%, transparent);
+  box-shadow: inset 0 2px 6px rgb(3 6 18 / 0.35);
 }
 
 .ff-land-groove-btn {
   position: relative;
   z-index: 1;
   min-height: 40px;
-  padding: 0 var(--space-md);
+  padding: 0 18px;
   border: 0;
   background: transparent;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -417,19 +710,19 @@ body {
 }
 
 .ff-land-groove-btn[aria-selected="true"] {
-  color: var(--color-print);
+  color: var(--color-ink);
 }
 
 .ff-land-groove-thumb {
   position: absolute;
-  top: var(--space-2xs);
-  bottom: var(--space-2xs);
-  left: var(--space-2xs);
-  width: calc((100% - var(--space-2xs) * 2) / 3);
-  background-color: var(--color-cotton);
-  background-image: var(--tex-cotton);
-  border-radius: var(--radius-card);
-  box-shadow: var(--edge-stock);
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / 3);
+  background: color-mix(in srgb, var(--color-accent) 30%, var(--color-cotton));
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 16px -4px rgb(108 92 255 / 0.5);
   transition: transform var(--dur-long) var(--ease-in-out);
 }
 
@@ -451,29 +744,9 @@ body {
   position: relative;
 }
 
-/* pressed-ink filter shadow (token-tinted; set as CSS so no literal colour
-   leaks into markup) */
-.ff-land-press-shadow {
-  flood-color: var(--color-press-shadow);
-  flood-opacity: 0.5;
-}
-
-/* compact card control (embed plane) */
-.ff-land-btn--small {
-  min-height: 44px;
-  padding: 0 var(--space-md);
-  font-size: var(--text-sm);
-}
-
-.ff-land-embed-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.ff-land-embed-note {
-  margin: var(--space-md) 0 0;
+.ff-land-planes {
+  width: min(460px, 100%);
+  min-height: 248px;
 }
 
 .ff-land-planes[data-active="form"] .ff-land-plane-form {
@@ -505,60 +778,52 @@ body {
   }
 }
 
-.ff-land-planes {
-  width: min(440px, 100%);
-  min-height: 248px;
-}
-
 /* page plane: the same document as a scroll page */
 .ff-land-minihead {
+  margin: 0 0 12px;
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: var(--display-weight);
   letter-spacing: -0.02em;
   line-height: 1.2;
-  margin: 0 0 var(--space-sm);
 }
 
 .ff-land-minibody {
+  margin: 0 0 12px;
   font-size: var(--text-sm);
   line-height: 1.6;
   color: var(--color-ink-2);
   max-width: 52ch;
   text-wrap: pretty;
-  margin: 0 0 var(--space-sm);
 }
 
-/* embed plane: the code card + the widget */
+/* embed plane: the code card */
 .ff-land-code {
+  margin: 0 0 18px;
   font-family: var(--font-outlier);
   font-size: 0.8125rem;
   line-height: 1.6;
-  color: var(--color-board-type);
-  background: var(--color-board);
+  color: var(--color-accent-2);
+  background: color-mix(in srgb, var(--color-paper) 75%, transparent);
+  border: 1px solid var(--color-rule);
   border-radius: var(--radius-input);
-  box-shadow: var(--cast-stock);
-  padding: var(--space-sm) var(--space-md);
+  padding: 12px 16px;
   overflow-wrap: break-word;
   min-width: 0;
-  margin: 0 0 var(--space-md);
 }
 
-.ff-land-embed-frame {
-  border: var(--rule-hair) solid var(--color-rule-2);
-  border-radius: var(--radius-card);
-  padding: var(--space-md);
-  background: var(--color-paper);
+.ff-land-embed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
 }
 
-.ff-land-embed-frame small {
-  display: block;
-  font-size: var(--text-sm);
-  color: var(--color-muted);
-  margin-bottom: var(--space-sm);
+.ff-land-embed-note {
+  margin: 18px 0 0;
 }
 
-/* --- the authored moment: the desk job plays once, then still ---------------- */
+/* --- the authored moment: the desk job plays once, then still -------------------- */
 
 .ff-land-play .ff-land-reply {
   animation: ff-land-reply-in var(--dur-long) var(--ease-out) 900ms both;
@@ -582,292 +847,667 @@ body {
 @keyframes ff-land-press-in {
   0% {
     opacity: 0;
-    transform: rotate(-3deg) scale(1.45);
+    transform: rotate(2deg) scale(1.35);
   }
   55% {
     opacity: 1;
   }
   80% {
-    transform: rotate(-3deg) scale(0.97);
+    transform: rotate(2deg) scale(0.97);
   }
   100% {
     opacity: 1;
-    transform: rotate(-3deg) scale(1);
+    transform: rotate(2deg) scale(1);
   }
 }
 
-/* --- rows: the five named moments -------------------------------------------- */
+/* --- social proof: product facts under the hero ----------------------------------- */
 
-.ff-land-rows {
-  border-top: var(--rule-hair) solid var(--color-rule);
-}
-
-.ff-land-row {
+.ff-land-proof {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: var(--gap-columns);
-  padding-block: var(--space-xl);
-  border-bottom: var(--rule-hair) solid var(--color-rule);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-block: 1px solid var(--color-rule);
 }
 
-.ff-land-row h3 {
-  margin: 0;
-  font-size: var(--text-title);
-  font-weight: var(--display-weight);
-  letter-spacing: -0.01em;
+.ff-land-proof li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 22px 24px;
+}
+
+.ff-land-proof li + li {
+  border-left: 1px solid var(--color-rule);
+}
+
+.ff-land-proof-fig {
+  font-family: var(--font-outlier);
+  font-size: 1.5rem;
   line-height: 1.2;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-.ff-land-row p {
-  margin: 0;
-  color: var(--color-muted);
-  max-width: 58ch;
-  text-wrap: pretty;
-}
-
-.ff-land-row .ff-land-fig {
+.ff-land-proof-label {
   font-size: var(--text-sm);
-  color: var(--color-ink-2);
-  margin-top: var(--space-2xs);
+  color: var(--color-muted);
 }
 
-/* --- split: the envelope and your own domain ---------------------------------- */
+/* --- feature grid: spotlight cards ------------------------------------------------- */
 
-.ff-land-split {
+.ff-land-cards {
   display: grid;
-  grid-template-columns: minmax(0, 6fr) minmax(0, 6fr);
-  gap: var(--space-2xl);
-  align-items: center;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
-.ff-land-split-copy {
+.ff-land-feature-cell {
+  min-width: 0;
+}
+
+/* landing-scoped enhancement of the shared .ff-spot recipe (globals.css) */
+.ff-land .ff-spot {
+  height: 100%;
+  padding: 26px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-card-lg);
+  background: color-mix(in srgb, var(--color-cotton) 78%, transparent);
+  transition:
+    border-color var(--dur-short) var(--ease-out),
+    box-shadow var(--dur-short) var(--ease-out),
+    transform var(--dur-short) var(--ease-out);
+}
+
+.ff-land .ff-spot:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-rule));
+  box-shadow: var(--glow-soft);
+  transform: translateY(-2px);
+}
+
+/* a violet wash tracks the cursor via the card's --sx/--sy custom properties */
+.ff-land .ff-spot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    340px circle at var(--sx, 50%) var(--sy, 50%),
+    color-mix(in srgb, var(--color-accent) 18%, transparent),
+    transparent 72%
+  );
+  transition: opacity 240ms var(--ease-out);
+}
+
+.ff-land .ff-spot:hover::before {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .ff-land .ff-spot::before {
+    display: none;
+  }
+}
+
+.ff-land-feature {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-lg);
+  gap: 12px;
+}
+
+.ff-land-feature-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: var(--color-accent-2);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-accent) 22%, transparent),
+    color-mix(in srgb, var(--color-accent-2) 12%, transparent)
+  );
+  border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
+}
+
+.ff-land-feature-title {
+  font-size: 1.125rem;
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.ff-land-feature-body {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+  max-width: 52ch;
+  text-wrap: pretty;
+}
+
+.ff-land-feature-fig {
+  margin: 4px 0 0;
+  font-family: var(--font-outlier);
+  font-size: 0.8125rem;
+  color: var(--color-accent-2);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in srgb, var(--color-accent-2) 30%, transparent);
+  background: color-mix(in srgb, var(--color-accent-2) 8%, transparent);
+}
+
+/* --- template showcase --------------------------------------------------------------- */
+
+.ff-land-tpl-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ff-land-tpl-cell {
+  min-width: 0;
+}
+
+.ff-land-tpl-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-card-lg);
+  border: 1px solid var(--color-rule);
+  background: color-mix(in srgb, var(--color-cotton) 62%, transparent);
+  transition:
+    transform var(--dur-short) var(--ease-out),
+    border-color var(--dur-short) var(--ease-out),
+    box-shadow var(--dur-short) var(--ease-out);
+}
+
+.ff-land-tpl-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-rule));
+  box-shadow: var(--glow-soft);
+}
+
+/* pure-CSS mini preview: gradient wash keyed to the template's real accent */
+.ff-land-tpl-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  aspect-ratio: 16 / 10;
+  padding: 14px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-rule);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-paper-2) 92%, transparent),
+    var(--color-paper)
+  );
+}
+
+.ff-land-tpl-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--tpl-grad, var(--grad));
+  opacity: 0.26;
+}
+
+.ff-land-tpl-preview > * {
+  position: relative;
+}
+
+.ff-land-tpl-chrome {
+  display: flex;
+  gap: 5px;
+}
+
+.ff-land-tpl-chrome i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgb(238 241 255 / 0.28);
+}
+
+.ff-land-tpl-bar {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: rgb(238 241 255 / 0.16);
+}
+
+.ff-land-tpl-bar--grad {
+  width: 44%;
+  background: var(--grad);
+  opacity: 0.9;
+}
+
+.ff-land-tpl-bar--lg {
+  width: 72%;
+}
+
+.ff-land-tpl-bar--md {
+  width: 52%;
+}
+
+.ff-land-tpl-bar--sm {
+  width: 30%;
+}
+
+.ff-land-tpl-tag {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-family: var(--font-outlier);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-rule);
+}
+
+.ff-land-tpl-name {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  line-height: 1.25;
+}
+
+.ff-land-tpl-desc {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-muted);
+  text-wrap: pretty;
+}
+
+.ff-land-tpl-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-accent-2);
+}
+
+.ff-land-tpl-cta svg {
+  transition: transform var(--dur-short) var(--ease-out);
+}
+
+.ff-land-tpl-card:hover .ff-land-tpl-cta svg {
+  transform: translateX(3px);
+}
+
+/* --- how it works: three steps with a dashed connector -------------------------------- */
+
+.ff-land-steps {
+  --step-gap: 20px;
+  display: grid;
+  gap: var(--step-gap);
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ff-land-step;
+}
+
+.ff-land-step-cell {
+  min-width: 0;
+}
+
+.ff-land-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  height: 100%;
+  padding: 24px;
+  border-radius: var(--radius-card-lg);
+  border: 1px solid var(--color-rule);
+  background: color-mix(in srgb, var(--color-cotton) 62%, transparent);
+}
+
+.ff-land-step-num {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-family: var(--font-outlier);
+  font-size: 1rem;
+  color: var(--color-accent-2);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 38%, transparent);
+}
+
+.ff-land-step-title {
+  font-size: 1.125rem;
+  font-weight: var(--display-weight);
+  letter-spacing: -0.01em;
+}
+
+.ff-land-step-body {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+  max-width: 44ch;
+  text-wrap: pretty;
+}
+
+/* --- your own domain: copy + fact cards ------------------------------------------------ */
+
+.ff-land-domain {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(32px, 5vw, 64px);
+  align-items: center;
+}
+
+.ff-land-domain-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
 }
 
 .ff-land-facts {
   display: grid;
-  gap: var(--space-sm);
+  gap: 12px;
   margin: 0;
   padding: 0;
 }
 
-.ff-land-facts div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3xs) var(--space-sm);
-  align-items: baseline;
-}
-
-.ff-land-facts dt {
-  font-weight: 500;
-  color: var(--color-ink);
-  white-space: nowrap;
-}
-
-.ff-land-facts dd {
-  margin: 0;
-  color: var(--color-muted);
-}
-
-/* the window envelope, built in CSS */
-.ff-land-envelope-scene {
-  position: relative;
-  padding-block: var(--space-lg);
-}
-
-.ff-land-envelope {
-  position: relative;
-  background-color: var(--color-cotton);
-  background-image: var(--tex-cotton);
-  border-radius: var(--radius-card);
-  box-shadow: var(--edge-stock), var(--cast-stock);
-  aspect-ratio: 8 / 5;
-  max-width: 560px;
-  margin-inline: auto;
-  transform: rotate(0.75deg);
-  overflow: hidden;
-}
-
-.ff-land-envelope::before {
-  /* the address window, glassine */
-  content: "";
-  position: absolute;
-  left: 12%;
-  top: 38%;
-  width: 56%;
-  height: 44%;
-  background: linear-gradient(
-    115deg,
-    color-mix(in oklab, var(--color-paper) 75%, transparent),
-    color-mix(in oklab, var(--color-paper-3) 55%, transparent)
-  );
-  border-radius: var(--space-2xs);
-  box-shadow: inset 0 0 0 1px oklch(var(--shade) / 0.14);
-}
-
-.ff-land-envelope-address {
-  position: absolute;
-  left: calc(12% + var(--space-md));
-  top: calc(38% + var(--space-md));
-  font-size: var(--text-sm);
-  line-height: 1.55;
-  color: var(--color-print);
-}
-
-.ff-land-envelope-address strong {
-  font-family: var(--font-outlier);
-  font-variant-numeric: tabular-nums;
-  font-weight: 400;
-  font-size: 1.0625rem;
-}
-
-.ff-land-envelope-stamp {
-  position: absolute;
-  right: 7%;
-  top: 9%;
-  width: 15%;
-  aspect-ratio: 5 / 6;
-  background: var(--color-paper-3);
-  border-radius: var(--space-3xs);
-  box-shadow: inset 0 0 0 1px oklch(var(--shade) / 0.16);
-}
-
-.ff-land-envelope-stamp::after {
-  content: "";
-  position: absolute;
-  inset: 14%;
-  border: var(--rule-hair) dashed oklch(var(--shade) / 0.28);
-  border-radius: var(--space-3xs);
-}
-
-/* replies fanned behind the envelope */
-.ff-land-replycard {
-  position: absolute;
-  background-color: var(--color-cotton);
-  background-image: var(--tex-cotton);
-  border-radius: var(--radius-input);
-  box-shadow: var(--edge-stock), var(--cast-stock);
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--text-sm);
-  color: var(--color-print);
-}
-
-.ff-land-replycard--a {
-  top: 0;
-  left: 16%;
-  transform: rotate(-4deg);
-}
-
-.ff-land-replycard--b {
-  top: calc(var(--space-sm) * -1);
-  right: 18%;
-  transform: rotate(3deg);
-}
-
-/* --- the board close ----------------------------------------------------------- */
-
-.ff-land-close {
+.ff-land-fact {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-lg);
+  gap: 4px;
+  padding: 18px 20px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--color-rule);
+  background: color-mix(in srgb, var(--color-cotton) 62%, transparent);
 }
 
-.ff-land-close h2 {
-  color: var(--color-board-type);
+.ff-land-fact dt {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.ff-land-fact dd {
   margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-muted);
+  text-wrap: pretty;
 }
 
-.ff-land-close .ff-land-btn--card {
-  /* the action sits on stationery laid on the band */
-  box-shadow: var(--edge-stock), 8px 8px 14px -8px oklch(var(--deep) / 0.55);
+/* --- CTA band: glass panel with a gradient edge glow ------------------------------------ */
+
+.ff-land-close {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+  padding: clamp(48px, 8vw, 104px) clamp(24px, 6vw, 96px);
+  border-radius: var(--radius-card-lg);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 30%, var(--color-rule));
+  background:
+    radial-gradient(
+      120% 150% at 50% -30%,
+      color-mix(in srgb, var(--color-accent) 18%, transparent),
+      transparent 58%
+    ),
+    color-mix(in srgb, var(--color-cotton) 85%, transparent);
+  box-shadow: var(--glow-soft);
 }
 
-.ff-land-close-note {
-  font-size: var(--text-sm);
-  color: color-mix(in oklab, var(--color-board-type) 72%, transparent);
+.ff-land-close::before {
+  /* the gradient edge, brightest along the top */
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-accent) 80%, transparent),
+    color-mix(in srgb, var(--color-accent-2) 70%, transparent),
+    transparent
+  );
+  pointer-events: none;
 }
 
-/* --- footer: colophon under a hairline ------------------------------------------ */
+.ff-land-close::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  bottom: -42%;
+  left: 18%;
+  right: 18%;
+  height: 70%;
+  background: radial-gradient(
+    50% 60% at 50% 100%,
+    color-mix(in srgb, var(--color-accent-2) 16%, transparent),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.ff-land-close .ff-land-h2 {
+  max-width: 18ch;
+}
+
+.ff-land-close .ff-land-lead {
+  max-width: 44ch;
+}
+
+.ff-land-close-actions {
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.ff-land-close > * {
+  position: relative;
+}
+
+/* --- footer: colophon under a gradient hairline ------------------------------------------- */
 
 .ff-land-footer {
-  padding-block: var(--space-2xl) var(--space-xl);
+  position: relative;
+  margin-top: var(--section-gap);
+  padding-block: 44px 56px;
+  background: color-mix(in srgb, var(--color-paper-2) 55%, transparent);
 }
-.ff-land-footer-rule {
-  border: 0;
-  border-top: var(--rule-hair) solid var(--color-rule);
-  margin: 0 0 var(--space-lg);
+
+.ff-land-footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-accent) 45%, transparent),
+    color-mix(in srgb, var(--color-accent-2) 40%, transparent),
+    transparent
+  );
+}
+
+.ff-land-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ff-land-footer-tag {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  max-width: 34ch;
 }
 
 .ff-land-footer-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md) var(--space-lg);
-  align-items: baseline;
+  gap: 20px 32px;
+  align-items: flex-start;
   justify-content: space-between;
 }
 
 .ff-land-footer-links {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-md);
+  gap: 14px 24px;
+  padding-top: 4px;
 }
 
 .ff-land-footer-links a {
   font-size: var(--text-sm);
-  font-weight: 400;
   color: var(--color-muted);
-  text-decoration: underline;
-  text-decoration-color: transparent;
+  transition: color var(--dur-micro) var(--ease-out);
 }
 
 .ff-land-footer-links a:hover {
-  text-decoration-color: var(--color-accent-2);
+  color: var(--color-ink);
 }
 
 .ff-land-legal {
-  margin: var(--space-lg) 0 0;
+  margin: 28px 0 0;
   font-size: var(--text-sm);
-  color: var(--color-muted);
+  color: color-mix(in srgb, var(--color-muted) 75%, transparent);
 }
 
-/* --- responsive: every composition stacks in reading order under 60rem ---------- */
+/* --- responsive: every composition stacks in reading order under 60rem ---------------------- */
 
 @media (max-width: 60rem) {
   .ff-land-hero {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-xl);
+    gap: clamp(40px, 8vw, 64px);
+    padding-block: clamp(40px, 8vw, 80px) 0;
   }
 
-  .ff-land-row {
+  .ff-land-h1 {
+    max-width: 18ch;
+  }
+
+  .ff-land-domain {
     grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-sm);
-    padding-block: var(--space-lg);
-  }
-
-  .ff-land-split {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-xl);
-  }
-
-  /* reading order on small screens: text, then the visual */
-  .ff-land-envelope-scene {
-    order: 2;
   }
 
   .ff-land-section {
     padding-top: var(--section-gap-s);
   }
+
+  /* feature grid: two-up before it collapses to one */
+  .ff-land-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ff-land-step,
+  .ff-land-feature {
+    padding: 20px;
+  }
+
+  /* proof strip folds to a 2×2 matrix */
+  .ff-land-proof {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ff-land-proof li {
+    padding: 16px 20px;
+  }
+
+  .ff-land-proof li:nth-child(odd) {
+    border-left: 0;
+  }
+
+  .ff-land-proof li:nth-child(n + 3) {
+    border-top: 1px solid var(--color-rule);
+  }
+}
+
+@media (min-width: 60.01rem) {
+  /* the showcase holds three columns on wide screens */
+  .ff-land-tpl-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* and the steps run three-across with a dashed connector, aligned to the
+     number chips */
+  .ff-land-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ff-land-step-cell:not(:last-child) .ff-land-step::after {
+    content: "";
+    position: absolute;
+    top: 44px;
+    right: calc(var(--step-gap, 20px) * -1);
+    width: var(--step-gap, 20px);
+    border-top: 1px dashed var(--color-rule-2);
+  }
+
+  /* the block-editor card leads the feature grid at full width */
+  .ff-land-feature-cell:first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 48rem) {
+  .ff-land-tpl-grid {
+    gap: 14px;
+  }
+
+  .ff-land-steps {
+    --step-gap: 14px;
+    gap: 14px;
+  }
+
+  .ff-land-nav {
+    min-height: 60px;
+  }
 }
 
 @media (max-width: 40rem) {
+  .ff-land-cards,
+  .ff-land-tpl-grid,
+  .ff-land-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ff-land-nav {
+    min-height: 56px;
+    padding-block: 10px;
+  }
+
   .ff-land-nav-link {
-    padding: var(--space-xs) var(--space-2xs);
-    /* ≥40px tap target on phones (R3) */
-    padding-block: var(--space-sm);
+    /* ≥40px tap target on phones */
+    padding: 14px 8px;
   }
 
   .ff-land-nav-links {
@@ -876,46 +1516,50 @@ body {
 
   .ff-land-btn {
     min-height: 44px;
-    padding: 0 var(--space-md);
+    padding: 0 18px;
   }
 
-  /* nav: keep ≥8px between the "Log in" hit area and the "Start free" CTA
-     without widening the row (4px of CTA padding trades for 4px of margin,
-     so the one-line nav cannot start wrapping because of this) */
+  /* nav: keep ≥8px between the "Log in" hit area and the "Start free" CTA */
   .ff-land-nav-cta {
-    margin-left: var(--space-2xs);
-    padding-inline: calc(var(--space-md) - var(--space-2xs));
+    margin-left: 6px;
+    padding-inline: 14px;
   }
 
-  /* hero demo: the reply card is tucked over the sheet's foot; on phones the
-     last field sits closer to that foot, so the card rode on top of the
-     "Yes, plus one" value. Reserve a blank strip under the field — the card
-     now presses into empty stock and the filled value stays readable. */
+  /* hero demo: the receipt chip is tucked over the sheet's foot; on phones
+     the last field sits closer to that foot, so reserve a blank strip under
+     it and let the chip press into empty glass instead of the value. */
   .ff-land-plane-form .ff-land-field + .ff-land-field {
     margin-bottom: 4.5rem;
   }
 
-  /* footer links: taller tap targets + a second axis of wrap gap (R3) */
+  /* footer links: taller tap targets */
   .ff-land-footer-links {
-    gap: var(--space-sm) var(--space-md);
+    gap: 12px 20px;
   }
 
   .ff-land-footer-links a {
     display: inline-block;
-    padding-block: var(--space-xs);
+    padding-block: 10px;
+  }
+
+  .ff-land-close-actions .ff-land-btn {
+    width: 100%;
+  }
+
+  .ff-land-hero-actions {
+    width: 100%;
+  }
+
+  .ff-land-hero-actions .ff-land-btn {
+    flex: 1 1 auto;
   }
 
   .ff-land-press-mark {
-    font-size: 1.375rem;
-  }
-
-  .ff-land-facts div {
-    flex-direction: column;
-    gap: var(--space-3xs);
+    font-size: 0.75rem;
   }
 }
 
-/* --- reduced motion: the finished state, at once --------------------------------- */
+/* --- reduced motion: the finished state, at once --------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
   .ff-land *,
@@ -924,5 +1568,9 @@ body {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .ff-land .ff-spot::before {
+    display: none;
   }
 }

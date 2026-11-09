@@ -4,6 +4,12 @@
 // Prop-driven: BuilderPage computes `kind` — "archived" from the loaded
 // envelope, upgraded to "multitab" by the §7.4 BroadcastChannel wiring
 // (createMultitabChannel in BuilderPage; archived always wins).
+//
+// Aurora-glass chrome: both kinds ride the shared .ff-banner recipe with the
+// warning semantic tint (amber on both schemes); the banner floats just
+// under the glass top bar as a slim card.
+
+import { BTN_SECONDARY_SM } from "@/lib/ui";
 
 export type BannerKind = "archived" | "multitab" | "none";
 
@@ -22,7 +28,8 @@ export function ContextualBanner({
       <p
         role="status"
         data-testid="multitab-banner"
-        className="ff-pane--bottom border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900"
+        className="ff-banner ff-banner-warning mx-3 mt-2"
+        style={{ boxShadow: "var(--ff-shadow-sm)" }}
       >
         Open in another tab — edits there may conflict
       </p>
@@ -33,12 +40,13 @@ export function ContextualBanner({
     <div
       role="alert"
       data-testid="archived-banner"
-      className="ff-pane--bottom flex flex-wrap items-center gap-x-3 gap-y-1 border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900"
+      className="ff-banner ff-banner-warning mx-3 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"
+      style={{ boxShadow: "var(--ff-shadow-sm)" }}
     >
       <span className="font-semibold">This form was archived</span>
       <span>Editing is disabled — restore the form to keep editing.</span>
       {onRestore && (
-        <button type="button" className="ff-icon-btn ml-auto" onClick={onRestore}>
+        <button type="button" className={`${BTN_SECONDARY_SM} ml-auto`} onClick={onRestore}>
           Restore
         </button>
       )}

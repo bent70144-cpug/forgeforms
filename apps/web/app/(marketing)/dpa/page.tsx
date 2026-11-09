@@ -3,9 +3,10 @@
 // (export, deletion, per-form retention). Static marketing surface; covered by
 // the public-page CSP group in lib/security/csp.ts.
 //
-// Article layout: 3xl column, anchor per section (mini TOC at top), hairline
-// section dividers, generous measure. The version line is the only date-like
-// claim and is kept verbatim from the source document — no dates invented.
+// Article layout: 3xl prose column, anchor per section (mini TOC at top),
+// hairline section dividers with a violet→cyan gradient underline on each h2,
+// generous measure. The version line is the only date-like claim and is kept
+// verbatim from the source document — no dates invented.
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -138,22 +139,38 @@ function ArrowUpIcon() {
 
 export default function DpaPage() {
   return (
-    <main id="top" className="mx-auto w-full max-w-3xl px-6 py-16">
+    <main id="top" className="mx-auto w-full max-w-3xl px-[clamp(1rem,3vw,1.5rem)] py-14 sm:py-16">
       <article>
         <header>
-          <h1 className="text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
+          <p className="m-0 flex items-center gap-2 text-[0.8125rem] font-medium text-[var(--ff-muted)]">
+            <span
+              aria-hidden="true"
+              className="h-1 w-6 rounded-full shadow-[var(--ff-glow)]"
+              style={{ backgroundImage: "var(--ff-grad)" }}
+            />
+            FormForge legal
+          </p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
             Data Processing Addendum
           </h1>
-          <p className="mt-3 text-sm text-[var(--ff-muted)]">
+          {/* Muted meta row — version line kept verbatim. */}
+          <p className="mt-4 text-sm text-[var(--ff-muted)]">
             Version 1.0 — effective with the FormForge launch build.
           </p>
-          <p className="mt-4 max-w-[56ch] text-lg leading-relaxed text-[var(--ff-muted)]">
+          <p className="mt-2 max-w-[56ch] text-lg leading-relaxed text-[var(--ff-muted)]">
             How FormForge processes personal data on your behalf.
           </p>
         </header>
 
-        <nav aria-label="On this page" className="ff-panel mt-10 p-5">
-          <p className="m-0 text-[0.8125rem] font-semibold text-[var(--ff-fg)]">On this page</p>
+        <nav aria-label="On this page" className="ff-panel relative mt-10 overflow-hidden p-5">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-70"
+            style={{ backgroundImage: "var(--ff-grad)" }}
+          />
+          <p className="m-0 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+            On this page
+          </p>
           {/* Two columns from sm up: six single-line links in one column left
               ~60% of the 48rem panel dead. Pairs halve the height and fill. */}
           <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0 sm:grid sm:grid-cols-2 sm:gap-x-8">
@@ -172,10 +189,15 @@ export default function DpaPage() {
         </nav>
 
         {SECTIONS.map((s) => (
-          <section key={s.anchor} id={s.anchor} className="scroll-mt-24">
-            <h2 className="mt-12 border-t border-[var(--ff-border)] pt-6 text-xl font-semibold tracking-tight text-[var(--ff-fg)]">
-              {s.heading}
-            </h2>
+          <section key={s.anchor} id={s.anchor} className="mt-10 scroll-mt-24 border-t border-[var(--ff-border)] pt-8">
+            <h2 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">{s.heading}</h2>
+            {/* gradient underline accent — decorative, fixed-width so it reads
+                as a rule rather than a selection highlight */}
+            <span
+              aria-hidden="true"
+              className="mt-2 mb-1 block h-[2px] w-12 rounded-full shadow-[var(--ff-glow)]"
+              style={{ backgroundImage: "var(--ff-grad)" }}
+            />
             {s.body.map((node, i) =>
               typeof node === "string" ? (
                 <p key={i} className={PARA}>

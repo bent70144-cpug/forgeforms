@@ -1,17 +1,19 @@
 // Embed docs page: /embed (issue #22 — "public docs page for embed code").
 // Server component; the snippet URLs are rendered with the live request origin
 // so copy-paste works without a build-time env var. Renders WITHOUT the
-// marketing layout, so it carries its own light token canvas; the only client
-// JS is the bundled CodeBlock (copy-to-clipboard) — CSP-safe on /embed/*.
+// marketing layout, so it carries its own token canvas (aurora glass: glow
+// backdrop + glass explainer hero); the only client JS is the bundled
+// CodeBlock (copy-to-clipboard) — CSP-safe on /embed/*.
 //
 // NOTE (route precedence): this static route does not collide with the dynamic
 // /embed/[docId] frame — Next.js resolves static segments first.
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { headers } from "next/headers";
 import Link from "next/link";
 
 import { CodeBlock } from "@/components/embed/code-block";
+import { BADGE_ACCENT } from "@/lib/ui";
 import { EMBED_LOADER_VERSION } from "../api/public/embed/embed.js/loader";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +31,31 @@ async function appOrigin(): Promise<string> {
 }
 
 const LOADER_PATH = "/api/public/embed/embed.js";
+
+const HERO_STYLE: CSSProperties = {
+  background: "var(--ff-glass)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+  boxShadow: "var(--ff-glow-soft)",
+};
+
+const HEADING_STYLE: CSSProperties = { fontFamily: "var(--ff-font-heading)" };
+
+// Gradient-text accent word (token-driven, no deps).
+function Grad({ children }: { children: ReactNode }) {
+  return (
+    <span
+      style={{
+        backgroundImage: "var(--ff-grad)",
+        color: "transparent",
+        WebkitBackgroundClip: "text",
+        backgroundClip: "text",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
 
 // Inline code chip — same recipe for attribute names, values and aliases.
 function Chip({ children }: { children: ReactNode }) {
@@ -51,9 +78,9 @@ function BrandRow() {
         aria-hidden="true"
         className="flex h-7 w-7 items-center justify-center rounded-lg"
         style={{
-          background: "var(--ff-primary)",
+          background: "var(--ff-grad)",
           color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-shadow-sm)",
+          boxShadow: "var(--ff-glow)",
         }}
       >
         <svg
@@ -71,17 +98,42 @@ function BrandRow() {
           <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
         </svg>
       </span>
-      <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]">
+      <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
         FormForge
       </span>
     </Link>
   );
 }
 
+// Aurora glow backdrop — decorative only, clipped to the viewport, painted
+// behind the (positioned) content via DOM order (no negative z-index, which
+// would slip under the root's opaque canvas).
+function AuroraBackdrop() {
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div
+        className="absolute -top-48 left-1/2 h-[32rem] w-[56rem] -translate-x-1/2 rounded-full opacity-25"
+        style={{ background: "radial-gradient(closest-side, var(--ff-primary), transparent)" }}
+      />
+      <div
+        className="absolute right-[-12rem] top-1/3 h-[26rem] w-[26rem] rounded-full opacity-15"
+        style={{ background: "radial-gradient(closest-side, var(--ff-accent), transparent)" }}
+      />
+      <div
+        className="absolute bottom-[-10rem] left-[-8rem] h-[24rem] w-[24rem] rounded-full opacity-10"
+        style={{ background: "radial-gradient(closest-side, var(--ff-primary-2), transparent)" }}
+      />
+    </div>
+  );
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="mt-12 border-t border-[var(--ff-border)] pt-6">
-      <h2 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">{title}</h2>
+    <section className="mt-14 border-t border-[var(--ff-border)] pt-8">
+      <h2 className="flex items-center gap-3 text-xl font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
+        <span aria-hidden="true" className="h-5 w-1 shrink-0 rounded-full" style={{ background: "var(--ff-grad)" }} />
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -98,7 +150,7 @@ function PanelTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
                 <th
                   key={h}
                   scope="col"
-                  className="border-b border-[var(--ff-border)] px-3 py-2.5 text-xs font-medium text-[var(--ff-muted)]"
+                  className="border-b border-[var(--ff-border)] px-3 py-2.5 text-xs font-medium uppercase tracking-wider text-[var(--ff-muted)]"
                 >
                   {h}
                 </th>
@@ -107,7 +159,7 @@ function PanelTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
           </thead>
           <tbody>
             {rows.map((cells, i) => (
-              <tr key={i} className="border-b border-[var(--ff-border)] last:border-0">
+              <tr key={i} className="border-b border-[var(--ff-border)] transition-colors duration-200 last:border-0 hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_4%,transparent)]">
                 {cells.map((cell, j) => (
                   <td
                     key={j}
@@ -135,22 +187,30 @@ export default async function EmbedDocsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--ff-bg)] text-[var(--ff-fg)]">
-      <main className="mx-auto w-full max-w-3xl px-6 py-12">
+      <AuroraBackdrop />
+      <main className="relative mx-auto w-full max-w-3xl px-6 py-12">
         <div className="flex justify-center">
           <BrandRow />
         </div>
 
-        <header className="mt-12 text-center">
-          <p className="text-xs font-medium text-[var(--ff-muted)]">Public docs</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
-            Embed forms anywhere
+        {/* Glass explainer hero — gradient badge, heading accent, mono snippet preview. */}
+        <section className="ff-panel relative mt-10 overflow-hidden p-6 text-center sm:p-10" style={HERO_STYLE}>
+          <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px" style={{ background: "var(--ff-grad)" }} />
+          <span className={BADGE_ACCENT}>Public docs · loader v{EMBED_LOADER_VERSION}</span>
+          <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance" style={HEADING_STYLE}>
+            Embed forms <Grad>anywhere</Grad>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-[var(--ff-muted)]">
             Publish a document, then paste one script tag into any page. The loader (v{EMBED_LOADER_VERSION}) injects the
             frame, auto-resizes its height, and forwards completion events. No build step, no dependencies, works on plain
             HTML.
           </p>
-        </header>
+          {/* Mono snippet preview — quick-start one-liner (full modes below). */}
+          <CodeBlock
+            code={`<script src="${loaderUrl}" data-formforge-doc="doc_xxxxxxxx" async></script>`}
+            label="HTML"
+          />
+        </section>
 
         <Section title="Inline — the standard div">
           <p className="mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
@@ -252,9 +312,9 @@ export default async function EmbedDocsPage() {
           </p>
         </Section>
 
-        <p className="mt-12 border-t border-[var(--ff-border)] pt-6 text-sm text-[var(--ff-muted)]">
+        <p className="mt-14 border-t border-[var(--ff-border)] pt-8 text-sm text-[var(--ff-muted)]">
           See all three modes live on the{" "}
-          <Link className="font-medium text-[var(--ff-fg)] underline underline-offset-4" href="/embed/demo">
+          <Link className="font-medium text-[var(--ff-fg)] underline underline-offset-4 transition-colors duration-200 hover:text-[var(--ff-primary-2)]" href="/embed/demo">
             embed demo page
           </Link>
           .

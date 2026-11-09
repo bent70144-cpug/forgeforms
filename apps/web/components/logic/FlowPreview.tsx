@@ -5,10 +5,10 @@
 // path + final ending. Also lists blocking lint errors (dangling goto …)
 // exactly as publish will gate on them.
 //
-// Redesign (B7): banner-styled lint list, compact .ff-input overrides with the
-// global focus ring (bg-transparent removed), numbered path rail (token
-// circles + hairline connector), badge ending state. Simulation/lint logic is
-// unchanged.
+// Aurora redesign (task 10/13): mini-map style preview card with muted chrome
+// — a recessed well for the simulated path, a violet→cyan gradient rail on the
+// numbered steps, mono step numerals, cyan goto targets, and a gradient tile
+// in the header. Simulation/lint logic is unchanged.
 
 import { useMemo, useState } from "react";
 import type { DocumentBody } from "@/lib/bridge";
@@ -19,6 +19,18 @@ import { sampleAnswers, simulateFlow } from "@/lib/logic/preview";
 
 // .ff-input defaults are unlayered CSS → width/size overrides need `!`.
 const PREVIEW_INPUT = "ff-input min-h-[2.25rem]! rounded-lg! px-2! text-[13px]!";
+
+/** Header tile — gradient icon chip matching the aurora node tiles. */
+const HEADER_TILE =
+  "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]";
+
+/** Numbered step circle on the path rail (mono numeral, violet glass fill). */
+const STEP_CIRCLE =
+  "relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[color-mix(in_srgb,var(--ff-primary)_35%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_14%,var(--ff-card))] font-mono text-[10px] font-semibold text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]";
+
+/** Recessed well for the simulated path (mini-map chrome). */
+const PATH_WELL =
+  "rounded-xl border border-[var(--ff-glass-border)] bg-[color-mix(in_srgb,var(--ff-bg)_45%,var(--ff-card))] p-3";
 
 export function FlowPreview({ body }: { body: DocumentBody }) {
   const questions = useMemo(() => questionBlocks(body.blocks ?? []), [body.blocks]);
@@ -54,8 +66,13 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
 
   return (
     <section className={`${CARD} p-5`} data-testid="flow-preview" aria-label="Preview flow">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-[var(--ff-fg)]">Preview</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--ff-fg)]">
+          <span aria-hidden="true" className={HEADER_TILE} style={{ background: "var(--ff-grad)" }}>
+            <Icon name="flow" size={13} className="text-[var(--ff-primary-fg)]" />
+          </span>
+          Preview
+        </h2>
         <span className="font-mono text-xs text-[var(--ff-muted)]">@formforge/core/logic</span>
       </div>
 
@@ -77,7 +94,7 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
       )}
 
       {questions.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--ff-border)] pt-3">
           {questions.slice(0, 6).map((q) => (
             <label key={q.id} className="flex items-center gap-1.5 text-xs text-[var(--ff-muted)]">
               <span className="max-w-[10rem] truncate">
@@ -118,28 +135,28 @@ export function FlowPreview({ body }: { body: DocumentBody }) {
       )}
 
       {simulation.steps.length > 0 && (
-        <ol className="mt-3 max-h-44 space-y-2.5 overflow-y-auto pr-1" data-testid="preview-path">
-          {simulation.steps.map((step, i) => (
-            <li key={`${step.blockId}-${i}`} className="relative flex items-center gap-2.5">
-              {i < simulation.steps.length - 1 && (
-                <span
-                  aria-hidden="true"
-                  className="absolute -bottom-2.5 left-[9.5px] top-[22px] w-px bg-[var(--ff-border)]"
-                />
-              )}
-              <span className="relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ff-accent)_12%,var(--ff-card))] font-mono text-xs text-[var(--ff-fg)]">
-                {i + 1}
-              </span>
-              <span className="min-w-0 truncate text-xs text-[var(--ff-muted)]">
-                <span className="font-medium text-[var(--ff-fg)]">
-                  {nodeById.get(step.blockId) ?? step.blockId}
+        <div className={`${PATH_WELL} mt-3`}>
+          <ol className="max-h-44 space-y-2.5 overflow-y-auto pr-1" data-testid="preview-path">
+            {simulation.steps.map((step, i) => (
+              <li key={`${step.blockId}-${i}`} className="relative flex items-center gap-2.5">
+                {i < simulation.steps.length - 1 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-2.5 left-[9.5px] top-[22px] w-px bg-[linear-gradient(180deg,var(--ff-primary),var(--ff-accent))] opacity-45"
+                  />
+                )}
+                <span className={STEP_CIRCLE}>{i + 1}</span>
+                <span className="min-w-0 truncate text-xs text-[var(--ff-muted)]">
+                  <span className="font-medium text-[var(--ff-fg)]">
+                    {nodeById.get(step.blockId) ?? step.blockId}
+                  </span>
+                  {" → "}
+                  <span className="text-[var(--ff-accent)]">{nodeById.get(step.next) ?? step.next}</span>
                 </span>
-                {" → "}
-                <span className="text-[var(--ff-primary)]">{nodeById.get(step.next) ?? step.next}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
 
       <div className="mt-3 text-xs">

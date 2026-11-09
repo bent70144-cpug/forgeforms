@@ -20,6 +20,7 @@
 // Discard removes the stored record immediately (offline.discardPending).
 
 import { useEffect, useRef, type ReactElement } from "react";
+import { BTN_PRIMARY, BTN_SECONDARY, BANNER_WARNING } from "@/lib/ui";
 
 export type RestoreRequest = {
   kind: "restore" | "discard-stale";
@@ -59,7 +60,7 @@ export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptPr
         role="dialog"
         aria-label="Restore unsaved changes"
         data-testid="restore-prompt"
-        className="flex max-w-lg flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 shadow-xl dark:border-stone-700 dark:bg-stone-900"
+        className="flex max-w-lg flex-col gap-2 rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] p-4 text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
       >
         <p className="m-0 text-sm font-semibold">
           {stale
@@ -67,12 +68,12 @@ export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptPr
             : `Restore unsaved changes (${edits})?`}
         </p>
         {stale ? (
-          <p className="m-0 text-xs text-stone-500 dark:text-stone-400">
+          <p className="m-0 text-xs text-[color:var(--ff-muted)]">
             These changes were made against an older version of this form, which has since been
             updated elsewhere. They cannot be merged automatically.
           </p>
         ) : (
-          <p className="m-0 text-xs text-stone-500 dark:text-stone-400">
+          <p className={`${BANNER_WARNING} m-0`} role="note">
             {edits} from your last session never reached the server.
           </p>
         )}
@@ -81,7 +82,7 @@ export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptPr
             <button
               type="button"
               data-ff-default-focus="true"
-              className="rounded-md bg-stone-900 px-3 py-2 text-sm font-semibold text-white hover:bg-stone-700 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+              className={BTN_PRIMARY}
               onClick={onRestore}
             >
               Restore
@@ -89,7 +90,7 @@ export function RestorePrompt({ request, onRestore, onDiscard }: RestorePromptPr
           )}
           <button
             type="button"
-            className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"
+            className={BTN_SECONDARY}
             onClick={onDiscard}
           >
             Discard

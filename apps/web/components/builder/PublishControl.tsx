@@ -194,7 +194,8 @@ export function PublishControl() {
         ) : (
           <button
             type="button"
-            className="ff-pub-btn"
+            className="ff-pub-btn shadow-[var(--ff-glow)] transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] enabled:hover:-translate-y-px"
+            style={{ backgroundImage: "var(--ff-grad)" }}
             onClick={onPublish}
             data-testid="publish-button"
             data-state="publish"

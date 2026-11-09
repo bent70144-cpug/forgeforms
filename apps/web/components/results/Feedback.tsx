@@ -75,7 +75,7 @@ export function CardsSkeleton({ count = 4 }: { count?: number }) {
       aria-label="Loading summary"
     >
       {Array.from({ length: count }, (_, i) => (
-        <Skeleton key={i} className="h-24" />
+        <Skeleton key={i} className="h-28" />
       ))}
     </div>
   );
@@ -103,7 +103,7 @@ export function ErrorState({
       </div>
       <details className="mt-2.5">
         <summary className="cursor-pointer text-xs">Technical details</summary>
-        <p className="mt-2 break-words rounded-lg bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] p-2 text-left font-mono text-xs leading-relaxed text-[var(--ff-muted)]">
+        <p className="mt-2 break-words rounded-xl bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)] p-2.5 text-left font-mono text-xs leading-relaxed text-[var(--ff-muted)]">
           {message}
         </p>
       </details>

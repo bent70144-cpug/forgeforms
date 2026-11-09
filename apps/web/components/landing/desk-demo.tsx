@@ -1,12 +1,13 @@
 "use client";
 
 // The hero desk demo: one FormForge document, three render planes.
-// - The groove (a letterpress choice control) flips the sheet between
+// - The groove (a glass segmented control) flips the sheet between
 //   form, page and embed. ARIA tabs; keyboard arrows move between stops.
 // - The desk "job" plays once when scrolled into view (CSS keyframes on a
-//   .ff-land-play class): the reply card settles, then "Submitted" presses
-//   into the stock. Without JS or with reduced motion the finished state
-//   simply shows (content visible with scripting off, Hallmark Floor 7).
+//   .ff-land-play class): the receipt chip settles, then a glowing
+//   "Submitted" chip pops in the sheet's corner. Without JS or with reduced
+//   motion the finished state simply shows (content visible with scripting
+//   off).
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -82,32 +83,6 @@ export function DeskDemo() {
       role="group"
       aria-label="One FormForge document shown as a form, a page and an embed"
     >
-      {/* Pressed-ink filter for the settled state (Coral: the word pressed
-          into the stock, a shade wall offset into the letterforms). */}
-      <svg aria-hidden="true" focusable="false" width="0" height="0">
-        <filter id="ff-land-press" x="-6%" y="-6%" width="112%" height="112%">
-          <feTurbulence
-            type="fractalNoise"
-            baseFrequency="0.55"
-            numOctaves="2"
-            seed="8"
-            result="rough"
-          />
-          <feDisplacementMap
-            in="SourceGraphic"
-            in2="rough"
-            scale="1.8"
-            result="pressed"
-          />
-          <feDropShadow
-            className="ff-land-press-shadow"
-            dx="0.6"
-            dy="0.9"
-            stdDeviation="0"
-          />
-        </filter>
-      </svg>
-
       <div className="ff-land-sheet">
         <div className="ff-land-planes" data-active={plane}>
           {/* Plane 1: the form, filled, receipt tucked, state pressed */}
@@ -194,7 +169,7 @@ export function DeskDemo() {
         </div>
       </div>
 
-      {/* The groove: a choice of three pressed into cotton */}
+      {/* The groove: a choice of three planes on a glass segmented control */}
       <div
         className="ff-land-groove"
         data-active={plane}

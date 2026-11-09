@@ -15,6 +15,9 @@
 //
 // The modal chrome (dialog + focus trap + Esc + backdrop close) mirrors
 // BlockPicker so the builder keeps one modal posture (§12).
+//
+// 2026 restyle: aurora glass body, tokenized tabs/fields, semantic scan-state
+// badges (BADGE_*) and BTN_* actions. Upload/scan flows untouched.
 
 import {
   useCallback,
@@ -26,6 +29,7 @@ import {
 } from "react";
 import type { AssetPickResult } from "@formforge/blocks";
 import type { ScanStatus } from "@formforge/schema/api";
+import { BTN_PRIMARY, BTN_SECONDARY, BADGE_DANGER, BADGE_MUTED, BADGE_POSITIVE, BADGE_WARNING } from "@/lib/ui";
 import {
   listWorkspaceAssets,
   uploadMediaAsset,
@@ -87,6 +91,18 @@ function scanLabel(scanStatus: ScanStatus): string {
       return "Ready";
     case "clean":
       return "Ready";
+  }
+}
+
+/** Semantic badge for the §17 scan state (severity mirrors IssuesList). */
+function scanBadgeClass(scanStatus: ScanStatus): string {
+  switch (scanStatus) {
+    case "pending":
+      return BADGE_WARNING;
+    case "infected":
+      return BADGE_DANGER;
+    default:
+      return scanStatus === "clean" || scanStatus === "skipped" ? BADGE_POSITIVE : BADGE_MUTED;
   }
 }
 
@@ -256,7 +272,7 @@ export function AssetPicker({
 
   return (
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
-      <div className="absolute inset-0 bg-stone-900/40" aria-hidden="true" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" aria-hidden="true" onClick={onClose} />
       <div
         ref={dialogRef}
         role="dialog"
@@ -264,10 +280,10 @@ export function AssetPicker({
         aria-label="Choose an image"
         tabIndex={-1}
         data-testid="ff-asset-picker"
-        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900"
+        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
       >
         {/* Tabs */}
-        <div role="tablist" aria-label="Asset source" className="flex border-b border-stone-200 dark:border-stone-700">
+        <div role="tablist" aria-label="Asset source" className="flex border-b border-[color:var(--ff-glass-border)]">
           {(
             [
               { id: "upload" as Tab, label: "Upload" },
@@ -280,10 +296,10 @@ export function AssetPicker({
               role="tab"
               aria-selected={tab === entry.id}
               data-testid={`ff-asset-tab-${entry.id}`}
-              className={`flex-1 px-4 py-2.5 text-sm font-medium ${
+              className={`flex-1 border-b-2 px-4 py-2.5 text-sm font-medium transition-[opacity] duration-150 ${
                 tab === entry.id
-                  ? "border-b-2 border-stone-900 dark:border-stone-100"
-                  : "text-stone-500"
+                  ? "border-[color:var(--ff-primary)] text-[color:var(--ff-primary)]"
+                  : "border-transparent text-[color:var(--ff-muted)] hover:text-[color:var(--ff-fg)]"
               }`}
               onClick={() => setTab(entry.id)}
             >
@@ -296,11 +312,11 @@ export function AssetPicker({
           /* ---------- §10 alt-text prompt (target prop supports alt) ---------- */
           <div className="flex flex-col gap-3 p-4" data-testid="ff-asset-alt-step">
             {upload.phase === "scan-pending" ? (
-              <p className="text-xs text-stone-500" data-testid="ff-asset-scan-pending" role="status">
+              <p className="ff-set-note" data-testid="ff-asset-scan-pending" role="status">
                 {UPLOAD_PHASE_LABEL["scan-pending"]}
               </p>
             ) : null}
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="ff-field">
               <span>Alt text</span>
               <input
                 type="text"
@@ -311,14 +327,14 @@ export function AssetPicker({
                 onChange={(event) => setAltDraft({ ...altDraft, value: event.target.value })}
               />
             </label>
-            <p className="text-xs text-stone-500">Describe the image for accessibility (optional).</p>
+            <p className="ff-set-note">Describe the image for accessibility (optional).</p>
             <div className="flex justify-end gap-2">
-              <button type="button" className="ff-set-btn" data-testid="ff-asset-alt-skip" onClick={() => resolveAlt(false)}>
+              <button type="button" className={BTN_SECONDARY} data-testid="ff-asset-alt-skip" onClick={() => resolveAlt(false)}>
                 Skip
               </button>
               <button
                 type="button"
-                className="ff-set-btn"
+                className={BTN_PRIMARY}
                 data-testid="ff-asset-alt-save"
                 onClick={() => resolveAlt(true)}
               >
@@ -329,7 +345,7 @@ export function AssetPicker({
         ) : tab === "upload" ? (
           /* ------------------------------ Upload ----------------------------- */
           <div className="flex flex-col gap-3 p-4" data-testid="ff-asset-upload">
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="ff-field">
               <span>Upload an image</span>
               <input
                 type="file"
@@ -343,16 +359,16 @@ export function AssetPicker({
                 }}
               />
             </label>
-            <p className="text-xs text-stone-500">
+            <p className="ff-set-note">
               PNG, JPEG, GIF, WebP or AVIF — stored in your workspace, scanned before serving.
             </p>
             {uploadStatusLabel ? (
-              <p className="text-sm" role="status" data-testid="ff-asset-upload-status">
+              <p className="ff-set-note" role="status" data-testid="ff-asset-upload-status">
                 {uploadStatusLabel}
               </p>
             ) : null}
             {upload.phase === "error" ? (
-              <p className="text-sm text-red-700" role="alert" data-testid="ff-asset-upload-error">
+              <p className="ff-banner ff-banner-error" role="alert" data-testid="ff-asset-upload-error">
                 {upload.message}
               </p>
             ) : null}
@@ -360,7 +376,7 @@ export function AssetPicker({
               <div className="flex justify-end">
                 <button
                   type="button"
-                  className="ff-set-btn"
+                  className={BTN_PRIMARY}
                   data-testid="ff-asset-use-image"
                   onClick={() => onSelect({ assetId: upload.assetId })}
                 >
@@ -373,19 +389,19 @@ export function AssetPicker({
           /* ------------------------------ Library ---------------------------- */
           <div className="p-4" data-testid="ff-asset-library">
             {library.status === "loading" ? (
-              <p className="py-6 text-center text-sm text-stone-500" role="status" data-testid="ff-asset-library-loading">
+              <p className="ff-set-note py-6 text-center" role="status" data-testid="ff-asset-library-loading">
                 Loading library…
               </p>
             ) : library.status === "error" ? (
-              <p className="py-6 text-center text-sm text-red-700" role="alert" data-testid="ff-asset-library-error">
+              <p className="ff-banner ff-banner-error" role="alert" data-testid="ff-asset-library-error">
                 {library.message}
               </p>
             ) : library.items.length === 0 ? (
-              <p className="py-6 text-center text-sm text-stone-500" data-testid="ff-asset-library-empty">
+              <p className="ff-set-note py-6 text-center" data-testid="ff-asset-library-empty">
                 No images yet — upload your first one.
               </p>
             ) : (
-              <ul id={listId} className="flex max-h-72 flex-col gap-1 overflow-y-auto" data-testid="ff-asset-library-list">
+              <ul id={listId} className="flex max-h-72 flex-col gap-1.5 overflow-y-auto" data-testid="ff-asset-library-list">
                 {library.items.map((item) => {
                   const scanStatus = item.asset.scanStatus as ScanStatus;
                   const servable = isServable(scanStatus);
@@ -398,8 +414,10 @@ export function AssetPicker({
                         data-testid="ff-asset-item"
                         data-asset-id={item.asset.id}
                         title={servable ? undefined : scanLabel(scanStatus)}
-                        className={`flex w-full items-center gap-3 rounded-md border border-stone-200 px-3 py-2 text-left text-sm ${
-                          servable ? "hover:bg-stone-50" : "opacity-60"
+                        className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm transition-[opacity] duration-150 ${
+                          servable
+                            ? "border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] hover:border-[color:var(--ff-primary)]"
+                            : "border-[color:var(--ff-border)] opacity-60"
                         }`}
                       >
                         {item.download ? (
@@ -408,7 +426,7 @@ export function AssetPicker({
                             src={item.download.url}
                             alt=""
                             aria-hidden="true"
-                            className="h-8 w-8 shrink-0 rounded object-cover"
+                            className="h-8 w-8 shrink-0 rounded-lg object-cover"
                           />
                         ) : (
                           <span aria-hidden="true" className="w-8 text-center">
@@ -416,7 +434,7 @@ export function AssetPicker({
                           </span>
                         )}
                         <span className="min-w-0 flex-1 truncate">{fileNameOf(item.asset.key)}</span>
-                        <span className="shrink-0 text-[11px] uppercase tracking-wide text-stone-400">
+                        <span className={`${scanBadgeClass(scanStatus)} shrink-0`}>
                           {scanLabel(scanStatus)}
                         </span>
                       </button>
@@ -428,7 +446,7 @@ export function AssetPicker({
           </div>
         )}
 
-        <div className="border-t border-stone-200 px-4 py-2 text-[11px] text-stone-500 dark:border-stone-700">
+        <div className="border-t border-[color:var(--ff-glass-border)] px-4 py-2 text-[11px] text-[color:var(--ff-muted)]">
           Esc close{supportsAlt ? " · alt text is prompted after picking" : ""}
         </div>
       </div>

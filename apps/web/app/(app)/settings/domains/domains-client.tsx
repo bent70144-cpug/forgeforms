@@ -7,11 +7,13 @@
 // prompts live only in settings and the error response, never in editing
 // surfaces).
 //
-// Presentation notes: DNS records render as definition rows with a copy action
-// for BOTH name and value (aria-label'd, swap to a check when copied); the
-// "Copied" announcement lives on a visually-hidden live region instead of the
-// whole instructions region; removal goes through the shared Modal primitive
-// instead of window.confirm.
+// Presentation notes (aurora glass): DNS records render as mono chips with a
+// copy action for BOTH name and value (aria-label'd, swap to a check when
+// copied; the same shared copy() handler feeds the live region); the "Copied"
+// announcement lives on a visually-hidden live region instead of the whole
+// instructions region; removal goes through the shared Modal primitive instead
+// of window.confirm (row-level Remove is a quiet danger ghost — the Modal's
+// confirm button keeps the solid destructive treatment).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -21,6 +23,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Icon } from '@/components/ui/icons';
 import {
   BADGE_ACCENT,
+  BADGE_DANGER,
   BADGE_POSITIVE,
   BADGE_WARNING,
   BANNER_ERROR,
@@ -32,6 +35,14 @@ import {
   BTN_SECONDARY_SM,
   ICON_BTN,
 } from '@/lib/ui';
+
+// Row-level destructive action renders as a quiet ghost; the confirming
+// action inside the Modal keeps the solid destructive button.
+const BTN_DANGER_GHOST_SM = 'ff-btn ff-btn-ghost ff-btn-sm text-[var(--ff-danger)]';
+
+// Compact copy affordance that fits inside a mono chip (inline sizes override
+// the 2rem .ff-icon-btn recipe without touching the shared class).
+const CHIP_COPY_BTN_STYLE = { width: '1.5rem', height: '1.5rem' } as const;
 
 type LoadState =
   | { kind: 'loading' }
@@ -243,11 +254,11 @@ export function DomainsClient() {
       {planLimit && (
         <div
           role="alert"
-          className="flex flex-wrap items-center gap-4 rounded-[var(--ff-radius)] border border-[color-mix(in_srgb,var(--ff-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent)_8%,var(--ff-card))] p-5"
+          className="flex flex-wrap items-center gap-4 rounded-[var(--ff-radius)] border border-[color-mix(in_srgb,var(--ff-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_8%,var(--ff-card))] p-5"
         >
           <span
             aria-hidden="true"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-accent)_12%,transparent)] text-[var(--ff-accent)]"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)] text-[var(--ff-primary)]"
           >
             <Icon name="sparkles" size={18} />
           </span>
@@ -280,36 +291,42 @@ export function DomainsClient() {
               return (
                 <li
                   key={rowKey}
-                  className="rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,var(--ff-bg))] px-3 py-2"
+                  className="rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,var(--ff-bg))] px-3 py-2.5"
                 >
-                  <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={`${BADGE_ACCENT} font-mono text-xs`}>{record.type}</span>
-                    <div className="min-w-0">
-                      <p className="truncate font-mono text-xs text-[var(--ff-muted)]">
-                        {record.name}
-                      </p>
-                      <p className="mt-0.5 break-all font-mono text-[13px] text-[var(--ff-fg)]">
-                        {record.value}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
+                    {/* name and value are mono chips, each with its own copy
+                        action — same shared copy() handler and live region */}
+                    <span
+                      className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                      title={record.name}
+                    >
+                      <span className="min-w-0 truncate">{record.name}</span>
                       <button
                         type="button"
                         aria-label="Copy record name"
                         onClick={() => void copy(nameKey, 'record name', record.name)}
                         className={ICON_BTN}
+                        style={CHIP_COPY_BTN_STYLE}
                       >
-                        <Icon name={copiedKey === nameKey ? 'check' : 'copy'} size={14} />
+                        <Icon name={copiedKey === nameKey ? 'check' : 'copy'} size={12} />
                       </button>
+                    </span>
+                    <span
+                      className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                      title={record.value}
+                    >
+                      <span className="min-w-0 truncate">{record.value}</span>
                       <button
                         type="button"
                         aria-label="Copy record value"
                         onClick={() => void copy(valueKey, 'record value', record.value)}
                         className={ICON_BTN}
+                        style={CHIP_COPY_BTN_STYLE}
                       >
-                        <Icon name={copiedKey === valueKey ? 'check' : 'copy'} size={14} />
+                        <Icon name={copiedKey === valueKey ? 'check' : 'copy'} size={12} />
                       </button>
-                    </div>
+                    </span>
                   </div>
                   <p className="mt-1.5 text-xs leading-relaxed text-[var(--ff-muted)]">
                     {record.purpose}
@@ -334,7 +351,7 @@ export function DomainsClient() {
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-accent)_12%,transparent)] text-[var(--ff-accent)]"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)] text-[var(--ff-primary)]"
           >
             <Icon name="globe" size={18} />
           </span>
@@ -457,6 +474,12 @@ export function DomainsClient() {
           {state.domains.map((domain) => (
             <li key={domain.id} className="p-4">
               <div className="flex flex-wrap items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)] text-[var(--ff-primary)]"
+                >
+                  <Icon name="globe" size={18} />
+                </span>
                 <code className="min-w-0 max-w-full truncate font-mono text-sm font-medium text-[var(--ff-fg)]">
                   {domain.hostname}
                 </code>
@@ -467,6 +490,7 @@ export function DomainsClient() {
                     Pending
                   </span>
                 )}
+                {domain.lastError ? <span className={BADGE_DANGER}>DNS error</span> : null}
                 <p className="min-w-0 text-xs tabular-nums text-[var(--ff-muted)]">
                   Added {relativeTime(domain.createdAt)} · Checked{' '}
                   {relativeTime(domain.lastCheckedAt)}
@@ -496,7 +520,7 @@ export function DomainsClient() {
                     type="button"
                     disabled={busyId === domain.id}
                     onClick={() => setRemoveTarget(domain)}
-                    className={BTN_DESTRUCTIVE_SM}
+                    className={BTN_DANGER_GHOST_SM}
                   >
                     Remove
                   </button>
@@ -509,19 +533,73 @@ export function DomainsClient() {
               )}
               {domain.status !== 'verified' && (
                 <dl
-                  className="mt-3 grid gap-1 rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,var(--ff-bg))] px-3 py-2 font-mono text-xs text-[var(--ff-muted)]"
+                  className="mt-3 grid gap-1.5 rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,var(--ff-bg))] px-3 py-2.5"
                   aria-label="DNS records for this domain"
                 >
-                  <div className="flex gap-2">
-                    <dt className="w-14 shrink-0 font-medium">TXT</dt>
-                    <dd className="m-0 break-all">
-                      {domain.txtName} = {domain.txtValue}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <dt className="w-12 shrink-0 font-mono text-xs font-medium text-[var(--ff-muted)]">
+                      TXT
+                    </dt>
+                    <dd className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+                      <span
+                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        title={domain.txtName}
+                      >
+                        <span className="min-w-0 truncate">{domain.txtName}</span>
+                      </span>
+                      <span
+                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        title={domain.txtValue}
+                      >
+                        <span className="min-w-0 truncate">{domain.txtValue}</span>
+                        <button
+                          type="button"
+                          aria-label="Copy TXT record value"
+                          onClick={() =>
+                            void copy(`${domain.id}:txt`, 'TXT value', domain.txtValue)
+                          }
+                          className={ICON_BTN}
+                          style={CHIP_COPY_BTN_STYLE}
+                        >
+                          <Icon
+                            name={copiedKey === `${domain.id}:txt` ? 'check' : 'copy'}
+                            size={12}
+                          />
+                        </button>
+                      </span>
                     </dd>
                   </div>
-                  <div className="flex gap-2">
-                    <dt className="w-14 shrink-0 font-medium">CNAME</dt>
-                    <dd className="m-0 break-all">
-                      {domain.hostname} → {domain.cnameTarget}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <dt className="w-12 shrink-0 font-mono text-xs font-medium text-[var(--ff-muted)]">
+                      CNAME
+                    </dt>
+                    <dd className="m-0 flex min-w-0 flex-wrap items-center gap-2">
+                      <span
+                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        title={domain.hostname}
+                      >
+                        <span className="min-w-0 truncate">{domain.hostname}</span>
+                      </span>
+                      <span
+                        className="ff-chip min-w-0 max-w-full gap-1 font-mono text-xs"
+                        title={domain.cnameTarget}
+                      >
+                        <span className="min-w-0 truncate">→ {domain.cnameTarget}</span>
+                        <button
+                          type="button"
+                          aria-label="Copy CNAME target"
+                          onClick={() =>
+                            void copy(`${domain.id}:cname`, 'CNAME target', domain.cnameTarget)
+                          }
+                          className={ICON_BTN}
+                          style={CHIP_COPY_BTN_STYLE}
+                        >
+                          <Icon
+                            name={copiedKey === `${domain.id}:cname` ? 'check' : 'copy'}
+                            size={12}
+                          />
+                        </button>
+                      </span>
                     </dd>
                   </div>
                 </dl>

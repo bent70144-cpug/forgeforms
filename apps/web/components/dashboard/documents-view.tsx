@@ -1,9 +1,12 @@
 'use client';
 
-// B3 — dashboard documents view (spec §14.1.2): grid/list toggle, doc cards
-// (36px type tile + title + status/type badges + updated time), stretched-link
-// cards, quick actions (open results, copy link, duplicate, archive), "New" →
-// create modal (type + name + blank/template).
+// B3 — dashboard documents view (spec §14.1.2) — "aurora glass" command-center
+// pass: page header (eyebrow + Space Grotesk title + live count summary +
+// glowing New action), a frosted-glass toolbar (client-side title search +
+// grid/list segmented control), doc cards with gradient type tiles, status /
+// type badges and floor-pinned quick actions, and list rows with mono meta.
+// All data flow (list/duplicate/archive/copy), the persisted view toggle and
+// the archive-confirm modal are unchanged from the B3 build.
 //
 // SPEC-NOTE (submissions count): §14.1.2 also lists a per-card submissions
 // count; that aggregate belongs to the results module (T05/T15) and is not
@@ -12,6 +15,10 @@
 //
 // SPEC-NOTE (open target): cards/actions link to /d/{id}/results — the
 // builder index route /d/{id} is not part of the app yet (was a 404).
+//
+// Search is a view-layer filter only (title substring, client-side): it never
+// touches the documents query — the count summary always reflects the whole
+// workspace, and a dedicated "no matches" state offers a one-click clear.
 //
 // Errors surface through the §4 shape (DocumentsApiError) in a banner;
 // destructive archive is confirmed through the shared Modal primitive
@@ -34,6 +41,7 @@ import {
   relativeUpdatedAt,
 } from '@/lib/documents/format';
 import {
+  BADGE_ACCENT,
   BADGE_MUTED,
   BADGE_POSITIVE,
   BANNER_ERROR,
@@ -42,6 +50,7 @@ import {
   BTN_PRIMARY,
   BTN_SECONDARY_SM,
   ICON_BTN,
+  INPUT,
   SEG,
   SEG_BTN,
 } from '@/lib/ui';
@@ -74,6 +83,7 @@ export function DocumentsView({
   prefillTemplate?: string;
 }) {
   const [view, setView] = useState<ViewMode>('grid');
+  const [query, setQuery] = useState('');
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [creating, setCreating] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -157,18 +167,90 @@ export function DocumentsView({
 
   const docs = state.kind === 'ready' ? state.docs : null;
 
+  // View-layer search filter (title substring). The workspace summary above
+  // keeps reporting the unfiltered totals.
+  const q = query.trim().toLowerCase();
+  const shownDocs = docs && q ? docs.filter((d) => d.title.toLowerCase().includes(q)) : docs;
+  const visibleDocs = shownDocs ?? [];
+  const noMatches = docs !== null && docs.length > 0 && visibleDocs.length === 0;
+  const publishedCount = docs?.filter((d) => d.status === 'published').length ?? 0;
+
   return (
     <section aria-label="Documents">
-      <div className="ff-toolbar">
-        <div className="flex min-w-0 items-center gap-3">
-          <h1 className="m-0 text-2xl font-semibold tracking-tight">Documents</h1>
-          {docs && (
-            <span className={BADGE_MUTED} title={`${docs.length} documents in this workspace`}>
-              {docs.length}
-            </span>
-          )}
+      {/* ── Page header — eyebrow, Space Grotesk title (global h1 font),
+          live count summary, glowing primary action ──────────────────── */}
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <p className="m-0 mb-1.5 flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-[var(--ff-muted)]">
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: 'var(--ff-grad)' }}
+            />
+            Workspace
+          </p>
+          <h1 className="m-0 text-[1.75rem] font-semibold leading-tight tracking-tight sm:text-[2rem]">
+            Documents
+          </h1>
+          <p className="m-0 mt-1.5 text-sm text-[var(--ff-muted)]">
+            {state.kind === 'ready' && docs ? (
+              <>
+                <span className="font-semibold text-[var(--ff-fg)]">{docs.length}</span>{' '}
+                {docs.length === 1 ? 'document' : 'documents'}
+                {publishedCount > 0 && (
+                  <>
+                    {' · '}
+                    <span className="font-medium text-[var(--ff-success)]">{publishedCount}</span>{' '}
+                    published
+                  </>
+                )}
+              </>
+            ) : state.kind === 'loading' ? (
+              'Loading documents…'
+            ) : null}
+          </p>
         </div>
-        <div className="ml-auto flex items-center gap-3">
+        <button
+          type="button"
+          className={`${BTN_PRIMARY} w-full sm:w-auto`}
+          onClick={() => setCreating(true)}
+        >
+          <Icon name="plus" size={16} />
+          New document
+        </button>
+      </header>
+
+      {/* ── Toolbar — search + layout toggle on a frosted glass strip.
+          Wraps cleanly on mobile: search takes its own row, the toggle
+          rides right below it. ───────────────────────────────────────── */}
+      <div
+        className="ff-toolbar"
+        style={{
+          background: 'var(--ff-glass)',
+          border: '1px solid var(--ff-glass-border)',
+          borderRadius: '16px',
+          padding: '0.625rem 0.75rem',
+          boxShadow: 'var(--ff-shadow-sm)',
+          WebkitBackdropFilter: 'blur(16px)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
+        <div className="relative w-full min-w-0 sm:max-w-xs">
+          <Icon
+            name="search"
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ff-muted)]"
+          />
+          <input
+            type="search"
+            className={`${INPUT} pl-9! [&::-webkit-search-cancel-button]:hidden`}
+            placeholder="Search documents…"
+            aria-label="Search documents"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-2.5">
           <div className={SEG} role="group" aria-label="Layout">
             <button
               type="button"
@@ -191,10 +273,6 @@ export function DocumentsView({
               <span className="hidden sm:inline">List</span>
             </button>
           </div>
-          <button type="button" className={BTN_PRIMARY} onClick={() => setCreating(true)}>
-            <Icon name="plus" size={16} />
-            New document
-          </button>
         </div>
       </div>
 
@@ -224,11 +302,30 @@ export function DocumentsView({
 
       {docs && docs.length === 0 && <DashboardEmptyState onCreate={() => setCreating(true)} />}
 
-      {docs && docs.length > 0 && view === 'grid' && (
+      {/* search narrowed the workspace to zero — distinct from the true
+          empty workspace above, with a one-click reset */}
+      {noMatches && (
+        <div className="ff-empty ff-empty--compact">
+          <div className="ff-empty-icon" aria-hidden="true">
+            <Icon name="search" size={18} />
+          </div>
+          <h2>No documents match “{query.trim()}”</h2>
+          <p className="ff-empty-description">
+            Search matches document titles. Try a different name or clear the filter.
+          </p>
+          <div className="ff-empty-action">
+            <button type="button" className={BTN_SECONDARY_SM} onClick={() => setQuery('')}>
+              Clear search
+            </button>
+          </div>
+        </div>
+      )}
+
+      {docs && docs.length > 0 && !noMatches && view === 'grid' && (
         <ul className="ff-doc-grid">
-          {docs.map((doc) => (
-            <li key={doc.id} className="ff-doc-card relative">
-              {/* Row 1 — type tile + stretched title link + badges.
+          {visibleDocs.map((doc) => (
+            <li key={doc.id} className="ff-doc-card group relative">
+              {/* Row 1 — gradient type tile + stretched title link + badges.
                   The title's ::after covers the card, so the whole card is
                   clickable; interactive children sit above it (z-10). */}
               <div className="flex items-center gap-3">
@@ -243,14 +340,18 @@ export function DocumentsView({
                   <span className={doc.status === 'published' ? BADGE_POSITIVE : BADGE_MUTED}>
                     {documentStatusBadge(doc.status)}
                   </span>
-                  <span className={BADGE_MUTED}>{documentTypeBadge(doc.type)}</span>
+                  <span className={BADGE_ACCENT}>{documentTypeBadge(doc.type)}</span>
                 </div>
               </div>
-              {/* Row 2 — meta */}
-              <p className="m-0 text-xs tabular-nums text-[var(--ff-muted)]">
+              {/* Row 2 — mono meta (dates/ids render in the mono family) */}
+              <p
+                className="m-0 text-xs tabular-nums text-[var(--ff-muted)]"
+                style={{ fontFamily: 'var(--ff-font-mono)' }}
+              >
                 Updated {relativeUpdatedAt(doc.updatedAt)}
               </p>
-              {/* Row 3 — quick actions */}
+              {/* Row 3 — quick actions, pinned to the card floor; dimmed
+                  until hover/focus (always full-strength on touch widths) */}
               <DocumentActions
                 doc={doc}
                 busyId={busyId}
@@ -264,18 +365,18 @@ export function DocumentsView({
         </ul>
       )}
 
-      {docs && docs.length > 0 && view === 'list' && (
+      {docs && docs.length > 0 && !noMatches && view === 'list' && (
         <ul className="ff-doc-list divide-y divide-[var(--ff-border)]">
-          {docs.map((doc) => (
+          {visibleDocs.map((doc) => (
             <li
               key={doc.id}
-              className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[10px] px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_4%,transparent)]"
+              className="relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[10px] px-4 py-3 transition-colors hover:bg-[color-mix(in_srgb,var(--ff-primary)_5%,transparent)]"
             >
               <TypeTile type={doc.type} />
               <div className="min-w-0">
                 <Link
                   href={`/d/${doc.id}/results`}
-                  className="ff-doc-title block truncate text-[15px] font-medium transition-colors after:absolute after:inset-0 hover:text-[var(--ff-accent)]"
+                  className="ff-doc-title block truncate text-[15px] font-medium transition-colors after:absolute after:inset-0 hover:text-[var(--ff-accent-soft)]"
                 >
                   {doc.title}
                 </Link>
@@ -283,8 +384,11 @@ export function DocumentsView({
                   <span className={doc.status === 'published' ? BADGE_POSITIVE : BADGE_MUTED}>
                     {documentStatusBadge(doc.status)}
                   </span>
-                  <span className={BADGE_MUTED}>{documentTypeBadge(doc.type)}</span>
-                  <span className="text-xs tabular-nums text-[var(--ff-muted)]">
+                  <span className={BADGE_ACCENT}>{documentTypeBadge(doc.type)}</span>
+                  <span
+                    className="text-xs tabular-nums text-[var(--ff-muted)]"
+                    style={{ fontFamily: 'var(--ff-font-mono)' }}
+                  >
                     Updated {relativeUpdatedAt(doc.updatedAt)}
                   </span>
                 </div>
@@ -350,15 +454,21 @@ export function DocumentsView({
   );
 }
 
-/** 36px rounded type tile — accent-tinted, icon per document type. */
+/**
+ * 36px rounded type tile — the aurora recipe: --ff-grad endpoints at low
+ * opacity layered over the card surface, hairline violet ring, icon in
+ * --ff-accent-soft. Tokens only, so light scheme flips automatically.
+ */
 function TypeTile({ type }: { type: string }) {
   return (
     <span
       aria-hidden="true"
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px]"
       style={{
-        background: 'color-mix(in srgb, var(--ff-accent) 10%, var(--ff-card))',
-        color: 'color-mix(in srgb, var(--ff-accent) 55%, var(--ff-fg))',
+        background:
+          'linear-gradient(135deg, color-mix(in srgb, var(--ff-primary) 26%, transparent), color-mix(in srgb, var(--ff-primary-2) 20%, transparent)), var(--ff-card)',
+        boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--ff-primary) 28%, transparent)',
+        color: 'var(--ff-accent-soft)',
       }}
     >
       <Icon name={TYPE_TILE_ICONS[type] ?? 'file'} size={18} />
@@ -368,8 +478,10 @@ function TypeTile({ type }: { type: string }) {
 
 /**
  * §14.1.2 quick actions: open results, copy link, duplicate, archive.
- * Grid cards use a labeled "Open" + icon actions; list rows are icon-only.
- * `relative z-10` keeps the buttons above the card's stretched title link.
+ * Grid cards use a labeled "Open" + icon actions above a hairline separator;
+ * list rows are icon-only. `relative z-10` keeps the buttons above the card's
+ * stretched title link. The grid wrapper carries `group`-driven opacity so
+ * the row brightens on card hover/focus without hiding controls from touch.
  */
 function DocumentActions({
   doc,
@@ -441,7 +553,7 @@ function DocumentActions({
   }
 
   return (
-    <div className="ff-doc-actions relative z-10">
+    <div className="ff-doc-actions relative z-10 border-t border-[var(--ff-border)] pt-2.5 opacity-75 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 max-md:opacity-100">
       <Link href={openHref} className={BTN_SECONDARY_SM}>
         Open
       </Link>

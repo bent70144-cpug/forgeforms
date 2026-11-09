@@ -11,6 +11,11 @@
 // block. Focus is trapped while open and restored to the previously focused
 // element on close (spec §12).
 
+// Aurora glass palette (2026 restyle): frosted modal, tokenized search field,
+// categorized option grid with gradient icon tiles, violet active ring and a
+// transform-only hover lift. A11y contract (listbox/option, activedescendant,
+// focus trap) is unchanged from spec §12.
+
 import {
   useCallback,
   useEffect,
@@ -238,31 +243,38 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
 
   return (
     <div className="fixed inset-0 z-50" onKeyDown={onKeyDown}>
-      <div className="absolute inset-0 bg-stone-900/40" aria-hidden="true" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
+        aria-hidden="true"
+        onClick={onClose}
+      />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Add a block"
-        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-md flex-col overflow-hidden rounded-xl border border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900"
+        className="relative mx-auto mt-[10vh] flex w-[calc(100%-2rem)] max-w-lg flex-col overflow-hidden rounded-2xl border border-[color:var(--ff-glass-border)] bg-[color:var(--ff-glass)] text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft),var(--ff-shadow-lg)] backdrop-blur-xl"
       >
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActiveIndex(0);
-          }}
-          placeholder="Search blocks…"
-          aria-label="Search blocks"
-          aria-controls={listId}
-          aria-activedescendant={total > 0 ? activeId : undefined}
-          aria-autocomplete="list"
-          autoComplete="off"
-          spellCheck={false}
-          className="w-full border-b border-stone-200 bg-transparent px-4 py-3 text-sm outline-none dark:border-stone-700"
-        />
+        {/* Search — the §6.1 command-palette anchor (tokenized input). */}
+        <div className="border-b border-[color:var(--ff-glass-border)] p-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setActiveIndex(0);
+            }}
+            placeholder="Search blocks…"
+            aria-label="Search blocks"
+            aria-controls={listId}
+            aria-activedescendant={total > 0 ? activeId : undefined}
+            aria-autocomplete="list"
+            autoComplete="off"
+            spellCheck={false}
+            className="ff-input"
+          />
+        </div>
         <p role="status" aria-live="polite" className="sr-only">
           {total} {total === 1 ? "block" : "blocks"} match
         </p>
@@ -271,52 +283,67 @@ export function BlockPicker({ open, onClose, insertAt, onInsert }: BlockPickerPr
           id={listId}
           role="listbox"
           aria-label="Blocks"
-          className="ff-picker-list max-h-72 overflow-y-auto overscroll-contain py-1"
+          className="ff-picker-list max-h-80 overflow-y-auto overscroll-contain p-2"
         >
           {total === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-stone-500">No blocks match “{query}”</p>
+            <p className="px-4 py-8 text-center text-sm text-[color:var(--ff-muted)]">
+              No blocks match “{query}”
+            </p>
           ) : (
             groups.map((group) => (
-              <div key={group.family} role="presentation">
+              <div key={group.family} role="presentation" className="mb-1 last:mb-0">
                 <div
-                  className="sticky top-0 z-10 bg-stone-50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-stone-500 dark:bg-stone-800 dark:text-stone-400"
+                  className="sticky top-0 z-10 rounded-md px-2 pb-1.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--ff-muted)]"
+                  style={{ background: "color-mix(in srgb, var(--ff-card) 92%, transparent)" }}
                   aria-hidden="true"
                 >
                   {group.label}
                 </div>
-                {group.kinds.map((meta) => {
-                  const i = indexByKind.get(meta.kind) ?? 0;
-                  const active = i === activeIndex;
-                  return (
-                    <div
-                      key={meta.kind}
-                      id={`${listId}-opt-${i}`}
-                      role="option"
-                      aria-selected={active}
-                      aria-label={`${meta.label}${meta.hint ? ` — ${meta.hint}` : ""}`}
-                      onClick={() => insertKind(meta)}
-                      onMouseMove={() => setActiveIndex(i)}
-                      className={`flex cursor-pointer items-center gap-3 px-4 py-2 text-sm ${
-                        active ? "bg-stone-100 dark:bg-stone-800" : ""
-                      }`}
-                    >
-                      <span aria-hidden="true" className="w-5 text-center text-base">
-                        {blockIcon(meta.kind) || meta.icon}
-                      </span>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate font-medium">{meta.label}</span>
-                        {meta.hint ? <span className="truncate text-xs text-stone-500">{meta.hint}</span> : null}
-                      </span>
-                      <span className="ml-auto text-[10px] uppercase tracking-wide text-stone-400">{meta.kind}</span>
-                    </div>
-                  );
-                })}
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+                  {group.kinds.map((meta) => {
+                    const i = indexByKind.get(meta.kind) ?? 0;
+                    const active = i === activeIndex;
+                    return (
+                      <div
+                        key={meta.kind}
+                        id={`${listId}-opt-${i}`}
+                        role="option"
+                        aria-selected={active}
+                        aria-label={`${meta.label}${meta.hint ? ` — ${meta.hint}` : ""}`}
+                        onClick={() => insertKind(meta)}
+                        onMouseMove={() => setActiveIndex(i)}
+                        className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-2.5 py-2 text-sm transition-[transform,opacity] duration-150 ease-[var(--ff-ease-out)] hover:-translate-y-px ${
+                          active
+                            ? "border-[color:var(--ff-primary)] bg-[color:color-mix(in_srgb,var(--ff-primary)_14%,transparent)]"
+                            : "border-transparent hover:border-[color:var(--ff-border)] hover:bg-[color:color-mix(in_srgb,var(--ff-fg)_5%,transparent)]"
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          style={{ background: "var(--ff-grad)" }}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-sm shadow-[var(--ff-glow)]"
+                        >
+                          {blockIcon(meta.kind) || meta.icon}
+                        </span>
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate font-medium">{meta.label}</span>
+                          {meta.hint ? (
+                            <span className="truncate text-xs text-[color:var(--ff-muted)]">{meta.hint}</span>
+                          ) : null}
+                        </span>
+                        <span className="ml-auto shrink-0 font-mono text-[10px] uppercase tracking-wide text-[color:var(--ff-muted)]">
+                          {meta.kind}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             ))
           )}
         </div>
 
-        <div className="border-t border-stone-200 px-4 py-2 text-[11px] text-stone-500 dark:border-stone-700">
+        <div className="border-t border-[color:var(--ff-glass-border)] px-4 py-2 text-[11px] text-[color:var(--ff-muted)]">
           ↑↓ navigate · Enter insert · Esc close
         </div>
       </div>

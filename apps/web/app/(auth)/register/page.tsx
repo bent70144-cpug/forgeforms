@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
+import { AuthHeading } from "@/app/(auth)/layout";
 
 export const metadata: Metadata = { title: "Create your account" };
 
 export default function RegisterPage() {
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-balance">Create your account</h1>
+      <AuthHeading>Create your account</AuthHeading>
       <p className="ff-subtle">A personal workspace is set up for you automatically.</p>
       <AuthForm mode="register" />
       <p className="ff-auth-alt">

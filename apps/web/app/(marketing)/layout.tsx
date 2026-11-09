@@ -12,32 +12,43 @@ export const metadata: Metadata = {
 };
 
 // Shared chrome for public marketing surfaces (templates gallery, legal docs).
-// Same sticky glass recipe as the app shell (F4) so the two "halves" of the
-// product feel like one system: 28px ink tile + wordmark, muted links, ink CTA.
-// Pure server components — no client JS.
+// "Aurora Glass" edition: a sticky frosted-glass header (var(--ff-glass) +
+// --ff-glass-border) with a gradient wordmark and an aurora hairline, and a
+// matching glass footer carrying the same hairline. Every color rides the
+// --ff-* tokens, so the light scheme flips automatically via
+// prefers-color-scheme. Pure server components — no client JS.
 
-const GLASS_STYLE = {
-  backgroundColor: "color-mix(in srgb, var(--ff-card) 85%, transparent)",
-  WebkitBackdropFilter: "blur(12px) saturate(1.4)",
-  backdropFilter: "blur(12px) saturate(1.4)",
-  borderBottom: "1px solid var(--ff-border)",
+const HEADER_FOOTER_GLASS = {
+  backgroundColor: "var(--ff-glass)",
+  WebkitBackdropFilter: "blur(16px) saturate(1.5)",
+  backdropFilter: "blur(16px) saturate(1.5)",
 } as const;
+
+/** Violet→cyan hairline that fades out at both ends (the "aurora" seam). */
+function AuroraHairline({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-x-0 h-px ${className ?? ""}`}
+      style={{
+        background:
+          "linear-gradient(90deg, transparent, color-mix(in srgb, var(--ff-primary) 55%, transparent) 30%, color-mix(in srgb, var(--ff-accent) 45%, transparent) 70%, transparent)",
+      }}
+    />
+  );
+}
 
 function BrandMark() {
   return (
     <Link
       href="/"
       aria-label="FormForge home"
-      className="flex shrink-0 items-center gap-2 no-underline"
+      className="flex shrink-0 items-center gap-2.5 no-underline"
     >
       <span
         aria-hidden="true"
-        className="flex h-7 w-7 items-center justify-center rounded-lg"
-        style={{
-          background: "var(--ff-primary)",
-          color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-shadow-sm)",
-        }}
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[var(--ff-primary-fg)] shadow-[var(--ff-glow)]"
+        style={{ backgroundImage: "var(--ff-grad)" }}
       >
         <svg
           viewBox="0 0 24 24"
@@ -54,7 +65,10 @@ function BrandMark() {
           <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
         </svg>
       </span>
-      <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]">
+      <span
+        className="bg-clip-text text-[1.0625rem] font-semibold tracking-tight text-transparent"
+        style={{ backgroundImage: "var(--ff-grad)" }}
+      >
         FormForge
       </span>
     </Link>
@@ -68,27 +82,25 @@ function FooterGroup({
   title: string;
   links: ReadonlyArray<{ label: string; href: string; external?: boolean }>;
 }) {
+  const linkClass =
+    "text-[0.875rem] text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)]";
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="m-0 text-[0.8125rem] font-semibold text-[var(--ff-fg)]">{title}</h2>
-      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+      <h2 className="m-0 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+        {title}
+      </h2>
+      <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
         {links.map((link) =>
           link.external ? (
             <li key={link.href}>
-              <a
-                href={link.href}
-                className="inline-flex items-center gap-1 text-[0.875rem] text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-fg)] hover:underline"
-              >
+              <a href={link.href} className={`inline-flex items-center gap-1 ${linkClass}`}>
                 {link.label}
                 <Icon name="external" size={12} />
               </a>
             </li>
           ) : (
             <li key={link.href}>
-              <Link
-                href={link.href}
-                className="text-[0.875rem] text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-fg)] hover:underline"
-              >
+              <Link href={link.href} className={linkClass}>
                 {link.label}
               </Link>
             </li>
@@ -102,25 +114,29 @@ function FooterGroup({
 export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40" style={GLASS_STYLE}>
-        <div className="mx-auto flex h-[3.75rem] max-w-6xl items-center justify-between gap-4 px-[clamp(1rem,3vw,1.5rem)]">
+      <header
+        className="sticky top-0 z-40 border-b border-[var(--ff-glass-border)]"
+        style={HEADER_FOOTER_GLASS}
+      >
+        <AuroraHairline className="bottom-0" />
+        <div className="relative mx-auto flex h-[3.75rem] max-w-6xl items-center justify-between gap-4 px-[clamp(1rem,3vw,1.5rem)]">
           <BrandMark />
           <nav aria-label="Site" className="flex items-center gap-4 text-[0.875rem] sm:gap-6">
             <Link
               href="/templates"
-              className="text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-fg)]"
+              className="text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)]"
             >
               Templates
             </Link>
             <Link
               href="/dpa"
-              className="hidden text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-fg)] sm:inline-flex"
+              className="hidden text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)] sm:inline-flex"
             >
               DPA
             </Link>
             <Link
               href="/login"
-              className="hidden text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-fg)] sm:inline-flex"
+              className="hidden text-[var(--ff-muted)] no-underline transition-colors hover:text-[var(--ff-accent-soft)] sm:inline-flex"
             >
               Log in
             </Link>
@@ -134,10 +150,15 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
       <div className="flex-1">{children}</div>
 
       <footer
-        className="border-t border-[var(--ff-border)]"
-        style={{ background: "var(--ff-bg)" }}
+        className="relative border-t border-[var(--ff-glass-border)]"
+        style={{
+          ...HEADER_FOOTER_GLASS,
+          backgroundImage:
+            "radial-gradient(44rem 16rem at 50% 130%, color-mix(in srgb, var(--ff-primary) 10%, transparent), transparent 70%)",
+        }}
       >
-        <div className="mx-auto max-w-6xl px-[clamp(1rem,3vw,1.5rem)] py-10">
+        <AuroraHairline className="top-0" />
+        <div className="relative mx-auto max-w-6xl px-[clamp(1rem,3vw,1.5rem)] py-10 sm:py-12">
           <div className="grid gap-10 md:grid-cols-[minmax(0,20rem)_1fr]">
             <div className="flex flex-col gap-3">
               <BrandMark />

@@ -1,11 +1,13 @@
 "use client";
 
-// Pointer-tracked spotlight for the feature grid. The highlight is a soft,
-// neutral wash (foreground mixed to 6% over the card) that follows the mouse
-// via two CSS custom properties. Updates are batched in requestAnimationFrame
-// and the whole effect is skipped for touch pointers and for visitors with
-// prefers-reduced-motion, so the cards stay plain there. No-JS and touch
-// users simply see bordered cards; nothing depends on this running.
+// Pointer-tracked spotlight for the feature grid. The highlight is a soft
+// wash that follows the mouse via two CSS custom properties (--sx/--sy). The
+// base recipe (a quiet foreground wash) lives in app/globals.css; the landing
+// page overrides it in app/landing.css with a violet→aurora tint. Updates are
+// batched in requestAnimationFrame and the whole effect is skipped for touch
+// pointers and for visitors with prefers-reduced-motion, so the cards stay
+// plain there. No-JS and touch users simply see bordered cards; nothing
+// depends on this running.
 
 import { useRef, type ReactNode } from "react";
 

@@ -7,6 +7,10 @@
 // B6 redesign: shell-aligned container, segmented range control, shared
 // EmptyState primitives, self-titled panels (trend + drop-off carry their own
 // headers). Data loading and range logic unchanged.
+// Aurora redesign: funnel-intelligence surface — hero heading with heading
+// font + aurora tick, range .ff-seg pinned in a sticky frosted toolbar just
+// under the app shell header so it stays above the fold, glass KPI tiles and
+// the funnel drop-off panel below. Queries, range state and copy unchanged.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -47,6 +51,26 @@ const RANGE_ACTIVE_STYLE = {
   boxShadow: "var(--ff-shadow-sm)",
 } as const;
 
+// Sticky range toolbar: a frosted glass strip pinned just under the app shell
+// header (3.75rem tall, z-40) so the range control rides above the fold while
+// the funnel scrolls beneath it. Inline styles because unlayered recipes beat
+// Tailwind utilities.
+const RANGE_BAR_STYLE = {
+  background: "var(--ff-glass)",
+  border: "1px solid var(--ff-glass-border)",
+  backdropFilter: "blur(10px) saturate(1.35)",
+  WebkitBackdropFilter: "blur(10px) saturate(1.35)",
+  boxShadow: "var(--ff-shadow-md)",
+} as const;
+
+const HEADING_STYLE = {
+  fontFamily: "var(--ff-font-heading)",
+} as const;
+
+const MONO_STYLE = {
+  fontFamily: "var(--ff-font-mono)",
+} as const;
+
 export default async function AnalyticsPage({ params, searchParams }: AnalyticsPageProps) {
   const { docId } = await params;
   const { range } = await searchParams;
@@ -56,25 +80,31 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <Link
-            href={`/d/${docId}/results`}
-            className={`${BTN_GHOST_SM} -ml-2`}
-          >
-            <Icon name="arrowLeft" size={14} />
-            Results
-          </Link>
-          <div className="mt-2 flex items-baseline gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-fg)]">Analytics</h1>
-            {/* INTEGRATION-DEBT: the document title lives behind the client-side
-                results client; until the analytics loader returns it, show the
-                docId as the muted secondary identifier. */}
-            <span title={docId} className="min-w-0 truncate text-sm text-[var(--ff-muted)]">
-              {docId}
-            </span>
-          </div>
+      <header className="min-w-0">
+        <Link href={`/d/${docId}/results`} className={`${BTN_GHOST_SM} -ml-2`}>
+          <Icon name="arrowLeft" size={14} />
+          Results
+        </Link>
+        {/* aurora tick — gradient dash introducing the funnel surface */}
+        <span
+          aria-hidden="true"
+          className="mt-3 block h-1 w-10 rounded-full"
+          style={{ background: "var(--ff-grad)" }}
+        />
+        <div className="mt-2 flex items-baseline gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
+            Analytics
+          </h1>
+          {/* INTEGRATION-DEBT: the document title lives behind the client-side
+              results client; until the analytics loader returns it, show the
+              docId as the muted secondary identifier. */}
+          <span title={docId} className="min-w-0 truncate text-sm text-[var(--ff-muted)]" style={MONO_STYLE}>
+            {docId}
+          </span>
         </div>
+      </header>
+
+      <div className="sticky top-[3.75rem] z-30 flex justify-end rounded-2xl px-2 py-1.5" style={RANGE_BAR_STYLE}>
         <nav aria-label="Range" className={SEG}>
           <Link
             href={`/d/${docId}/analytics?range=7`}
@@ -93,7 +123,7 @@ export default async function AnalyticsPage({ params, searchParams }: AnalyticsP
             30 days
           </Link>
         </nav>
-      </header>
+      </div>
 
       {data === null ? (
         <EmptyState

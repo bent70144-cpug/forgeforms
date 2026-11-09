@@ -4,20 +4,24 @@
 // explicit "Apply" (issue #27: AI ops are never applied without user
 // confirmation). onApply is the handoff point to the builder autosave (T05),
 // which replays the ops through the normal documents PATCH flow.
-// B6 redesign: design-system card (code tile header), banner errors, diff
-// lines tinted with success/danger tokens. Fetch/error logic unchanged;
-// onQuota is an optional additive callback for the workbench header badge.
 //
 // B8 (spec §11): the proposal is reviewed as a diff list with Apply/Discard,
 // and Apply hands off the ops as ONE undoable group — toGroupedApply bundles
 // `{ops, label, group}` (`ai:<batchId>`) for the builder store's apply action
 // (§11 "applying dispatches ops through the normal path, so it is one
 // undoable group"). §15 telemetry: "ai_applied {opsCount}" — counts only.
+//
+// Aurora redesign: violet-tinted code-tile header, composer + glowing primary
+// propose action, skeleton shimmer while proposing, and the proposal framed
+// as a review card — badge header with op counts, tinted diff lines on a
+// tokenized ink surface, Apply (primary, check) / Discard (ghost, x).
+// Fetch/error/quota logic unchanged; onQuota stays an optional additive
+// callback for the workbench header badge.
 import { useId, useMemo, useState } from "react";
 import type { DocumentBody } from "@formforge/core/ai";
 import { summarizeOpsDiff, toBuilderOps, toGroupedApply, type GroupedApply } from "@/lib/builder/ai-apply";
 import { track } from "@/lib/telemetry";
-import { BTN_GHOST_SM, BTN_PRIMARY, BTN_SECONDARY_SM } from "@/lib/ui";
+import { BADGE_ACCENT, BADGE_POSITIVE, BTN_GHOST, BTN_PRIMARY } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
 
 type EditResponse = {
@@ -125,8 +129,11 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
       <header className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="grid h-8 w-8 place-items-center rounded-[10px] text-[var(--ff-muted)]"
-          style={{ background: "color-mix(in srgb, var(--ff-fg) 5%, transparent)" }}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px]"
+          style={{
+            background: "color-mix(in srgb, var(--ff-primary) 14%, transparent)",
+            color: "var(--ff-primary)",
+          }}
         >
           <Icon name="code" size={16} />
         </span>
@@ -168,35 +175,58 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
 
       <p aria-live="polite" className="text-sm">
         {status === "error" ? (
-          <span role="alert" className="ff-banner ff-banner-error flex items-center gap-2">
-            <Icon name="alert" size={14} className="shrink-0" />
-            <span>
-              {errorCode === "PLAN_LIMIT"
-                ? `Monthly AI quota reached. ${error ?? ""}`
-                : (error ?? "Edit failed.")}
-            </span>
+          <span role="alert" className="ff-banner ff-banner-error">
+            {errorCode === "PLAN_LIMIT"
+              ? `Monthly AI quota reached. ${error ?? ""}`
+              : (error ?? "Edit failed.")}
           </span>
         ) : null}
       </p>
 
+      {status === "loading" ? (
+        // Proposal shimmer: status badge + skeleton rows (reduced-motion users
+        // get the static pulse reset from globals.css).
+        <div className="space-y-3 border-t border-[var(--ff-border)] pt-4">
+          <span className={BADGE_ACCENT}>
+            <Icon name="spinner" size={12} />
+            Analyzing document…
+          </span>
+          <div className="ff-skeleton" style={{ height: "5.5rem" }} />
+        </div>
+      ) : null}
+
       {proposal ? (
-        <div className="space-y-3">
-          <p className="text-sm text-[var(--ff-fg)]">
-            <span className="font-medium">{proposal.summary}</span>{" "}
-            <span className="tabular-nums text-[var(--ff-muted)]">
-              ({proposal.ops.length} op{proposal.ops.length === 1 ? "" : "s"})
+        <div className="space-y-3 border-t border-[var(--ff-border)] pt-4">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className={BADGE_ACCENT}>
+              <Icon name="list" size={12} />
+              Proposal
             </span>
-          </p>
+            <span className="min-w-0 text-sm font-medium text-[var(--ff-fg)]">
+              {proposal.summary}
+            </span>
+            <span className="ml-auto font-mono text-xs tabular-nums text-[var(--ff-muted)]">
+              {proposal.ops.length} op{proposal.ops.length === 1 ? "" : "s"}
+            </span>
+          </div>
           {/* §11 diff list: counts summary + one line per proposed op, with
               Apply (grouped handoff) / Discard (clears). */}
-          <p aria-label="Change summary" className="text-xs opacity-80">
-            {diffSummary.added} added · {diffSummary.changed} changed · {diffSummary.removed}{" "}
-            removed · {diffSummary.moved} moved · {diffSummary.other} other
+          <p aria-label="Change summary" className="text-xs tabular-nums text-[var(--ff-muted)]">
+            <span className="text-[var(--ff-success)]">{diffSummary.added} added</span>
+            {" · "}
+            <span className="text-[var(--ff-primary)]">{diffSummary.changed} changed</span>
+            {" · "}
+            <span className="text-[var(--ff-danger)]">{diffSummary.removed} removed</span>
+            {" · "}
+            {diffSummary.moved} moved · {diffSummary.other} other
           </p>
           <ul
             aria-label="Proposed changes"
-            className="space-y-1 rounded-[10px] p-3 font-mono text-xs leading-relaxed"
-            style={{ background: "color-mix(in srgb, var(--ff-fg) 3%, var(--ff-bg))" }}
+            className="max-h-64 space-y-1 overflow-auto rounded-[10px] border p-3 font-mono text-xs leading-relaxed"
+            style={{
+              borderColor: "var(--ff-border)",
+              background: "color-mix(in srgb, var(--ff-bg) 55%, var(--ff-bg-2))",
+            }}
           >
             {(diffSummary.lines.length > 0 ? diffSummary.lines : proposal.diff).map(
               (line, index) => (
@@ -216,19 +246,21 @@ export function AiEditPanel({ document, workspaceId, onApply, onQuota }: AiEditP
             )}
           </ul>
           {applied ? (
-            <p className="text-sm text-[var(--ff-success)]">
+            <span className={BADGE_POSITIVE}>
+              <Icon name="checkCircle" size={12} />
               Ops handed to the editor as one undoable group.
-            </p>
+            </span>
           ) : (
-            <div className="flex gap-2">
-              <button type="button" onClick={apply} className={BTN_SECONDARY_SM}>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={apply} className={BTN_PRIMARY}>
+                <Icon name="check" size={16} />
                 Apply ops
               </button>
-              <button type="button" onClick={discard} className={BTN_GHOST_SM}>
+              <button type="button" onClick={discard} className={BTN_GHOST}>
+                <Icon name="x" size={14} />
                 Discard
               </button>
             </div>
-
           )}
         </div>
       ) : null}

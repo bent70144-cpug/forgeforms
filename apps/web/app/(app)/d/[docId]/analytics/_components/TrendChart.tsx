@@ -3,6 +3,8 @@
 // B6 redesign: token-driven series colors (--ff-chart-1/2/3, dark-mode safe),
 // gradient wash under the primary series, non-scaling strokes, 12px mono axis
 // labels with tabular numerals, canonical .ff-panel chrome with header legend.
+// Aurora redesign: grid hairlines softened via color-mix on the token border
+// (keeps the baseline at --ff-border-strong) and pill-shaped legend swatches.
 // Geometry helpers (chart-geometry.ts) are untouched.
 // R3 mobile: the svg carries .ff-trend-axis + data-alt on odd axis labels so
 // globals.css can enlarge/thin labels on phones (viewBox scaling would
@@ -58,7 +60,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
             <span key={s.key} className="inline-flex items-center gap-1.5">
               <span
                 aria-hidden="true"
-                className="inline-block h-3 w-3 rounded-[3px]"
+                className="inline-block h-1.5 w-4 rounded-full"
                 style={{ backgroundColor: s.color }}
               />
               {s.label}
@@ -82,7 +84,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
             <stop offset="100%" style={{ stopColor: "var(--ff-chart-1)", stopOpacity: 0 }} />
           </linearGradient>
         </defs>
-        {/* horizontal grid — dashed hairline on the token border color */}
+        {/* horizontal grid — dashed hairline, token border softened to 60% */}
         {[0.25, 0.5, 0.75, 1].map((fraction) => {
           const y = scaleY(max * fraction, max, HEIGHT, PAD.top, PAD.bottom);
           return (
@@ -93,7 +95,7 @@ export function TrendChart({ series }: { series: readonly TrendPoint[] }) {
               y1={y}
               y2={y}
               strokeDasharray="2 4"
-              style={{ stroke: "var(--ff-border)" }}
+              style={{ stroke: "color-mix(in srgb, var(--ff-border) 60%, transparent)" }}
             />
           );
         })}

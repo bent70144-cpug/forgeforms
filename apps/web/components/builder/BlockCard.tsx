@@ -60,7 +60,7 @@ function BlockPreview({ def, block }: { def: AnyBlockDef; block: Block }) {
   const parsed = def.propsSchema.safeParse(block.props);
   if (!parsed.success) {
     return (
-      <p className="text-xs text-slate-500" data-testid="block-props-invalid">
+      <p className="text-xs text-[color:var(--ff-warning)]" data-testid="block-props-invalid">
         Preview unavailable — fix this block&apos;s settings in the right pane.
       </p>
     );
@@ -128,9 +128,11 @@ function BlockCardImpl({
     }
   };
 
+  // Aurora glass card: tokenized deep-indigo surface; the selected card earns
+  // the violet ring + soft glow. Transitions are transform/opacity only.
   const cardClassName = selected
-    ? "relative w-full cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-white p-4 text-left shadow-md [outline:2px_solid_var(--ff-primary)] [outline-offset:2px]"
-    : "relative w-full cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-white p-4 text-left outline-1 outline-offset-2 outline-transparent hover:shadow-sm hover:[outline-color:var(--ff-border)] focus-visible:[outline:2px_solid_var(--ff-primary)] focus-visible:[outline-offset:2px]";
+    ? "relative w-full cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border-strong)] bg-[color:var(--ff-card)] p-4 text-left text-[color:var(--ff-fg)] shadow-[var(--ff-glow-soft)] [outline:2px_solid_var(--ff-primary)] [outline-offset:2px]"
+    : "relative w-full cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-[color:var(--ff-card)] p-4 text-left text-[color:var(--ff-fg)] outline-1 outline-offset-2 outline-transparent transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] hover:-translate-y-px hover:[outline-color:var(--ff-border-strong)] focus-visible:[outline:2px_solid_var(--ff-primary)] focus-visible:[outline-offset:2px]";
 
   return (
     <article
@@ -166,13 +168,15 @@ function BlockCardImpl({
 
       <BlockErrorBoundary block={block} onDelete={() => actions.remove(block.id)}>
         <header className="flex items-center gap-2 pr-2">
+          {/* Type-specific accent icon: small gradient tile (§design aurora). */}
           <span
             aria-hidden="true"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded bg-slate-100 text-xs"
+            style={{ background: "var(--ff-grad)" }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] text-xs shadow-[var(--ff-glow)]"
           >
             {blockIcon(block.kind)}
           </span>
-          <span className="min-w-0 flex-1 text-sm font-medium text-slate-800">
+          <span className="min-w-0 flex-1 text-sm font-medium">
             {primaryValue !== null ? (
               <InlineEditable
                 value={primaryValue}
@@ -191,7 +195,7 @@ function BlockCardImpl({
                 multiline={primaryMultiline === true}
               />
             ) : (
-              <span className="text-slate-500">{meta?.label ?? block.kind}</span>
+              <span className="text-[color:var(--ff-muted)]">{meta?.label ?? block.kind}</span>
             )}
           </span>
         </header>
@@ -204,7 +208,7 @@ function BlockCardImpl({
         {showChildrenZone ? (
           <div
             data-testid="block-children"
-            className="mt-3 space-y-2 rounded-md border-l-2 border-dashed border-slate-200 pl-3"
+            className="mt-3 space-y-2 rounded-md border-l-2 border-dashed border-[color:var(--ff-border)] pl-3"
           >
             {children.map((child, childIndex) => (
               <Fragment key={child.id}>
@@ -225,7 +229,7 @@ function BlockCardImpl({
               </Fragment>
             ))}
             {children.length === 0 ? (
-              <p className="py-1 text-xs text-slate-400">Empty container — add blocks below.</p>
+              <p className="py-1 text-xs text-[color:var(--ff-muted)]">Empty container — add blocks below.</p>
             ) : null}
             <InsertionRow index={children.length} parentId={block.id} actions={actions} />
           </div>

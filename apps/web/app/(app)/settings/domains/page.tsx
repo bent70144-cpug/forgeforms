@@ -11,22 +11,31 @@ export const metadata: Metadata = {
 export default function DomainsSettingsPage() {
   return (
     // Page container matches billing (max-w-5xl) so the shared SettingsTabs
-    // strip and hairline keep the same width across all three settings tabs;
-    // the client content below keeps its 48rem reading measure.
+    // glass rail and the header rhythm stay identical across all three
+    // settings tabs; the client content below keeps its 48rem reading measure.
     <div className="w-full max-w-5xl">
-      <header>
-        <p className="text-[13px] font-medium text-[var(--ff-muted)]">Settings</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">Custom domains</h1>
+      <header className="max-w-3xl">
+        <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ff-muted)]">
+          <span
+            aria-hidden="true"
+            className="h-px w-6 rounded-full"
+            style={{ background: 'var(--ff-grad)' }}
+          />
+          Settings
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-balance sm:text-[1.75rem]">
+          Custom domains
+        </h1>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-[var(--ff-muted)]">
           Serve a published document from your own hostname. Add the domain, publish the DNS records
           shown after you add it, then verify — traffic only routes once ownership is confirmed, so
           an unverified domain can never serve your forms.
         </p>
-        <div className="mt-6">
-          <SettingsTabs current="domains" />
-        </div>
       </header>
-      <div className="max-w-3xl">
+      <div className="mt-6">
+        <SettingsTabs current="domains" />
+      </div>
+      <div className="mt-8 max-w-3xl">
         <DomainsClient />
       </div>
     </div>

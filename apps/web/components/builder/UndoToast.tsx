@@ -110,11 +110,18 @@ export function UndoToastView(props: {
       role="status"
       aria-live="polite"
       data-testid="undo-toast"
-      className="ff-undo-toast fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm shadow-xl dark:border-stone-700 dark:bg-stone-900"
+      className="ff-undo-toast fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-xl px-4 py-3 text-sm"
+      style={{
+        background: "var(--ff-glass)",
+        WebkitBackdropFilter: "blur(14px) saturate(1.4)",
+        backdropFilter: "blur(14px) saturate(1.4)",
+        border: "1px solid var(--ff-glass-border)",
+        boxShadow: "var(--ff-shadow-lg)",
+      }}
     >
       <span className="font-medium">Deleted {props.label}</span>
       {props.hadLogic ? (
-        <span className="text-amber-700 dark:text-amber-400">
+        <span className="text-[color:var(--ff-warning)]">
           Used by logic rules — review in{" "}
           <a href={props.logicHref ?? "../logic"} className="underline underline-offset-2">
             Logic
@@ -126,7 +133,7 @@ export function UndoToastView(props: {
         type="button"
         onClick={props.onUndo}
         aria-label={`Undo delete of ${props.label}`}
-        className="rounded-md border border-stone-300 px-2.5 py-1 text-xs font-semibold hover:bg-stone-100 dark:border-stone-600 dark:hover:bg-stone-800"
+        className="ff-btn ff-btn-secondary ff-btn-sm"
       >
         Undo
       </button>
@@ -134,7 +141,7 @@ export function UndoToastView(props: {
         type="button"
         onClick={props.onDismiss}
         aria-label="Dismiss"
-        className="rounded-md px-1.5 py-1 text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
+        className="rounded-md p-1 leading-none text-[color:var(--ff-muted)] transition-colors hover:bg-[color:color-mix(in_srgb,var(--ff-fg)_8%,transparent)] hover:text-[color:var(--ff-fg)]"
       >
         ✕
       </button>

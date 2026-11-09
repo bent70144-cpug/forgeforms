@@ -504,15 +504,26 @@ function BuilderSession({
     return (
       <div className="flex min-h-[100dvh] items-center justify-center p-6">
         <div
-          className="max-w-md rounded-2xl border border-red-300 bg-red-50 p-6 text-sm text-red-800"
+          className="ff-panel max-w-md p-6 text-sm"
           role="alert"
+          style={{
+            background: "var(--ff-glass)",
+            WebkitBackdropFilter: "blur(14px) saturate(1.4)",
+            backdropFilter: "blur(14px) saturate(1.4)",
+            boxShadow: "var(--ff-shadow-lg)",
+          }}
         >
-          <p className="m-0 font-semibold">The builder could not load</p>
-          <p className="mt-1">{error}</p>
-          <p className="mt-2 text-xs text-red-700">
+          <p
+            className="m-0 font-semibold text-[color:var(--ff-danger)]"
+            style={{ fontFamily: "var(--ff-font-heading)" }}
+          >
+            The builder could not load
+          </p>
+          <p className="mt-1 text-[color:var(--ff-fg)]">{error}</p>
+          <p className="mt-2 text-xs text-[color:var(--ff-muted)]">
             Set NEXT_PUBLIC_FF_MOCK_BUILDER=1 for the in-memory dev document.
           </p>
-          <button type="button" className="ff-icon-btn mt-3" onClick={retry}>
+          <button type="button" className="ff-btn ff-btn-secondary mt-3" onClick={retry}>
             Retry
           </button>
         </div>
@@ -528,7 +539,7 @@ function BuilderSession({
         aria-busy="true"
       >
         <span
-          className="h-8 w-8 animate-spin rounded-full border-2 border-[color:var(--ff-border)] border-t-[color:var(--ff-primary)]"
+          className="h-9 w-9 animate-spin rounded-full border-2 border-[color:var(--ff-border)] border-t-[color:var(--ff-primary)]"
           aria-hidden="true"
         />
         <p className="m-0 text-sm text-[color:var(--ff-muted)]">Loading editor…</p>

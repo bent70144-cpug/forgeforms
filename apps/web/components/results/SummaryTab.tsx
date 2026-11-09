@@ -1,12 +1,15 @@
 // T15 — Summary tab (spec §14.1.5): headline cards (responses, completion
 // rate), per-question aggregates — choice distributions, rating averages,
 // NPS segments — all rendered with dependency-free CSS bars.
+// Aurora: readable hierarchy with hairline section dividers (uppercase micro
+// headers, mono counts/timestamps), gradient hero values on averages.
 
 "use client";
 
 import { useEffect, useState } from "react";
 import {
   describeError,
+  formatDateTime,
   truncateLabel,
   type BlockAggregate,
   type ResultsClient,
@@ -37,14 +40,14 @@ function formatAverage(n: number): string {
 function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
   return (
     <section className={`${CARD} p-5`}>
-      <header className="mb-4 flex items-start justify-between gap-4">
+      <header className="mb-4 flex items-start justify-between gap-4 border-b border-[var(--ff-border)] pb-3.5">
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-[var(--ff-fg)]" title={aggregate.label}>
             {truncateLabel(aggregate.label, 80)}
           </h3>
           <span className={`${BADGE_MUTED} mt-1.5 font-mono`}>{KIND_LABELS[aggregate.kind]}</span>
         </div>
-        <p className="shrink-0 text-xs tabular-nums text-[var(--ff-muted)]">
+        <p className="shrink-0 font-mono text-xs tabular-nums text-[var(--ff-muted)]">
           {aggregate.totalResponses} {aggregate.totalResponses === 1 ? "response" : "responses"}
         </p>
       </header>
@@ -58,10 +61,13 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         <div>
           <p className="mb-3 text-sm text-[var(--ff-muted)]">
             Average{" "}
-            <span className="text-lg font-semibold tabular-nums text-[var(--ff-fg)]">
+            <span
+              className="bg-clip-text font-mono text-lg font-semibold tabular-nums text-transparent"
+              style={{ backgroundImage: "var(--ff-grad)" }}
+            >
               {formatAverage(aggregate.average)}
             </span>{" "}
-            <span className="tabular-nums">/ {aggregate.scale}</span>
+            <span className="font-mono tabular-nums">/ {aggregate.scale}</span>
           </p>
           <BarList
             ariaLabel={`Rating distribution for ${aggregate.label}`}
@@ -77,19 +83,19 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         <dl className="grid grid-cols-3 gap-4 text-sm">
           <div>
             <dt className="text-xs font-medium text-[var(--ff-muted)]">Average</dt>
-            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
+            <dd className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.average)}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-[var(--ff-muted)]">Min</dt>
-            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
+            <dd className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.min)}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-[var(--ff-muted)]">Max</dt>
-            <dd className="mt-0.5 text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
+            <dd className="mt-0.5 font-mono text-xl font-semibold tabular-nums text-[var(--ff-fg)]">
               {formatAverage(aggregate.max)}
             </dd>
           </div>
@@ -98,11 +104,11 @@ function AggregateCard({ aggregate }: { aggregate: BlockAggregate }) {
         aggregate.recent.length === 0 ? (
           <p className="text-sm text-[var(--ff-muted)]">No written answers yet.</p>
         ) : (
-          <ul className="space-y-2.5">
+          <ul className="space-y-2">
             {aggregate.recent.map((text, i) => (
               <li
                 key={i}
-                className="rounded-lg bg-[color-mix(in_srgb,var(--ff-fg)_2%,var(--ff-bg))] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)]"
+                className="rounded-r-lg border-l-2 border-[color-mix(in_srgb,var(--ff-primary)_50%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_4%,transparent)] px-3 py-2 text-sm leading-relaxed text-[var(--ff-fg)]"
               >
                 <span aria-hidden="true" className="mr-1 text-[var(--ff-muted)]">
                   “
@@ -237,11 +243,23 @@ export function SummaryTab({ docId, client, slug }: SummaryTabProps) {
           This document has no question blocks to summarize.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {summary.blocks.map((aggregate) => (
-            <AggregateCard key={aggregate.blockId} aggregate={aggregate} />
-          ))}
-        </div>
+        <>
+          {/* section divider: label — hairline — generation timestamp (mono) */}
+          <div className="flex items-center gap-4 pt-1">
+            <h2 className="shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--ff-muted)]">
+              Question breakdown
+            </h2>
+            <span aria-hidden="true" className="h-px flex-1 bg-[var(--ff-border)]" />
+            <p className="shrink-0 font-mono text-xs tabular-nums text-[var(--ff-muted)]">
+              Generated {formatDateTime(summary.generatedAt)}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {summary.blocks.map((aggregate) => (
+              <AggregateCard key={aggregate.blockId} aggregate={aggregate} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

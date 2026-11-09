@@ -223,7 +223,7 @@ export function EndingsPanel() {
     return (
       <div className="ff-th-panel" data-testid="endings-panel">
         <section aria-label="Endings" className="ff-th-section">
-          <h3 className="ff-th-section-title">Endings</h3>
+          <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Endings</h3>
           <p className="ff-th-note" data-testid="endings-empty">
             No endings yet — add one to close the form.
           </p>
@@ -248,7 +248,7 @@ export function EndingsPanel() {
     <div className="ff-th-panel" data-testid="endings-panel">
       {/* --- Endings list (§8.3 left-pane rows + preview chip) ---------------- */}
       <section aria-label="Endings" className="ff-th-section">
-        <h3 className="ff-th-section-title">Endings</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Endings</h3>
         <ul className="ff-th-endings-list" data-testid="endings-list">
           {endings.map((ending, idx) => (
             <li key={ending.id}>
@@ -280,7 +280,7 @@ export function EndingsPanel() {
 
       {/* --- Editor for the selected ending ------------------------------------ */}
       <section aria-label="Ending editor" className="ff-th-section">
-        <h3 className="ff-th-section-title">Ending editor</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Ending editor</h3>
 
         <div className="ff-th-field">
           <label className="ff-th-row-label" htmlFor="ff-ending-title">
@@ -397,7 +397,14 @@ export function EndingsPanel() {
         </fieldset>
 
         {/* --- Delete (last-ending guard + logic-reference confirm) ------------ */}
-        <div className="ff-th-field" data-testid="ending-delete-zone">
+        <div
+          className="ff-th-field rounded-xl border p-3"
+          data-testid="ending-delete-zone"
+          style={{
+            borderColor: "color-mix(in srgb, var(--ff-danger) 35%, transparent)",
+            background: "color-mix(in srgb, var(--ff-danger) 6%, transparent)",
+          }}
+        >
           <button
             type="button"
             className="ff-th-btn ff-th-btn--danger"
@@ -449,7 +456,7 @@ export function EndingsPanel() {
 
       {/* --- Live preview card (§8.3; styles computed from theme tokens) ------- */}
       <section aria-label="Ending preview" className="ff-th-section">
-        <h3 className="ff-th-section-title">Preview</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Preview</h3>
         <div
           className="ff-th-preview"
           data-testid="ending-preview"

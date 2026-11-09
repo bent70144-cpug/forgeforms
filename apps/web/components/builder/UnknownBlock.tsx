@@ -44,7 +44,7 @@ function UnknownBlockImpl({
       onFocus={() => {
         if (!selected) actions.select(block.id);
       }}
-      className="relative cursor-default rounded-[var(--ff-radius)] border border-dashed border-slate-300 bg-slate-50 p-4 outline-1 outline-offset-2 outline-transparent hover:[outline-color:var(--ff-border)] focus-visible:[outline:2px_solid_var(--ff-primary)]"
+      className="relative cursor-default rounded-[var(--ff-radius)] border border-dashed border-[color:var(--ff-border-strong)] bg-[color:var(--ff-bg-2)] p-4 text-[color:var(--ff-fg)] outline-1 outline-offset-2 outline-transparent hover:[outline-color:var(--ff-border-strong)] focus-visible:[outline:2px_solid_var(--ff-primary)]"
       style={{ contentVisibility: "auto", containIntrinsicSize: "80px" }}
     >
       {selected ? (
@@ -58,11 +58,11 @@ function UnknownBlockImpl({
           limited
         />
       ) : null}
-      <p className="text-sm font-medium text-slate-600">
+      <p className="text-sm font-medium text-[color:var(--ff-fg)]">
         This block type isn&apos;t supported in this version
       </p>
-      <p className="mt-1 text-xs text-slate-500">
-        Unknown type <code className="rounded bg-slate-200 px-1">{block.kind}</code> — its content
+      <p className="mt-1 text-xs text-[color:var(--ff-muted)]">
+        Unknown type <code className="rounded bg-[color:color-mix(in_srgb,var(--ff-fg)_8%,transparent)] px-1 font-mono">{block.kind}</code> — its content
         is preserved and still publishes.
       </p>
     </article>

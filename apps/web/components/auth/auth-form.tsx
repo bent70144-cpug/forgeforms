@@ -5,7 +5,7 @@
 // server-side error). One component for both modes.
 import { useActionState, useId, useState } from "react";
 import { loginAction, registerAction, type AuthFormState } from "@/lib/auth/actions";
-import { BTN_PRIMARY, ICON_BTN } from "@/lib/ui";
+import { BANNER_ERROR, BTN_PRIMARY, ICON_BTN } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
 
 // Empty initial state — kept client-side because "use server" modules may only
@@ -19,6 +19,22 @@ function fieldErrors(state: AuthFormState): Record<string, string> {
     if (out[detail.path] === undefined) out[detail.path] = detail.message;
   }
   return out;
+}
+
+/* Left-edge gradient accent that lights up while a field row holds focus
+   (wrap the input in a `group relative` div to use it). A separate pill
+   layered over the input — not a border override — so the shared .ff-field
+   input recipe in globals.css stays untouched. Tokens only (--ff-grad), so
+   it survives the light-scheme flip; the opacity transition collapses to a
+   single frame under the global prefers-reduced-motion rule. */
+export function FocusSpine() {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute inset-y-[7px] left-[3px] w-[3px] rounded-full opacity-0 transition-opacity duration-200 group-focus-within:opacity-100"
+      style={{ background: "var(--ff-grad)" }}
+    />
+  );
 }
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
@@ -41,7 +57,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   return (
     <form action={formAction} className="ff-form" aria-busy={pending}>
       {formError !== null && (
-        <p className="ff-banner ff-banner-error" role="alert">
+        <p className={BANNER_ERROR} role="alert">
           {formError}
         </p>
       )}
@@ -49,16 +65,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       {mode === "register" && (
         <div className="ff-field">
           <label htmlFor={nameId}>Name</label>
-          <input
-            id={nameId}
-            name="name"
-            type="text"
-            autoComplete="name"
-            placeholder="Ana Smith"
-            maxLength={100}
-            aria-invalid={errors.name !== undefined}
-            aria-describedby={errors.name !== undefined ? `${nameId}-error` : undefined}
-          />
+          <div className="group relative">
+            <input
+              id={nameId}
+              name="name"
+              type="text"
+              autoComplete="name"
+              placeholder="Ana Smith"
+              maxLength={100}
+              aria-invalid={errors.name !== undefined}
+              aria-describedby={errors.name !== undefined ? `${nameId}-error` : undefined}
+            />
+            <FocusSpine />
+          </div>
           {errors.name !== undefined && (
             <p className="ff-field-error" id={`${nameId}-error`} role="alert">
               {errors.name}
@@ -69,16 +88,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
       <div className="ff-field">
         <label htmlFor={emailId}>Email</label>
-        <input
-          id={emailId}
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@example.com"
-          aria-invalid={errors.email !== undefined}
-          aria-describedby={errors.email !== undefined ? `${emailId}-error` : undefined}
-        />
+        <div className="group relative">
+          <input
+            id={emailId}
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-invalid={errors.email !== undefined}
+            aria-describedby={errors.email !== undefined ? `${emailId}-error` : undefined}
+          />
+          <FocusSpine />
+        </div>
         {errors.email !== undefined && (
           <p className="ff-field-error" id={`${emailId}-error`} role="alert">
             {errors.email}
@@ -88,7 +110,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
       <div className="ff-field">
         <label htmlFor={passwordId}>Password</label>
-        <div className="relative">
+        <div className="group relative">
           <input
             id={passwordId}
             name="password"
@@ -101,6 +123,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             aria-describedby={errors.password !== undefined ? `${passwordId}-error` : undefined}
             style={{ paddingRight: "2.75rem" }}
           />
+          <FocusSpine />
           <button
             type="button"
             className={`${ICON_BTN} absolute top-1/2 right-1.5 -translate-y-1/2`}

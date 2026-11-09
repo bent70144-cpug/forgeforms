@@ -72,7 +72,12 @@ export function SaveIndicator({ store }: { store: SaveStatusStore }) {
       ? 'error'
       : 'ok';
   return (
-    <span className={`ff-save-chip ff-save-chip--${tone}`} role="status" aria-live="polite">
+    <span
+      className={`ff-save-chip ff-save-chip--${tone}`}
+      role="status"
+      aria-live="polite"
+      data-save-status={snapshot.status}
+    >
       {label}
     </span>
   );

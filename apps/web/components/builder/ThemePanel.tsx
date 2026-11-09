@@ -156,7 +156,7 @@ export function ThemePanel() {
     <div className="ff-th-panel" data-testid="theme-panel">
       {/* --- Presets (§23) -------------------------------------------------- */}
       <section aria-label="Presets" className="ff-th-section">
-        <h3 className="ff-th-section-title">Presets</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Presets</h3>
         <div className="ff-th-preset-grid" role="group" aria-label="Theme presets">
           {THEME_PRESETS.map((preset) => {
             const active = activePresetId === preset.id;
@@ -164,7 +164,7 @@ export function ThemePanel() {
               <button
                 key={preset.id}
                 type="button"
-                className="ff-th-preset"
+                className={`ff-th-preset transition-[transform,opacity] duration-200 ease-[var(--ff-ease-out)] hover:-translate-y-0.5`}
                 aria-pressed={active}
                 data-preset-id={preset.id}
                 title={`Apply theme: ${preset.name}`}
@@ -200,7 +200,7 @@ export function ThemePanel() {
 
       {/* --- Colors (§8.2: picker + hex + contrast badges) ------------------- */}
       <section aria-label="Colors" className="ff-th-section">
-        <h3 className="ff-th-section-title">Colors</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Colors</h3>
         <div className="ff-th-color-rows">
           {TOKEN_ROWS.map(({ key, label }) => {
             const committed = theme.tokens[key] ?? "";
@@ -253,7 +253,7 @@ export function ThemePanel() {
 
       {/* --- Fonts (§23 allowlist) ------------------------------------------- */}
       <section aria-label="Fonts" className="ff-th-section">
-        <h3 className="ff-th-section-title">Fonts</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Fonts</h3>
         <div className="ff-th-font-rows">
           <label className="ff-th-row">
             <span className="ff-th-row-label">Heading</span>
@@ -296,7 +296,7 @@ export function ThemePanel() {
 
       {/* --- Radius (§8.2 segmented control) ---------------------------------- */}
       <section aria-label="Corner radius" className="ff-th-section">
-        <h3 className="ff-th-section-title">Corner radius</h3>
+        <h3 className="ff-th-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">Corner radius</h3>
         <div className="ff-th-segmented" role="group" aria-label="Corner radius">
           {RADII.map((radius) => (
             <button

@@ -17,6 +17,7 @@
 //     Document settings tab (selection === null means "document selected").
 
 import { useMemo } from "react";
+import { Icon } from "@/components/ui/icons";
 import { useBuilder } from "./context";
 import { BlocksTree } from "./BlocksTree";
 import { newId } from "@/lib/builder/id";
@@ -93,8 +94,10 @@ export function LeftPane() {
   return (
     <div className="flex h-full min-h-0 flex-col" data-testid="left-pane">
       <div className="ff-pane--bottom p-3">
-        <button type="button" className="ff-icon-btn w-full" onClick={openPicker}>
-          <span aria-hidden="true">＋</span> Add block
+        {/* the pane's primary action — violet→cyan gradient with glow */}
+        <button type="button" className="ff-btn ff-btn-primary w-full" onClick={openPicker}>
+          <Icon name="plus" size={16} />
+          Add block
         </button>
       </div>
 
@@ -126,7 +129,7 @@ export function LeftPane() {
               className="ff-tree-row w-full text-[color:var(--ff-muted)]"
               onClick={addEnding}
             >
-              <span aria-hidden="true">＋</span>
+              <Icon name="plus" size={14} />
               <span className="ff-tree-label">Add ending</span>
             </button>
           </li>
@@ -136,7 +139,7 @@ export function LeftPane() {
       <section aria-label="Logic" className="ff-pane--top p-2">
         <a
           href={`/d/${state.docId}/logic`}
-          className="flex items-center gap-1.5 rounded-md px-1 py-1.5 text-sm font-medium text-[color:var(--ff-primary)] hover:underline"
+          className="flex items-center gap-1.5 rounded-lg px-1 py-1.5 text-sm font-medium text-[color:var(--ff-primary)] transition-colors hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_8%,transparent)] hover:underline"
         >
           Logic ({rules.length} {rules.length === 1 ? "rule" : "rules"})
           {hasDangling && (

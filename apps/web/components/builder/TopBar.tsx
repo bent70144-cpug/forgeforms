@@ -105,50 +105,68 @@ export function TopBar({
             if (e.key === "Escape") setEditing(false); // Esc reverts
           }}
           aria-label="Document title"
-          className="min-w-0 max-w-80 flex-1 rounded-md border border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] px-2 py-1.5 text-sm font-semibold"
+          className="ff-input min-w-0 max-w-80 flex-1 font-semibold"
         />
       ) : (
         <span className="flex min-w-0 items-center gap-2">
           <button
             type="button"
             onClick={startEdit}
-            className="truncate rounded-md px-2 py-1.5 text-sm font-semibold hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_8%,transparent)]"
+            className="truncate rounded-lg px-2 py-1 text-[0.9375rem] font-semibold tracking-tight transition-colors hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_10%,transparent)]"
+            style={{ fontFamily: "var(--ff-font-heading)" }}
             title="Click to rename"
             dir="auto"
           >
             {title || "Untitled"}
           </button>
           {state.save === "dirty" && (
-            <span className="hidden text-xs font-medium text-[color:var(--ff-muted)] sm:inline" aria-hidden="true">
+            <span
+              className="hidden items-center rounded-full px-2 py-0.5 text-xs font-medium text-[color:var(--ff-warning)] sm:inline-flex"
+              style={{
+                background: "var(--ff-warning-soft)",
+                border: "1px solid color-mix(in srgb, var(--ff-warning) 30%, transparent)",
+              }}
+              aria-hidden="true"
+            >
               Edited
             </span>
           )}
+          {/* mono doc-id chip — support/reference only, never the title */}
+          <span
+            className="hidden max-w-[9rem] truncate md:inline"
+            style={{ fontFamily: "var(--ff-font-mono)", fontSize: "0.6875rem", color: "var(--ff-muted)" }}
+            title={state.docId}
+          >
+            {state.docId}
+          </span>
         </span>
       )}
 
       <div className="ml-auto flex flex-wrap items-center gap-1.5 sm:gap-2">
         <SaveIndicator store={saveStatusStore} />
 
-        <button
-          type="button"
-          className="ff-icon-btn"
-          onClick={() => dispatch({ type: "undo" })}
-          disabled={!canUndo}
-          title={`Undo${lastUndo?.label ? `: ${lastUndo.label}` : ""}`}
-          aria-label="Undo"
-        >
-          <span aria-hidden="true">↶</span>
-        </button>
-        <button
-          type="button"
-          className="ff-icon-btn"
-          onClick={() => dispatch({ type: "redo" })}
-          disabled={!canRedo}
-          title={`Redo${lastRedo?.label ? `: ${lastRedo.label}` : ""}`}
-          aria-label="Redo"
-        >
-          <span aria-hidden="true">↷</span>
-        </button>
+        <div className="flex items-center gap-1" role="group" aria-label="History">
+          <button
+            type="button"
+            className="ff-icon-btn"
+            onClick={() => dispatch({ type: "undo" })}
+            disabled={!canUndo}
+            title={`Undo${lastUndo?.label ? `: ${lastUndo.label}` : ""}`}
+            aria-label="Undo"
+          >
+            <span aria-hidden="true">↶</span>
+          </button>
+          <button
+            type="button"
+            className="ff-icon-btn"
+            onClick={() => dispatch({ type: "redo" })}
+            disabled={!canRedo}
+            title={`Redo${lastRedo?.label ? `: ${lastRedo.label}` : ""}`}
+            aria-label="Redo"
+          >
+            <span aria-hidden="true">↷</span>
+          </button>
+        </div>
 
         <button type="button" className="ff-icon-btn" onClick={() => setPreviewOpen(true)}>
           Preview
@@ -162,6 +180,13 @@ export function TopBar({
         >
           {copied ? "Copied" : "Share"}
         </button>
+
+        {/* placement only — PublishControl internals live in PublishControl.tsx */}
+        <span
+          aria-hidden="true"
+          className="mx-0.5 hidden h-5 w-px shrink-0 sm:block"
+          style={{ background: "var(--ff-border)" }}
+        />
 
         <PublishControl />
 

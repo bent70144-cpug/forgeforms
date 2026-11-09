@@ -16,7 +16,7 @@
 // "Form editor". Overlays are modal dialogs and return focus to their
 // invoking control on close.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { LiveAnnouncer } from "@/lib/builder/announce";
 import { useBuilder } from "./context";
 import { ContextualBanner, type BannerKind } from "./ContextualBanner";
@@ -27,6 +27,26 @@ import { EndingsPanel } from "./EndingsPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ThemePanel } from "./ThemePanel";
 import type { SaveStatusStore } from "./save-indicator";
+
+/* Aurora-glass chrome: the pane classes stay as drag-geometry/test hooks;
+   their solid --ff-card surface is lifted to the shared glass token inline
+   (unlayered .ff-pane CSS would beat layered Tailwind bg utilities) so the
+   builder's aurora wash shows through blurred behind every pane. */
+const GLASS: CSSProperties = {
+  backgroundColor: "var(--ff-glass)",
+  WebkitBackdropFilter: "blur(14px) saturate(1.4)",
+  backdropFilter: "blur(14px) saturate(1.4)",
+};
+
+/* The builder canvas field: the body's aurora recipe re-based on the app
+   action tokens, applied on .ff-builder itself (inline longhand beats the
+   class shorthand) so glass panes sample it via backdrop-filter. */
+const AURORA_FIELD: CSSProperties = {
+  backgroundImage:
+    "radial-gradient(52rem 36rem at 10% -10%, color-mix(in srgb, var(--ff-primary) 14%, transparent), transparent 60%)," +
+    "radial-gradient(44rem 30rem at 96% 2%, color-mix(in srgb, var(--ff-primary-2) 9%, transparent), transparent 55%)," +
+    "radial-gradient(60rem 44rem at 50% 120%, color-mix(in srgb, var(--ff-accent) 7%, transparent), transparent 60%)",
+};
 
 type Zone = "mobile" | "tablet" | "desktop";
 
@@ -132,7 +152,9 @@ export function BuilderShell({
 
   const overlayHeader = (title: string, closeLabel: string) => (
     <div className="ff-pane--bottom flex items-center justify-between px-3 py-2">
-      <span className="text-sm font-semibold">{title}</span>
+      <span className="text-sm font-semibold" style={{ fontFamily: "var(--ff-font-heading)" }}>
+        {title}
+      </span>
       <button type="button" className="ff-icon-btn" aria-label={closeLabel} onClick={closeOverlays}>
         <span aria-hidden="true">✕</span>
       </button>
@@ -140,12 +162,12 @@ export function BuilderShell({
   );
 
   return (
-    <div className="ff-builder" data-testid="builder-shell">
+    <div className="ff-builder" data-testid="builder-shell" style={AURORA_FIELD}>
       {/* §12/§6.2: the ONE polite live region for the whole builder — block
           moves (Alt+↑/↓ and the toolbar arrows) announce "… moved to
           position N of M" through the ff:announce window event. */}
       <LiveAnnouncer />
-      <header className="ff-pane ff-pane--bottom shrink-0">
+      <header className="ff-pane ff-pane--bottom shrink-0" style={GLASS}>
         <TopBar
           saveStatusStore={saveStatusStore}
           onToggleSettings={zone === "tablet" ? () => setSettingsOpen(true) : undefined}
@@ -160,10 +182,16 @@ export function BuilderShell({
         <div
           role="status"
           data-testid="builder-notice"
-          className="ff-pane--bottom flex items-center gap-2 border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800"
+          className="ff-banner ff-banner-error mx-3 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"
+          style={{ boxShadow: "var(--ff-shadow-sm)" }}
         >
           <span className="min-w-0 flex-1">{notice}</span>
-          <button type="button" className="ff-icon-btn" aria-label="Dismiss notice" onClick={onNoticeDismiss}>
+          <button
+            type="button"
+            aria-label="Dismiss notice"
+            onClick={onNoticeDismiss}
+            className="shrink-0 rounded-md p-1 leading-none transition-colors hover:bg-[color:color-mix(in_srgb,var(--ff-fg)_10%,transparent)]"
+          >
             <span aria-hidden="true">✕</span>
           </button>
         </div>
@@ -174,7 +202,11 @@ export function BuilderShell({
       <div className="flex min-h-0 flex-1">
         {/* --- left: blocks ---------------------------------------------------- */}
         {zone === "desktop" && (
-          <aside aria-label="Blocks" className="ff-pane ff-pane--left w-[272px] shrink-0 overflow-y-auto">
+          <aside
+            aria-label="Blocks"
+            className="ff-pane ff-pane--left w-[272px] shrink-0 overflow-y-auto"
+            style={GLASS}
+          >
             <LeftPane />
           </aside>
         )}
@@ -183,6 +215,7 @@ export function BuilderShell({
           <nav
             aria-label="Builder panes"
             className="ff-pane ff-pane--left flex w-14 shrink-0 flex-col items-center gap-2 py-3"
+            style={GLASS}
           >
             <button
               ref={railButtonRef}
@@ -212,7 +245,11 @@ export function BuilderShell({
 
         {/* --- right: settings --------------------------------------------------- */}
         {zone === "desktop" && (
-          <aside aria-label="Settings" className="ff-pane ff-pane--right w-[320px] shrink-0 overflow-y-auto">
+          <aside
+            aria-label="Settings"
+            className="ff-pane ff-pane--right w-[320px] shrink-0 overflow-y-auto"
+            style={GLASS}
+          >
             {paneTabs}
             {rightPane}
           </aside>
@@ -222,12 +259,13 @@ export function BuilderShell({
       {/* --- tablet: blocks rail overlay ---------------------------------------- */}
       {zone === "tablet" && railExpanded && (
         <div className="fixed inset-0 z-40" data-testid="rail-overlay">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/30" onClick={closeOverlays} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={closeOverlays} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Blocks"
             className="ff-pane ff-pane--left absolute inset-y-0 left-0 flex w-[272px] max-w-[85vw] flex-col shadow-xl"
+            style={GLASS}
           >
             {overlayHeader("Blocks", "Close blocks panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -240,12 +278,13 @@ export function BuilderShell({
       {/* --- tablet: settings slide-over drawer ---------------------------------- */}
       {zone === "tablet" && settingsOpen && (
         <div className="fixed inset-0 z-40" data-testid="settings-drawer">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/30" onClick={closeOverlays} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={closeOverlays} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Settings"
             className="ff-pane ff-pane--right absolute inset-y-0 right-0 flex w-[320px] max-w-[90vw] flex-col shadow-xl"
+            style={GLASS}
           >
             {overlayHeader("Settings", "Close settings panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -261,7 +300,7 @@ export function BuilderShell({
         <nav
           aria-label="Builder panes"
           className="ff-pane ff-pane--top flex shrink-0"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          style={{ ...GLASS, paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <button
             ref={blocksSheetButtonRef}
@@ -288,12 +327,13 @@ export function BuilderShell({
       {/* --- mobile: ~70vh bottom sheets ------------------------------------------- */}
       {zone === "mobile" && sheet !== null && (
         <div className="fixed inset-0 z-40" data-testid="bottom-sheet">
-          <div aria-hidden="true" className="absolute inset-0 bg-black/30" onClick={closeOverlays} />
+          <div aria-hidden="true" className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={closeOverlays} />
           <div
             role="dialog"
             aria-modal="true"
             aria-label={sheet === "blocks" ? "Blocks" : "Settings"}
             className="ff-pane ff-pane--top absolute inset-x-0 bottom-0 flex h-[70vh] flex-col rounded-t-2xl shadow-2xl"
+            style={GLASS}
           >
             {overlayHeader(sheet === "blocks" ? "Blocks" : "Settings", sheet === "blocks" ? "Close blocks panel" : "Close settings panel")}
             <div className="min-h-0 flex-1 overflow-y-auto">
@@ -349,6 +389,17 @@ function PaneTabs() {
             className={`ff-pane-tab min-h-8 rounded-md px-2.5 text-sm font-medium ${selected ? "ff-pane-tab--active" : ""}`}
             onClick={() => dispatch({ type: "setPanel", panel: tab.panel })}
           >
+            {/* violet active indicator — app gradient + soft glow */}
+            {selected && (
+              <span
+                aria-hidden="true"
+                className="h-1.5 w-1.5 shrink-0 rounded-full"
+                style={{
+                  background: "var(--ff-grad)",
+                  boxShadow: "0 0 8px color-mix(in srgb, var(--ff-primary) 60%, transparent)",
+                }}
+              />
+            )}
             {tab.label}
           </button>
         );

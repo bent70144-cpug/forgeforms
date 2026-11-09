@@ -1,8 +1,8 @@
 // T15 — Results screen shell (`/d/:docId/results`, spec §14.1.5): document
 // header, Submissions / Summary / Analytics tabs, client seam for data.
-// B5: width follows the app shell (no extra max-w), underline tabs matching
-// SettingsTabs (icons + coral inset underline, roving arrow-key focus), shared
-// EmptyState for the Analytics pointer, token-driven badges/actions.
+// Aurora: width follows the app shell (no extra max-w), underline tabs with a
+// violet→cyan gradient inset underline (roving arrow-key focus preserved),
+// mono "Updated" doc meta, shared EmptyState for the Analytics pointer.
 
 "use client";
 
@@ -18,6 +18,7 @@ import {
 import {
   createResultsClient,
   describeError,
+  formatDateTimeShort,
   type DocumentSummary,
 } from "../../lib/results";
 import {
@@ -159,6 +160,11 @@ export function ResultsScreen({ docId }: { docId: string }) {
                 </h1>
                 <span className={BADGE_MUTED}>{typeBadge(doc.type)}</span>
                 <span className={statusBadgeClass(doc.status)}>{doc.status}</span>
+                {doc.updatedAt ? (
+                  <span className="font-mono text-xs tabular-nums text-[var(--ff-muted)]">
+                    Updated {formatDateTimeShort(doc.updatedAt)}
+                  </span>
+                ) : null}
               </div>
               <button
                 type="button"
@@ -201,7 +207,12 @@ export function ResultsScreen({ docId }: { docId: string }) {
                     ? {
                         color: "var(--ff-fg)",
                         fontWeight: 550,
-                        boxShadow: "inset 0 -2px 0 0 var(--ff-accent)",
+                        /* aurora underline: a 2px violet→cyan gradient line pinned
+                           to the tab's bottom edge (inset-shadow can't gradient) */
+                        backgroundImage: "var(--ff-grad)",
+                        backgroundSize: "100% 2px",
+                        backgroundPosition: "0 100%",
+                        backgroundRepeat: "no-repeat",
                       }
                     : undefined
                 }

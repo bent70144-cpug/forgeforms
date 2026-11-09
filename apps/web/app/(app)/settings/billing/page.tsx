@@ -16,6 +16,10 @@ import {
 // upgrade prompts. Stripe env is read server-side; when the gateway or price
 // ids are missing the CTAs degrade to a disabled state instead of failing at
 // submit time (honest fallback copy lives in ONE footnote below the grid).
+//
+// Presentation notes (aurora glass): header eyebrow carries a small gradient
+// tick, the seats summary is a glass panel with a violet meter, and plan
+// cards live in PlanCard (violet ring = current plan).
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -65,13 +69,27 @@ export default async function BillingSettingsPage({
   const params = await searchParams;
   const snapshot = await loadBillingSnapshot();
   const currentEntry = PLAN_CATALOG[snapshot.plan];
+  // Presentation-only derived value for the seats meter (clamped 0–100).
+  const seatPct =
+    snapshot.seats.limit > 0
+      ? Math.min(100, Math.round((snapshot.seats.used / snapshot.seats.limit) * 100))
+      : 0;
 
   return (
     <div className="w-full max-w-5xl">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-3xl">
-          <p className="text-[13px] font-medium text-[var(--ff-muted)]">Settings</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-balance">Billing</h1>
+          <p className="flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ff-muted)]">
+            <span
+              aria-hidden="true"
+              className="h-px w-6 rounded-full"
+              style={{ background: 'var(--ff-grad)' }}
+            />
+            Settings
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-balance sm:text-[1.75rem]">
+            Billing
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
             You’re on the{' '}
             <span className="font-medium text-[var(--ff-fg)]">{currentEntry.name}</span> plan.
@@ -98,37 +116,49 @@ export default async function BillingSettingsPage({
         <SettingsTabs current="billing" />
       </div>
 
-      <div className="space-y-3">
+      <div className="mt-6 space-y-3">
         <CheckoutFlash params={params} />
       </div>
 
-      <section
-        aria-label="Seats"
-        className="ff-panel mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 p-5"
-      >
-        <span
-          aria-hidden="true"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-accent)_12%,transparent)] text-[var(--ff-accent)]"
-        >
-          <Icon name="creditCard" size={18} />
-        </span>
-        <div>
-          <p className="text-xs text-[var(--ff-muted)]">Seats</p>
-          <p className="text-2xl font-semibold tabular-nums">
-            {snapshot.seats.used}
-            <span className="text-base font-normal text-[var(--ff-muted)]">
-              {' '}
-              / {snapshot.seats.limit} used
-            </span>
+      <section aria-label="Seats" className="ff-panel mt-6 p-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <span
+            aria-hidden="true"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)] text-[var(--ff-primary)]"
+          >
+            <Icon name="creditCard" size={18} />
+          </span>
+          <div>
+            <p className="text-xs text-[var(--ff-muted)]">Seats</p>
+            <p className="text-2xl font-semibold tabular-nums">
+              {snapshot.seats.used}
+              <span className="text-base font-normal text-[var(--ff-muted)]">
+                {' '}
+                / {snapshot.seats.limit} used
+              </span>
+            </p>
+          </div>
+          <p className="ml-auto max-w-[26rem] text-xs leading-relaxed text-[var(--ff-muted)]">
+            Seat limits come from your plan (Free 1 · Pro 3 · Business 10).
           </p>
         </div>
-        <p className="ml-auto max-w-[26rem] text-xs leading-relaxed text-[var(--ff-muted)]">
-          Seat limits come from your plan (Free 1 · Pro 3 · Business 10).
-        </p>
+        {/* Decorative meter — the numeric value above carries the information. */}
+        <div
+          aria-hidden="true"
+          className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_8%,transparent)]"
+        >
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${seatPct}%`, background: 'var(--ff-grad)' }}
+          />
+        </div>
       </section>
 
       <section aria-label="Plans" className="mt-8">
-        <h2 className="text-base font-semibold">Plans</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-semibold">Plans</h2>
+          <span aria-hidden="true" className="h-px flex-1 bg-[var(--ff-border)]" />
+        </div>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {PLANS.map((plan: Plan) => {
             const entry = PLAN_CATALOG[plan];

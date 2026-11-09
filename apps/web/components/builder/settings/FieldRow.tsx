@@ -7,7 +7,8 @@
 
 import type { ReactNode } from "react";
 
-/** A §6.6 settings section: small-caps header, divider, stacked rows. */
+/** A §6.6 settings section: sticky small-caps header with divider, stacked
+ * rows. The header pins to the pane scrollport (bg matches .ff-pane). */
 export function SettingsSection({
   title,
   children,
@@ -19,14 +20,15 @@ export function SettingsSection({
 }) {
   return (
     <section className="ff-set-section" data-testid={testId}>
-      <h3 className="ff-set-section-title">{title}</h3>
+      <h3 className="ff-set-section-title sticky top-0 z-10 bg-[color:var(--ff-card)] pt-1">{title}</h3>
       <div className="flex flex-col gap-3">{children}</div>
     </section>
   );
 }
 
-/** One labelled settings row: control on top, hint/error below. Errors only
- * style the field — they never block autosave (§6.6). */
+/** One labelled settings row: control on top, hint/error below. Uses the
+ * design-system .ff-field label/input hierarchy. Errors only style the field —
+ * they never block autosave (§6.6). */
 export function FieldRow({
   label,
   htmlFor,
@@ -41,8 +43,8 @@ export function FieldRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium" htmlFor={htmlFor}>
+    <div className="ff-field">
+      <label className="font-medium" htmlFor={htmlFor}>
         {label}
       </label>
       {children}
@@ -75,6 +77,7 @@ export function InlineNote({
   );
 }
 
-/** Shared compact control styling for panel inputs/selects. */
+/** Shared compact control styling for panel inputs/selects — tokenized
+ * (deep surface, violet focus ring, danger border when aria-invalid). */
 export const FF_SET_INPUT_CLASS =
-  "ff-set-input min-h-9 w-full rounded-md border border-[color:var(--ff-border)] bg-transparent px-2 py-1.5 text-sm outline-none focus-visible:border-[color:var(--ff-primary)] disabled:opacity-50";
+  "ff-set-input min-h-9 w-full rounded-lg border border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] px-2.5 py-1.5 text-sm text-[color:var(--ff-fg)] outline-none placeholder:text-[color:var(--ff-muted)] focus-visible:border-[color:var(--ff-primary)] focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-primary)_22%,transparent)] disabled:opacity-50 aria-[invalid=true]:border-[color:var(--ff-danger)]";

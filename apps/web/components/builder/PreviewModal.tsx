@@ -147,7 +147,7 @@ export function PreviewModal({
             <div className="ff-prev-params">
               <input
                 type="text"
-                className="ff-prev-params-input"
+                className="ff-prev-params-input bg-[color:var(--ff-glass)]! backdrop-blur-md"
                 aria-label="Prefill URL params"
                 placeholder="?email=test@x.io&name=Ada"
                 value={session.paramsText}

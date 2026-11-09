@@ -239,7 +239,7 @@ function BlockSettingsLoaded({
       )}
 
       <SettingsSection title="Logic" testId="ff-set-logic">
-        <p className="text-sm" data-testid="ff-set-logic-count">
+        <p className="text-sm text-[color:var(--ff-muted)]" data-testid="ff-set-logic-count">
           {ruleCount === 0
             ? "No rules start here."
             : ruleCount === 1
@@ -260,7 +260,7 @@ function BlockSettingsLoaded({
               value={block.id}
               aria-readonly="true"
               data-testid="ff-set-block-id"
-              className={FF_SET_INPUT_CLASS}
+              className={`${FF_SET_INPUT_CLASS} font-mono text-xs`}
             />
             <button
               type="button"
@@ -280,21 +280,25 @@ function BlockSettingsLoaded({
             </button>
           </div>
         </FieldRow>
-        <button
-          type="button"
-          className="ff-set-btn"
-          data-testid="ff-set-reset-block"
-          onClick={() =>
-            // No coalesce: a distinct, deliberate action gets its own undo entry.
-            dispatch({
-              type: "apply",
-              ops: [{ op: "block.update", id: block.id, props: def.defaultProps() as Record<string, unknown> }],
-              label: "Reset block",
-            })
-          }
-        >
-          Reset to defaults
-        </button>
+        {/* Reset zone: separated from the read-only rows so the deliberate
+            action reads as its own step (§6.6 “Advanced” danger-adjacent). */}
+        <div className="border-t border-[color:var(--ff-border)] pt-3">
+          <button
+            type="button"
+            className="ff-btn ff-btn-secondary ff-btn-sm"
+            data-testid="ff-set-reset-block"
+            onClick={() =>
+              // No coalesce: a distinct, deliberate action gets its own undo entry.
+              dispatch({
+                type: "apply",
+                ops: [{ op: "block.update", id: block.id, props: def.defaultProps() as Record<string, unknown> }],
+                label: "Reset block",
+              })
+            }
+          >
+            Reset to defaults
+          </button>
+        </div>
       </SettingsSection>
     </div>
   );

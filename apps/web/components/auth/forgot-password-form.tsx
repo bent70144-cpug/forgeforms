@@ -4,8 +4,9 @@
 // Success shows the same neutral confirmation for known and unknown emails.
 import { useActionState, useId } from "react";
 import { forgotPasswordAction, type AuthFormState } from "@/lib/auth/actions";
-import { BTN_PRIMARY } from "@/lib/ui";
+import { BANNER, BANNER_ERROR, BTN_PRIMARY } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
+import { FocusSpine } from "@/components/auth/auth-form";
 
 const initialState: AuthFormState = {};
 
@@ -17,26 +18,29 @@ export function ForgotPasswordForm() {
   return (
     <form action={formAction} className="ff-form" aria-busy={pending}>
       {state.success !== undefined && (
-        <p className="ff-banner" role="status">
+        <p className={BANNER} role="status">
           {state.success}
         </p>
       )}
       {state.error !== undefined && state.error.details.length === 0 && (
-        <p className="ff-banner ff-banner-error" role="alert">
+        <p className={BANNER_ERROR} role="alert">
           {state.error.message}
         </p>
       )}
 
       <div className="ff-field">
         <label htmlFor={emailId}>Email</label>
-        <input
-          id={emailId}
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@example.com"
-        />
+        <div className="group relative">
+          <input
+            id={emailId}
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+          />
+          <FocusSpine />
+        </div>
       </div>
 
       <button

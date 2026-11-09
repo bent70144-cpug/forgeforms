@@ -7,10 +7,13 @@
 //    and never sent anywhere except the single POST that created it;
 //  - the list endpoint never returns plaintexts or hashes.
 //
-// Presentation notes: the create dialog and the remove confirmation use the
-// shared Modal primitive (focus trap, Esc, backdrop, scroll lock come from the
-// primitive — none are re-implemented here); the reveal panel renders ABOVE the
-// persistent list header so the toolbar never jumps when it appears.
+// Presentation notes (aurora glass): the create dialog and the remove
+// confirmation use the shared Modal primitive (focus trap, Esc, backdrop,
+// scroll lock come from the primitive — none are re-implemented here); the
+// reveal panel renders ABOVE the persistent list header so the toolbar never
+// jumps when it appears, and carries a gradient spine + glass glow so the
+// show-once moment reads as a distinct callout. Row-level Revoke is a quiet
+// danger ghost (window.confirm stays as the gate).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_SCOPES } from '@formforge/schema/api';
@@ -20,12 +23,15 @@ import { Icon } from '@/components/ui/icons';
 import {
   BADGE_MUTED,
   BANNER_ERROR,
-  BTN_DESTRUCTIVE_SM,
   BTN_GHOST_SM,
   BTN_PRIMARY,
   BTN_PRIMARY_SM,
   BTN_SECONDARY_SM,
 } from '@/lib/ui';
+
+// Row-level destructive action renders as a quiet ghost (window.confirm stays
+// as the gate — see revoke()).
+const BTN_DANGER_GHOST_SM = 'ff-btn ff-btn-ghost ff-btn-sm text-[var(--ff-danger)]';
 
 interface TokenDto {
   id: string;
@@ -189,28 +195,37 @@ export function TokensClient() {
         <ul className="ff-panel divide-y divide-[var(--ff-border)] overflow-hidden">
           {state.tokens.map((token) => (
             <li key={token.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-[var(--ff-fg)]">{token.name}</p>
-                <p className="mt-0.5 text-xs tabular-nums text-[var(--ff-muted)]">
-                  Created {relativeTime(token.createdAt)} · Last used {relativeTime(token.lastUsedAt)}
-                </p>
-                <ul className="mt-1.5 flex flex-wrap gap-1">
-                  {token.scopes.map((scope) => (
-                    <li
-                      key={scope}
-                      className={`${BADGE_MUTED} font-mono text-xs`}
-                      title={SCOPE_HINTS[scope] ?? scope}
-                    >
-                      {scope}
-                    </li>
-                  ))}
-                </ul>
+              <div className="flex min-w-0 items-start gap-3">
+                <span
+                  aria-hidden="true"
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-[color-mix(in_srgb,var(--ff-primary)_14%,transparent)] text-[var(--ff-primary)]"
+                >
+                  <Icon name="key" size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-[var(--ff-fg)]">{token.name}</p>
+                  <p className="mt-0.5 text-xs tabular-nums text-[var(--ff-muted)]">
+                    Created {relativeTime(token.createdAt)} · Last used{' '}
+                    {relativeTime(token.lastUsedAt)}
+                  </p>
+                  <ul className="mt-1.5 flex flex-wrap gap-1">
+                    {token.scopes.map((scope) => (
+                      <li
+                        key={scope}
+                        className={`${BADGE_MUTED} font-mono text-xs`}
+                        title={SCOPE_HINTS[scope] ?? scope}
+                      >
+                        {scope}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
               <button
                 type="button"
                 disabled={busyId === token.id}
                 onClick={() => void revoke(token)}
-                className={BTN_DESTRUCTIVE_SM}
+                className={BTN_DANGER_GHOST_SM}
               >
                 {busyId === token.id ? 'Revoking…' : 'Revoke'}
               </button>
@@ -259,8 +274,10 @@ function RevealOncePanel({
       aria-live="polite"
       aria-label="New token created — copy it now, it will not be shown again"
       className="ff-panel overflow-hidden"
+      style={{ boxShadow: 'var(--ff-glow-soft), var(--ff-shadow-sm)' }}
     >
-      <div aria-hidden="true" className="h-[3px] bg-[var(--ff-accent-soft)]" />
+      {/* gradient spine marks this as the one-time moment */}
+      <div aria-hidden="true" className="h-[3px]" style={{ background: 'var(--ff-grad)' }} />
       <div className="p-5">
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <Icon name="alert" size={16} className="shrink-0 text-[var(--ff-warning)]" />
@@ -268,7 +285,11 @@ function RevealOncePanel({
           <span className="text-[var(--ff-muted)]">— copy it now, you won’t see it again.</span>
         </p>
         <code
-          className="mt-3 block select-all break-all rounded-[10px] border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_4%,var(--ff-bg))] p-3 font-mono text-[13px] text-[var(--ff-fg)]"
+          className="mt-3 block select-all break-all rounded-[10px] border p-3 font-mono text-[13px] text-[var(--ff-fg)]"
+          style={{
+            borderColor: 'color-mix(in srgb, var(--ff-primary) 35%, var(--ff-border))',
+            background: 'color-mix(in srgb, var(--ff-primary) 7%, var(--ff-bg))',
+          }}
           data-testid="revealed-token"
         >
           {token}
@@ -385,7 +406,7 @@ function CreateTokenModal({
                   type="checkbox"
                   checked={scopes.includes(scope)}
                   onChange={() => toggleScope(scope)}
-                  className="h-4 w-4 shrink-0 rounded accent-[var(--ff-accent)]"
+                  className="h-4 w-4 shrink-0 rounded accent-[var(--ff-primary)]"
                 />
                 <span className="min-w-0">
                   <code className="font-mono text-sm text-[var(--ff-fg)]">{scope}</code>

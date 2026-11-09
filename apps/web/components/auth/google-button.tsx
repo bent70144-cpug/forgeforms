@@ -35,9 +35,13 @@ export function GoogleSignInButton({ origin }: { origin?: string }) {
 
   return (
     <>
+      {/* Glass slab via BTN_SECONDARY; the inline background is a touch more
+          opaque than the class default so the four-colour mark and the label
+          keep contrast on the glass card (token → light scheme flips too). */}
       <a
         href="/api/auth/signin/google"
         className={`${BTN_SECONDARY} w-full justify-center`}
+        style={{ backgroundColor: "color-mix(in srgb, var(--ff-card-2) 72%, transparent)" }}
         data-testid="google-sign-in"
         aria-label="Continue with Google"
       >

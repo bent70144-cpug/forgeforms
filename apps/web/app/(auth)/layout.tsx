@@ -1,34 +1,70 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Icon, type IconName } from "@/components/ui/icons";
 
-// Shared chrome for /login, /register, /forgot and /reset-password. Split
-// screen on lg+: a brand panel with the product story on the left and the
-// centered form card on the right; a single centered column below lg. The
-// .ff-auth-* classes in globals.css are superseded by Tailwind equivalents
-// here (they remain defined for back-compat but are no longer rendered).
+// Shared chrome for /login, /register, /forgot and /reset-password — the
+// "aurora field" welcome mat. The .ff-auth-* recipes in globals.css carry
+// the glass card, muted alt rows and the hairline divider; this file adds
+// the brand moment around them: a gradient logo mark top-center, violet/cyan
+// radial glows pooled behind the card and a thin footer. Server components
+// only — no client JS, no new deps.
+//
+// Vertical rhythm on tall viewports: brand pinned to the top edge, the card
+// centered in the leftover space (margin-block:auto on <main> absorbs the
+// free space ahead of justify-content), footer at the bottom edge. When the
+// card outgrows the viewport the auto margins collapse to zero and the
+// column scrolls naturally, so the top of the card always stays reachable.
 
-// 28px ink tile + white lightning + wordmark — mirrors the app shell brand.
-function BrandRow() {
+/* Violet/cyan pools behind the card — tokenized so the light scheme flips
+   automatically (no hard-coded white/black anywhere). */
+const AURORA_GLOWS = [
+  "radial-gradient(36rem 22rem at 50% 34%, color-mix(in srgb, var(--ff-primary) 16%, transparent), transparent 68%)",
+  "radial-gradient(26rem 18rem at 80% 16%, color-mix(in srgb, var(--ff-accent) 10%, transparent), transparent 70%)",
+  "radial-gradient(30rem 20rem at 14% 76%, color-mix(in srgb, var(--ff-primary-2) 9%, transparent), transparent 70%)",
+].join(", ");
+
+/* Card heading: display face, tight tracking. Inline style rather than a
+   Tailwind utility because `.ff-auth-card h1` in globals.css is unlayered
+   CSS and therefore out-ranks layered utilities on these properties. */
+export function AuthHeading({ children }: { children: ReactNode }) {
+  return (
+    <h1
+      className="text-balance"
+      style={{
+        fontFamily: "var(--ff-font-heading)",
+        fontWeight: 600,
+        fontSize: "1.625rem",
+        letterSpacing: "-0.03em",
+        lineHeight: 1.15,
+      }}
+    >
+      {children}
+    </h1>
+  );
+}
+
+/* Gradient tile + wordmark — the same lightning bolt as the app-shell brand
+   mark, but wearing the full violet→cyan gradient and a glow so the auth
+   pages get a real brand moment. Pure CSS/inline SVG; no assets. */
+function BrandLockup() {
   return (
     <Link
       href="/"
       aria-label="FormForge home"
-      className="inline-flex items-center gap-2 no-underline"
+      className="inline-flex flex-col items-center gap-3 no-underline"
     >
       <span
         aria-hidden="true"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
         style={{
-          background: "var(--ff-primary)",
+          background: "var(--ff-grad)",
           color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-shadow-sm)",
+          boxShadow: "var(--ff-glow)",
         }}
       >
         <svg
           viewBox="0 0 24 24"
-          width={14}
-          height={14}
+          width={20}
+          height={20}
           fill="none"
           stroke="currentColor"
           strokeWidth={2.25}
@@ -40,88 +76,47 @@ function BrandRow() {
           <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
         </svg>
       </span>
-      <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]">
-        FormForge
+      <span className="flex flex-col items-center gap-1">
+        <span
+          className="text-[1.0625rem] font-semibold"
+          style={{
+            fontFamily: "var(--ff-font-heading)",
+            letterSpacing: "-0.02em",
+            color: "var(--ff-fg)",
+          }}
+        >
+          FormForge
+        </span>
+        <span className="text-xs text-[var(--ff-muted)]">One document, every surface.</span>
       </span>
     </Link>
   );
 }
 
-const FEATURES: { icon: IconName; title: string; detail: string }[] = [
-  { icon: "layers", title: "23 block kinds", detail: "One document, three planes" },
-  { icon: "flow", title: "Logic that branches", detail: "Rules, prefills and paths without code" },
-  {
-    icon: "chart",
-    title: "Analytics built in",
-    detail: "Drop-off and trends from the first response",
-  },
-];
-
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh">
-      {/* Brand panel — lg+ only. Paper background with a faint coral wash. */}
-      <aside
-        className="hidden w-[44%] shrink-0 flex-col justify-between p-12 lg:flex"
-        style={{
-          backgroundColor: "var(--ff-bg)",
-          backgroundImage:
-            "radial-gradient(60% 50% at 20% 10%, color-mix(in srgb, var(--ff-accent) 7%, transparent), transparent)",
-        }}
-      >
-        <BrandRow />
+    // minHeight: 100dvh inline — tracks mobile browser chrome better than the
+    // 100vh in .ff-auth-layout and out-ranks it (inline vs stylesheet).
+    <div className="ff-auth-layout relative" style={{ minHeight: "100dvh" }}>
+      {/* Aurora pools behind the card. Painted first; the siblings below are
+          positioned, so content stacks above this translucent wash. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{ backgroundImage: AURORA_GLOWS }}
+      />
 
-        <div className="max-w-[24rem]">
-          <h2 className="text-3xl font-semibold tracking-tight text-balance">Forms that think.</h2>
-          <p className="mt-3 text-sm text-[var(--ff-muted)]">
-            Author a document once, then publish it as a conversational form, a landing page and an
-            embed.
-          </p>
+      <header className="relative">
+        <BrandLockup />
+      </header>
 
-          <ul className="mt-8">
-            {FEATURES.map((feature) => (
-              <li
-                key={feature.title}
-                className="flex items-start gap-3 border-t border-[var(--ff-border)] py-4"
-              >
-                <span
-                  aria-hidden="true"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
-                  style={{
-                    background: "color-mix(in srgb, var(--ff-accent) 12%, var(--ff-card))",
-                    color: "var(--ff-accent)",
-                  }}
-                >
-                  <Icon name={feature.icon} size={16} />
-                </span>
-                <span className="flex flex-col gap-0.5 pt-0.5">
-                  <span className="text-sm font-medium">{feature.title}</span>
-                  <span className="text-[13px] text-[var(--ff-muted)]">{feature.detail}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="text-xs text-[var(--ff-muted)]">© 2026 FormForge</p>
-      </aside>
-
-      {/* Form column — centered, scrolls instead of clipping on short viewports.
-          `justify-center-safe` (Tailwind ≥4.1 → `justify-content: safe center`)
-          keeps the centered look when the card fits but start-aligns when it
-          overflows (landscape phones / short viewports), so the top of the card
-          stays reachable by scroll instead of being clipped. */}
-      <main className="flex min-h-dvh flex-1 flex-col items-center justify-center-safe overflow-y-auto p-8">
-        <div className="mb-6 lg:hidden">
-          <BrandRow />
-        </div>
-        <div
-          className="ff-panel flex w-full max-w-[26rem] flex-col gap-4 p-6 sm:p-8"
-          style={{ borderRadius: "1rem", boxShadow: "var(--ff-shadow-md)" }}
-        >
-          {children}
-        </div>
+      <main className="relative flex w-full justify-center" style={{ marginBlock: "auto" }}>
+        <div className="ff-auth-card">{children}</div>
       </main>
+
+      {/* Thin footer — terms/privacy live on the marketing half; keep this
+          quiet so the card stays the moment. */}
+      <footer className="relative text-xs text-[var(--ff-muted)]">© 2026 FormForge</footer>
     </div>
   );
 }

@@ -3,12 +3,17 @@
 // AI draft dialog (spec §14/§15 M8): prompt → generated DocumentBody preview
 // → "insert into document" handoff. The builder (T05) supplies onInsert;
 // until then the standalone /d/[docId]/ai page wires it to a local hold.
-// B6 redesign: design-system card (sparkles tile header, full-width primary
-// CTA, banner errors, muted quota line). Fetch/error/quota logic unchanged;
+//
+// Aurora redesign: gradient spark-tile header, static suggestion chips (local
+// presentation only — they fill the composer, nothing is fetched), the glass
+// composer textarea with its violet focus ring, a full-width glowing primary
+// CTA, skeleton shimmer + "Generating" badge while the request is in flight,
+// and the draft rendered in the BodyPreview document frame with accept
+// (primary) / regenerate (ghost) actions. Fetch/error/quota logic unchanged;
 // onQuota is an optional additive callback for the workbench header badge.
 import { useId, useState } from "react";
 import type { DocumentBody, DocumentType } from "@formforge/core/ai";
-import { BTN_GHOST_SM, BTN_PRIMARY, INPUT } from "@/lib/ui";
+import { BADGE_ACCENT, BADGE_MUTED, BTN_GHOST, BTN_GHOST_SM, BTN_PRIMARY, INPUT } from "@/lib/ui";
 import { Icon } from "@/components/ui/icons";
 import { BodyPreview } from "./body-preview";
 
@@ -21,6 +26,14 @@ type DraftResponse = {
 type ApiError = { error: { code: string; message: string; details?: unknown } };
 
 const DOCUMENT_TYPES: DocumentType[] = ["form", "page", "portfolio"];
+
+/** Composer starters — static data; chips only fill the textarea (no fetching). */
+const SUGGESTIONS: ReadonlyArray<{ label: string; prompt: string }> = [
+  { label: "NPS feedback form", prompt: "A two-question customer feedback form with an NPS rating" },
+  { label: "Event RSVP", prompt: "An event RSVP form collecting name, email and headcount" },
+  { label: "Portfolio page", prompt: "A portfolio page with a hero, project gallery and contact links" },
+  { label: "Project brief", prompt: "A project brief page with a file-upload section for assets" },
+];
 
 export type AiDraftDialogProps = {
   documentType?: DocumentType;
@@ -91,8 +104,8 @@ export function AiDraftDialog({
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
-            className="grid h-8 w-8 place-items-center rounded-[10px] text-[var(--ff-accent)]"
-            style={{ background: "color-mix(in srgb, var(--ff-accent) 10%, transparent)" }}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-[12px]"
+            style={{ background: "var(--ff-grad)", boxShadow: "var(--ff-glow)", color: "#ffffff" }}
           >
             <Icon name="sparkles" size={16} />
           </span>
@@ -121,6 +134,20 @@ export function AiDraftDialog({
           placeholder="e.g. A two-question customer feedback form with an NPS rating"
           style={{ minHeight: "7rem" }}
         />
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-[var(--ff-muted)]">Try:</span>
+          {SUGGESTIONS.map((suggestion) => (
+            <button
+              key={suggestion.label}
+              type="button"
+              onClick={() => setPrompt(suggestion.prompt)}
+              className="ff-chip cursor-pointer transition-colors hover:border-[var(--ff-border-strong)]"
+            >
+              <Icon name="sparkles" size={12} className="shrink-0 text-[var(--ff-muted)]" />
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -179,34 +206,44 @@ export function AiDraftDialog({
 
       <p aria-live="polite" className="text-sm">
         {status === "error" ? (
-          <span role="alert" className="ff-banner ff-banner-error flex items-center gap-2">
-            <Icon name="alert" size={14} className="shrink-0" />
-            <span>
-              {errorCode === "PLAN_LIMIT"
-                ? `Monthly AI quota reached. ${error ?? ""}`
-                : (error ?? "Draft failed.")}
-            </span>
+          <span role="alert" className="ff-banner ff-banner-error">
+            {errorCode === "PLAN_LIMIT"
+              ? `Monthly AI quota reached. ${error ?? ""}`
+              : (error ?? "Draft failed.")}
           </span>
         ) : null}
         {quotaLabel ? (
-          <span className="mt-2 block text-xs tabular-nums text-[var(--ff-muted)]">
+          <span className={`${BADGE_MUTED} mt-2 font-mono tabular-nums`}>
+            <Icon name="sparkles" size={12} />
             {quotaLabel}
           </span>
         ) : null}
       </p>
 
+      {status === "loading" && !draft ? (
+        // First-generation shimmer: status badge + skeleton rows (reduced-motion
+        // users get the static pulse reset from globals.css).
+        <div className="space-y-3 border-t border-[var(--ff-border)] pt-4">
+          <span className={BADGE_ACCENT}>
+            <Icon name="spinner" size={12} />
+            Generating draft…
+          </span>
+          <div className="ff-skeleton" style={{ height: "2.75rem" }} />
+          <div className="ff-skeleton" style={{ height: "2.75rem" }} />
+          <div className="ff-skeleton" style={{ height: "6rem" }} />
+        </div>
+      ) : null}
+
       {draft ? (
         <div className="space-y-3 border-t border-[var(--ff-border)] pt-4">
           <BodyPreview body={draft.body} />
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => onInsert?.(draft.body)}
-              className={BTN_PRIMARY}
-            >
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => onInsert?.(draft.body)} className={BTN_PRIMARY}>
+              <Icon name="check" size={16} />
               Insert into document
             </button>
-            <button type="button" onClick={() => void generate()} className={BTN_GHOST_SM}>
+            <button type="button" onClick={() => void generate()} className={BTN_GHOST}>
+              <Icon name="refresh" size={14} />
               Regenerate
             </button>
           </div>

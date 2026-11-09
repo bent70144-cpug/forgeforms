@@ -98,7 +98,7 @@ export function InlineEditable({
         title="Click to edit"
         onClick={onBegin}
         dir="auto"
-        className="cursor-text rounded px-0.5 -mx-0.5 hover:bg-slate-100"
+        className="-mx-0.5 cursor-text rounded px-0.5 transition-opacity duration-150 hover:bg-[color:color-mix(in_srgb,var(--ff-primary)_16%,transparent)]"
       >
         {value}
       </span>
@@ -119,7 +119,7 @@ export function InlineEditable({
     onKeyDown: handleKeyDown,
     onBlur: commit,
     className:
-      "w-full rounded border border-[color:var(--ff-primary)] bg-white px-1.5 py-1 text-sm text-slate-900 outline-none",
+      "w-full rounded-lg border border-[color:var(--ff-primary)] bg-[color:var(--ff-bg)] px-1.5 py-1 text-sm text-[color:var(--ff-fg)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-primary)_20%,transparent)] outline-none",
   };
 
   return multiline ? <textarea {...shared} rows={3} /> : <input type="text" {...shared} />;

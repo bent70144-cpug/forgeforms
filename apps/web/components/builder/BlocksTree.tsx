@@ -292,7 +292,7 @@ export function BlocksTree() {
 
   if (rows.length === 0) {
     return (
-      <p className="m-0 p-2 text-xs text-[color:var(--ff-muted)]" data-testid="blocks-tree-empty">
+      <p className="m-2 rounded-lg border border-dashed border-[color:var(--ff-border)] p-2 text-xs text-[color:var(--ff-muted)]" data-testid="blocks-tree-empty">
         No blocks yet — use “Add block” to start.
       </p>
     );
@@ -358,7 +358,9 @@ export function BlocksTree() {
             ) : (
               <span className="ff-tree-toggle" aria-hidden="true" />
             )}
-            <span aria-hidden="true">{blockIcon(row.block.kind)}</span>
+            <span aria-hidden="true" className="w-4 shrink-0 text-center text-[13px] text-[color:var(--ff-primary)] opacity-90">
+              {blockIcon(row.block.kind)}
+            </span>
             <span className="ff-tree-label" dir="auto">{blockDisplayLabel(row.block)}</span>
             {issues > 0 && (
               <span

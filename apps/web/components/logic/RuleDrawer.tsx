@@ -7,16 +7,17 @@
 // Every mutation applies immediately through the ops channel (rule.upsert /
 // rule.remove / block.update / settings.update) and autosaves.
 //
-// Redesign (B7): the old absolutely-positioned <aside> is replaced by the
-// shared Drawer primitive (overlay + slide + Esc + focus trap + scroll lock,
-// 26rem wide, 92vw on mobile). Rule-editing state/handlers are unchanged; only
-// control presentation moved to compact shared widgets (chevron selects, icon
-// remove buttons, ≥12px helper copy).
+// Aurora redesign (task 10/13): the shared Drawer primitive already provides
+// the glass panel; inside it, conditions/actions live in inset rows with mono
+// IF/AND chips (clear field/operator/value rhythm), each rule card carries a
+// mono logic-summary chip strip mirroring the canvas edge labels, the add-rule
+// CTA is the gradient primary button, and hidden-field tokens are mono chips.
+// Rule-editing state/handlers and the ops channel are unchanged.
 
 import { useEffect, useMemo, useRef, useState, type InputHTMLAttributes, type SelectHTMLAttributes } from "react";
-import type { DocumentBody, Rule } from "@/lib/bridge";
+import type { DocumentBody, Rule, RuleAction, RuleCondition } from "@/lib/bridge";
 import type { Op } from "@/lib/builder/ops";
-import { BADGE_MUTED, BTN_SECONDARY_SM, ICON_BTN } from "@/lib/ui";
+import { BADGE_MUTED, BTN_PRIMARY_SM, BTN_SECONDARY_SM, ICON_BTN } from "@/lib/ui";
 import { Drawer } from "@/components/ui/drawer";
 import { Icon, type IconName } from "@/components/ui/icons";
 import {
@@ -121,7 +122,7 @@ function SectionHeader({ icon, title, count }: { icon: IconName; title: string; 
   return (
     <div className="flex items-center justify-between gap-2">
       <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ff-fg)]">
-        <Icon name={icon} size={14} className="text-[var(--ff-muted)]" />
+        <Icon name={icon} size={14} className="text-[var(--ff-primary)]" />
         {title}
       </h3>
       {count !== undefined && <span className={BADGE_MUTED}>{count}</span>}
@@ -129,9 +130,68 @@ function SectionHeader({ icon, title, count }: { icon: IconName; title: string; 
   );
 }
 
-/** Shared card surface for rule cards + config sections inside the drawer. */
+/** Shared card surface for rule cards + config sections inside the glass drawer. */
 const CARD_SOFT =
-  "rounded-xl border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_2%,var(--ff-bg))] p-3";
+  "rounded-[14px] border border-[var(--ff-glass-border)] bg-[color-mix(in_srgb,var(--ff-card)_72%,var(--ff-bg))] p-3.5 shadow-[var(--ff-shadow-sm)]";
+
+/** Inset row for one condition / one action (field · operator · value). */
+const ROW_SOFT =
+  "flex flex-wrap items-center gap-2 rounded-xl border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-bg)_45%,var(--ff-card))] px-2.5 py-2";
+
+/** Mono IF / AND prefix chip on a condition row. */
+const COND_CHIP =
+  "inline-flex h-5 shrink-0 items-center rounded-md border border-[color-mix(in_srgb,var(--ff-primary)_30%,transparent)] bg-[color-mix(in_srgb,var(--ff-primary)_12%,transparent)] px-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-[color-mix(in_srgb,var(--ff-primary)_72%,var(--ff-fg))]";
+
+/** Mono summary chip strip — mirrors the rule the way canvas edge labels do. */
+const SUMMARY_CHIP =
+  "inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-[var(--ff-glass-border)] bg-[color-mix(in_srgb,var(--ff-bg)_55%,var(--ff-card))] px-2 py-1 font-mono text-[11px] leading-4 text-[var(--ff-muted)]";
+
+/** Compact operator glyphs for the summary chips (isEmpty stays verbal). */
+const OP_GLYPHS: Partial<Record<RuleCondition["op"], string>> = {
+  eq: "=",
+  neq: "≠",
+  gt: ">",
+  gte: "≥",
+  lt: "<",
+  lte: "≤",
+  contains: "contains",
+  matches: "matches",
+};
+
+function conditionText(condition: RuleCondition): string {
+  const glyph = OP_GLYPHS[condition.op] ?? "is empty";
+  const right =
+    condition.right === undefined || condition.right === null ? "" : String(condition.right);
+  return right === "" ? `${condition.left} ${glyph}` : `${condition.left} ${glyph} ${right}`;
+}
+
+function actionText(action: RuleAction): string {
+  if (action.type === "goto") return `→ ${action.target}`;
+  const value = action.value === undefined || action.value === null ? "" : String(action.value);
+  return `${action.var} = ${value}`;
+}
+
+/** One mono chip per rule: `@block:q_nps ≤ 6 → end:end_b` (ELSE for fallback). */
+function RuleSummaryChips({ rules, fallback }: { rules: Rule[]; fallback: Rule | null }) {
+  const list = fallback === null ? rules : [...rules, fallback];
+  if (list.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5" data-testid="rule-summary">
+      {list.map((rule) => (
+        <span key={rule.id} className={SUMMARY_CHIP}>
+          <span className="text-[var(--ff-fg)]">
+            {rule.isFallback === true ? "ELSE" : (rule.when ?? []).map(conditionText).join(" && ") || "—"}
+          </span>
+          {(rule.then ?? []).map((action, i) => (
+            <span key={i} className="text-[var(--ff-accent-soft)]">
+              {actionText(action)}
+            </span>
+          ))}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /* --------------------------------------------------------------------------- */
 
@@ -169,6 +229,12 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
           <>
             <div className="flex flex-col gap-2.5" aria-label="Rules">
               <SectionHeader icon="flow" title="Rules" count={rules.length + (fallback ? 1 : 0)} />
+              <div className="flex items-center gap-1.5">
+                <span className={SUMMARY_CHIP}>
+                  <span className="text-[var(--ff-fg)]">scope:{scope.id}</span>
+                </span>
+              </div>
+              <RuleSummaryChips rules={rules} fallback={fallback} />
               {rules.map((rule) => (
                 <RuleCard
                   key={rule.id}
@@ -192,7 +258,7 @@ export function RuleDrawer({ scope, body, targets, onApply, onClose }: RuleDrawe
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className={`${BTN_TINTED_SM} inline-flex items-center gap-1.5`}
+                  className={`${BTN_PRIMARY_SM} inline-flex items-center gap-1.5`}
                   aria-label="+ Add rule"
                   onClick={() => onApply([upsertRuleOp(newRuleDraft(scope.id))])}
                 >
@@ -283,17 +349,23 @@ function RuleCard({
 
   return (
     <section className={CARD_SOFT} data-testid={`rule-${rule.id}`}>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-[var(--ff-muted)]">
-          {draft.isFallback ? "In all other cases" : "IF (all match — AND)"}
-        </span>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-xs font-medium text-[var(--ff-muted)]">
+            {draft.isFallback ? "In all other cases" : "IF (all match — AND)"}
+          </span>
+          <span className="truncate font-mono text-[10px] text-[var(--ff-muted)]">{rule.id}</span>
+        </div>
         <RemoveButton label="Remove rule" onClick={() => onApply([removeRuleOp(rule.id)])} />
       </div>
 
       {!draft.isFallback && (
         <div className="space-y-2">
-          {draft.conditions.map((condition) => (
-            <div key={condition.key} className="flex flex-wrap items-center gap-2">
+          {draft.conditions.map((condition, index) => (
+            <div key={condition.key} className={ROW_SOFT}>
+              <span aria-hidden="true" className={COND_CHIP}>
+                {index === 0 ? "IF" : "AND"}
+              </span>
               <SelectControl
                 value={condition.source}
                 aria-label="Condition source"
@@ -352,10 +424,12 @@ function RuleCard({
       )}
 
       <div className={`${draft.isFallback ? "" : "mt-2 border-t border-[var(--ff-border)] pt-2"}`}>
-        <div className="mb-1.5 text-xs font-semibold tracking-normal text-[var(--ff-muted)]">THEN</div>
+        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold tracking-normal text-[var(--ff-muted)]">
+          <span className={COND_CHIP}>THEN</span>
+        </div>
         <div className="space-y-2">
           {draft.actions.map((action) => (
-            <div key={action.key} className="flex flex-wrap items-center gap-2">
+            <div key={action.key} className={ROW_SOFT}>
               <SelectControl
                 value={action.kind}
                 aria-label="Action type"
@@ -508,7 +582,7 @@ function HiddenFieldsSection({
         {DEFAULT_HIDDEN_FIELDS.map((field) => (
           <li
             key={field}
-            className="rounded-full bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)] px-2 py-0.5 text-xs text-[var(--ff-muted)]"
+            className="rounded-full border border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_5%,transparent)] px-2 py-0.5 font-mono text-xs text-[var(--ff-muted)]"
           >
             {field}
           </li>
@@ -516,7 +590,7 @@ function HiddenFieldsSection({
         {extras.map((extra) => (
           <li
             key={extra.name}
-            className="flex items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--ff-accent)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent)_10%,transparent)] px-2 py-0.5 text-xs text-[var(--ff-fg)]"
+            className="flex items-center gap-0.5 rounded-full border border-[color-mix(in_srgb,var(--ff-accent)_25%,transparent)] bg-[color-mix(in_srgb,var(--ff-accent)_10%,transparent)] px-2 py-0.5 font-mono text-xs text-[var(--ff-fg)]"
           >
             {extra.name}
             <button

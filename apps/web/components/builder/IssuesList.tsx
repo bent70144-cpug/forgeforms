@@ -20,6 +20,7 @@
 // styled amber and carry the abuse-policy note; they never block publishing.
 
 import { useEffect, useRef } from "react";
+import { BADGE_DANGER, BADGE_WARNING } from "@/lib/ui";
 import {
   ABUSE_POLICY_NOTE,
   groupIssues,
@@ -111,9 +112,15 @@ export function IssuesList({ open, issues, onClose, goTo, labelFor }: IssuesList
                         key={`${issue.code}-${issue.path ?? index}`}
                         className={warning ? "ff-pub-issue ff-pub-issue--warning" : "ff-pub-issue"}
                       >
-                        <span className="ff-pub-code" data-code={issue.code}>
-                          {issue.code}
-                        </span>
+                        {/* Severity badge + stable §8.1 code chip (design: BADGE_*) */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={warning ? BADGE_WARNING : BADGE_DANGER}>
+                            {warning ? "Warning" : "Blocking"}
+                          </span>
+                          <span className="ff-pub-code" data-code={issue.code}>
+                            {issue.code}
+                          </span>
+                        </div>
                         <p className="ff-pub-msg">{issue.message}</p>
                         {warning && <p className="ff-pub-abuse">{ABUSE_POLICY_NOTE}</p>}
                         {issue.blockId !== null && (

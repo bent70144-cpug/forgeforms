@@ -1,14 +1,17 @@
 "use client";
 
-// App-shell navigation (F4): real active states + the mobile menu.
+// App-shell navigation (F4, aurora redesign): pill nav + the mobile menu.
 //
-// · NavLinks — the primary nav list. Active link (usePathname) gets
-//   aria-current="page", fg color, weight 600 and a 2px coral bar that
-//   animates in (transform/opacity only, 180ms). Color is set inline on
-//   purpose: globals.css ships unlayered `.ff-app-header nav a` rules that
-//   would beat Tailwind utilities, and inline styles win there; hover is
-//   restored by flipping a local custom property (--ff-nav-fg) via a hover
-//   variant, which the inline color resolves.
+// · NavLinks — the primary nav rendered as pills. The active route
+//   (usePathname) gets aria-current="page", a violet-tinted pill
+//   (color-mix with --ff-primary) plus a soft violet glow; inactive pills
+//   hover to a cyan tint (and the active pill deepens its violet). Colors
+//   resolve through two local custom properties (--ff-nav-fg / --ff-nav-bg)
+//   that inline styles consume: globals.css ships unlayered
+//   `.ff-app-header nav a` rules that would beat layered Tailwind utilities,
+//   and inline styles win there; hover variants flip the custom properties,
+//   so hover works despite the inline color/background. No bar/underline
+//   indicator anymore — the pill IS the active indicator.
 // · MobileMenu — the <md menu button + Drawer sheet (right, 18rem) with the
 //   same links, workspace name, user email and a sign-out form. The Drawer
 //   primitive owns Esc / backdrop / focus handling; this component only closes
@@ -52,6 +55,12 @@ export function isNavActive(pathname: string, href: string): boolean {
   return firstSegment(href) === firstSegment(pathname);
 }
 
+// Shared pill base. :focus-visible styling comes from the unlayered global
+// `a:focus-visible` rule in globals.css (2px accent outline), which beats any
+// layered utility — so no Tailwind focus classes are needed here.
+const PILL =
+  "relative inline-flex select-none items-center rounded-full no-underline";
+
 export function NavLinks({
   items,
   orientation = "horizontal",
@@ -63,7 +72,7 @@ export function NavLinks({
   const vertical = orientation === "vertical";
 
   return (
-    <div className={vertical ? "flex flex-col gap-0.5" : "flex items-center gap-1"}>
+    <div className={vertical ? "flex flex-col gap-1" : "flex items-center gap-1"}>
       {items.map((item) => {
         const active = isNavActive(pathname, item.href);
         return (
@@ -72,41 +81,31 @@ export function NavLinks({
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={[
-              "relative inline-flex select-none items-center rounded-md no-underline",
+              PILL,
               vertical
-                ? "min-h-[2.75rem] w-full gap-2.5 px-3 text-[0.9375rem]" // 44px touch row
-                : "h-9 gap-1.5 px-2.5 text-[0.875rem]",
-              "hover:bg-[color-mix(in_srgb,var(--ff-fg)_5%,transparent)]",
-              active ? "" : "hover:[--ff-nav-fg:var(--ff-fg)]",
+                ? "min-h-[2.75rem] w-full gap-2.5 px-3.5 text-[0.9375rem]" // 44px touch row
+                : "h-8 gap-1.5 px-3 text-[0.875rem]",
+              // Inactive pills hover to a cyan tint; the active pill deepens
+              // its violet instead. One hover rule per state — no cascade
+              // fights between the two.
+              active
+                ? "[--ff-nav-bg:color-mix(in_srgb,var(--ff-primary)_16%,transparent)] hover:[--ff-nav-bg:color-mix(in_srgb,var(--ff-primary)_24%,transparent)]"
+                : "hover:[--ff-nav-fg:color-mix(in_srgb,var(--ff-accent)_40%,var(--ff-fg))] hover:[--ff-nav-bg:color-mix(in_srgb,var(--ff-accent)_8%,transparent)]",
             ].join(" ")}
             style={{
-              color: active ? "var(--ff-fg)" : "var(--ff-nav-fg, var(--ff-muted))",
+              // Inline styles beat the unlayered `.ff-app-header nav a` rules;
+              // the hover variants above flip the custom properties they read.
+              color: `var(--ff-nav-fg, ${active ? "var(--ff-fg)" : "var(--ff-muted)"})`,
+              background: "var(--ff-nav-bg, transparent)",
               fontWeight: active ? 600 : 500,
-              transition: `color 150ms ${EASE}, background-color 150ms ${EASE}`,
+              boxShadow: active
+                ? "inset 0 0 0 1px color-mix(in srgb, var(--ff-primary) 30%, transparent), 0 2px 14px -4px color-mix(in srgb, var(--ff-primary) 42%, transparent)"
+                : "none",
+              transition: `color 150ms ${EASE}, background-color 150ms ${EASE}, box-shadow 150ms ${EASE}`,
             }}
           >
             {item.icon ? <Icon name={item.icon} size={vertical ? 17 : 15} /> : null}
             <span className={vertical ? "flex-1" : undefined}>{item.label}</span>
-            <span
-              aria-hidden="true"
-              className={
-                vertical
-                  ? "pointer-events-none absolute inset-y-0 left-0 w-0.5 rounded-full bg-[var(--ff-accent)]"
-                  : "pointer-events-none absolute inset-x-1.5 bottom-0 h-0.5 rounded-full bg-[var(--ff-accent)]"
-              }
-              style={{
-                transform: active
-                  ? vertical
-                    ? "scaleY(1)"
-                    : "scaleX(1)"
-                  : vertical
-                    ? "scaleY(0)"
-                    : "scaleX(0)",
-                opacity: active ? 1 : 0,
-                transformOrigin: "center",
-                transition: `transform 180ms ${EASE}, opacity 180ms ${EASE}`,
-              }}
-            />
           </Link>
         );
       })}

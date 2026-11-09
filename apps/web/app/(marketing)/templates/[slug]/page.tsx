@@ -1,13 +1,18 @@
 // Template preview page: /templates/[slug] (spec §14.1.9, issue #22).
 // Server component — no client JS; data comes from @formforge/core/templates.
+//
+// "Aurora Glass" layout: two columns from lg up — the left rail carries the
+// title block and the self-themed preview card, the right rail is a sticky
+// glass metadata panel (CTA + spec rows + what's inside). Below 60rem the
+// source order reads title → preview → metadata/CTA.
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getTemplate, listTemplates } from "@formforge/core/templates";
-import type { Block } from "@formforge/core/templates";
+import type { Block, TemplateCategory } from "@formforge/core/templates";
 
-import { Icon } from "@/components/ui/icons";
+import { Icon, type IconName } from "@/components/ui/icons";
 import { BADGE_ACCENT, BADGE_MUTED, BADGE_POSITIVE, BTN_GHOST_SM, BTN_PRIMARY_LG, CARD } from "@/lib/ui";
 
 import TemplatePreview from "./template-preview";
@@ -18,12 +23,18 @@ const CATEGORY_LABEL: Record<string, string> = {
   portfolio: "Portfolio",
 };
 
+const CATEGORY_ICON: Record<TemplateCategory, IconName> = {
+  form: "list",
+  page: "globe",
+  portfolio: "grid",
+};
+
 // Spec row for the hairline <dl>: fixed label column, value fills the rest.
 function SpecRow({ term, value, tabular = false }: { term: string; value: string; tabular?: boolean }) {
   return (
-    <div className="grid grid-cols-[8rem_1fr] items-baseline border-t border-[var(--ff-border)] py-3">
+    <div className="grid grid-cols-[7rem_1fr] items-baseline border-b border-[var(--ff-border)] py-3 last:border-b-0">
       <dt className="text-sm text-[var(--ff-muted)]">{term}</dt>
-      <dd className={`text-sm font-medium text-[var(--ff-fg)]${tabular ? " tabular-nums" : ""}`}>{value}</dd>
+      <dd className={`m-0 text-sm font-medium text-[var(--ff-fg)]${tabular ? " tabular-nums" : ""}`}>{value}</dd>
     </div>
   );
 }
@@ -59,7 +70,7 @@ export default async function TemplatePreviewPage({ params }: { params: Promise<
   const logicCount = body.logic.rules.length;
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-[clamp(1rem,3vw,1.5rem)] py-12">
       <nav aria-label="Breadcrumb" className="mb-6">
         <Link href="/templates" className={`${BTN_GHOST_SM} -ml-2`}>
           <Icon name="arrowLeft" size={14} />
@@ -67,55 +78,83 @@ export default async function TemplatePreviewPage({ params }: { params: Promise<
         </Link>
       </nav>
 
-      {/* One grid spans the whole page so the CTA panel can stay sticky all
-          the way down the preview; on mobile the source order reads
-          info → CTA → preview. */}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <header className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={BADGE_ACCENT}>{CATEGORY_LABEL[meta.category] ?? meta.category}</span>
-            {meta.tags.map((tag) => (
-              <span key={tag} className={BADGE_MUTED}>
-                {tag}
-              </span>
-            ))}
-            <span className={BADGE_MUTED}>
-              {blockCount} block{blockCount === 1 ? "" : "s"}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
+          <header>
+            <span
+              aria-hidden="true"
+              className="grid h-12 w-12 place-items-center rounded-[14px] text-[var(--ff-primary-fg)] shadow-[var(--ff-glow)]"
+              style={{ backgroundImage: "var(--ff-grad)" }}
+            >
+              <Icon name={CATEGORY_ICON[meta.category]} size={20} />
             </span>
-            {logicCount > 0 && (
-              <span className={BADGE_POSITIVE}>
-                {logicCount} logic rule{logicCount === 1 ? "" : "s"}
-              </span>
-            )}
-          </div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
-            {meta.name}
-          </h1>
-          <p className="mt-3 max-w-[56ch] text-lg leading-relaxed text-[var(--ff-muted)]">{meta.description}</p>
 
-          <dl className="mt-8 border-b border-[var(--ff-border)]">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className={BADGE_ACCENT}>{CATEGORY_LABEL[meta.category] ?? meta.category}</span>
+              {meta.tags.map((tag) => (
+                <span key={tag} className={BADGE_MUTED}>
+                  {tag}
+                </span>
+              ))}
+              <span className={BADGE_MUTED}>
+                {blockCount} block{blockCount === 1 ? "" : "s"}
+              </span>
+              {logicCount > 0 && (
+                <span className={BADGE_POSITIVE}>
+                  {logicCount} logic rule{logicCount === 1 ? "" : "s"}
+                </span>
+              )}
+            </div>
+
+            <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight text-[var(--ff-fg)]">
+              {meta.name}
+            </h1>
+            <p className="mt-3 max-w-[56ch] text-lg leading-relaxed text-[var(--ff-muted)]">{meta.description}</p>
+          </header>
+
+          <section aria-label="Template preview" className="mt-10">
+            <h2 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">Preview</h2>
+            {/* The panel provides border + shadow; the preview supplies its own
+                muted frame and self-themed miniature page inside it. */}
+            <div className={`${CARD} mt-4 overflow-hidden`}>
+              <TemplatePreview body={body} />
+            </div>
+          </section>
+        </div>
+
+        <aside
+          aria-label="Use this template"
+          className={`${CARD} relative flex flex-col gap-4 self-start overflow-hidden p-6 shadow-md! lg:sticky lg:top-24`}
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 top-0 h-px opacity-70"
+            style={{ backgroundImage: "var(--ff-grad)" }}
+          />
+          {/* What "Use this template" does — no price/plan is stated because
+              instantiation is part of every workspace's create flow. */}
+          <div>
+            <h2 className="m-0 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-[var(--ff-muted)]">
+              Use this template
+            </h2>
+            <p className="m-0 mt-2 text-sm leading-relaxed text-[var(--ff-muted)]">
+              Copies into your workspace as an editable draft.
+            </p>
+          </div>
+          {/* "Use template" — the authenticated create flow (spec §14.1.2) picks up ?template= */}
+          <Link href={`/dashboard?template=${meta.id}`} className={`${BTN_PRIMARY_LG} w-full`}>
+            Use this template
+          </Link>
+
+          <dl className="m-0 border-t border-[var(--ff-border)]">
             <SpecRow term="Blocks" value={String(blockCount)} tabular />
             {meta.category === "form" && <SpecRow term="Questions" value={String(questionCount)} tabular />}
             <SpecRow term="Logic" value={logicCount > 0 ? `${logicCount} rules` : "none"} tabular />
             <SpecRow term="Fonts" value={`${body.theme.fontHeading} / ${body.theme.fontBody}`} />
           </dl>
-        </header>
 
-        <aside
-          aria-label="Use this template"
-          className={`${CARD} flex flex-col gap-4 self-start p-6 shadow-md! lg:sticky lg:top-24 lg:row-span-2`}
-        >
-          {/* What "Use this template" does — no price/plan is stated because
-              instantiation is part of every workspace's create flow. */}
-          <p className="m-0 text-sm leading-relaxed text-[var(--ff-muted)]">
-            Copies into your workspace as an editable draft.
-          </p>
-          {/* "Use template" — the authenticated create flow (spec §14.1.2) picks up ?template= */}
-          <Link href={`/dashboard?template=${meta.id}`} className={`${BTN_PRIMARY_LG} w-full`}>
-            Use this template
-          </Link>
           <div className="border-t border-[var(--ff-border)] pt-4">
-            <h2 className="m-0 text-[0.8125rem] font-semibold text-[var(--ff-fg)]">What&apos;s inside</h2>
+            <h3 className="m-0 text-[0.8125rem] font-semibold text-[var(--ff-fg)]">What&apos;s inside</h3>
             <ul className="mt-2.5 flex list-none flex-wrap gap-1.5 p-0">
               {Array.from(kinds).map((kind) => (
                 <li
@@ -134,15 +173,6 @@ export default async function TemplatePreviewPage({ params }: { params: Promise<
             )}
           </div>
         </aside>
-
-        <section aria-label="Template preview" className="mt-2 min-w-0 lg:col-start-1 lg:row-start-2">
-          <h2 className="text-xl font-semibold tracking-tight text-[var(--ff-fg)]">Preview</h2>
-          {/* The panel provides border + shadow; the preview supplies its own
-              muted frame and self-themed miniature page inside it. */}
-          <div className={`${CARD} mt-4 overflow-hidden`}>
-            <TemplatePreview body={body} />
-          </div>
-        </section>
       </div>
     </main>
   );

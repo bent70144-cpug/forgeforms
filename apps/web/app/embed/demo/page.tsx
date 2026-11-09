@@ -6,9 +6,11 @@
 //
 // QA: pass a real published doc id with ?doc=doc_xxxxxxxx to see live content.
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import Script from "next/script";
 import Link from "next/link";
+
+import { BADGE_ACCENT } from "@/lib/ui";
 
 export const metadata: Metadata = {
   title: "Embed demo — FormForge",
@@ -18,6 +20,8 @@ export const metadata: Metadata = {
 
 const DEFAULT_DOC = "doc_demo";
 
+const HEADING_STYLE: CSSProperties = { fontFamily: "var(--ff-font-heading)" };
+
 function BrandRow() {
   return (
     <Link href="/" aria-label="FormForge home" className="inline-flex shrink-0 items-center gap-2 no-underline">
@@ -25,9 +29,9 @@ function BrandRow() {
         aria-hidden="true"
         className="flex h-7 w-7 items-center justify-center rounded-lg"
         style={{
-          background: "var(--ff-primary)",
+          background: "var(--ff-grad)",
           color: "var(--ff-primary-fg)",
-          boxShadow: "var(--ff-shadow-sm)",
+          boxShadow: "var(--ff-glow)",
         }}
       >
         <svg
@@ -45,7 +49,7 @@ function BrandRow() {
           <path d="M13 2 3 14h9l-1 8 10-12h-9z" />
         </svg>
       </span>
-      <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]">
+      <span className="text-[1.0625rem] font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
         FormForge
       </span>
     </Link>
@@ -63,7 +67,10 @@ function Chip({ children }: { children: ReactNode }) {
 function Panel({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="ff-panel mt-10 space-y-3 p-5">
-      <h2 className="text-base font-semibold tracking-tight text-[var(--ff-fg)]">{title}</h2>
+      <h2 className="flex items-center gap-3 text-base font-semibold tracking-tight text-[var(--ff-fg)]" style={HEADING_STYLE}>
+        <span aria-hidden="true" className="h-4 w-1 shrink-0 rounded-full" style={{ background: "var(--ff-grad)" }} />
+        {title}
+      </h2>
       {children}
     </section>
   );
@@ -85,7 +92,8 @@ export default async function EmbedDemoPage({
         </div>
 
         <header className="mt-12 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]">
+          <span className={BADGE_ACCENT}>Embed loader QA</span>
+          <h1 className="mt-5 text-3xl font-semibold tracking-tight text-balance text-[var(--ff-fg)]" style={HEADING_STYLE}>
             Embed loader demo
           </h1>
           <p className="mx-auto mt-4 max-w-2xl leading-relaxed text-[var(--ff-muted)]">
@@ -123,7 +131,7 @@ export default async function EmbedDemoPage({
         </Panel>
 
         <p className="mt-10 text-sm text-[var(--ff-muted)]">
-          Full docs: <Link className="font-medium text-[var(--ff-fg)] underline underline-offset-4" href="/embed">/embed</Link>.
+          Full docs: <Link className="font-medium text-[var(--ff-fg)] underline underline-offset-4 transition-colors duration-200 hover:text-[var(--ff-primary-2)]" href="/embed">/embed</Link>.
         </p>
 
         {/* The real loader, loaded the way a host page loads it. data-formforge-doc

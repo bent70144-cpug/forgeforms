@@ -6,6 +6,12 @@
 import { Component, type ReactNode } from "react";
 import type { Block } from "@formforge/schema";
 
+/** §semantic warning tint — tokenized, flips with the light/dark scheme. */
+const WARN_TINT = {
+  borderColor: "color-mix(in srgb, var(--ff-warning) 38%, transparent)",
+  background: "color-mix(in srgb, var(--ff-warning) 9%, transparent)",
+} as const;
+
 function propsJson(props: Record<string, unknown>): string {
   try {
     return JSON.stringify(props, null, 2);
@@ -25,17 +31,18 @@ export function BlockErrorFallback({
     <div
       role="alert"
       data-testid="block-error"
-      className="rounded-md border border-amber-300 bg-amber-50 p-4"
+      style={WARN_TINT}
+      className="rounded-xl border p-4"
     >
-      <p className="font-medium text-amber-900">This block has an error</p>
-      <p className="mt-1 text-sm text-amber-800">
+      <p className="font-medium text-[color:var(--ff-warning)]">This block has an error</p>
+      <p className="mt-1 text-sm text-[color:var(--ff-muted)]">
         The preview failed to render. Your content is preserved.
       </p>
       <details className="mt-2">
-        <summary className="cursor-pointer text-sm font-medium text-amber-900 underline">
+        <summary className="cursor-pointer text-sm font-medium text-[color:var(--ff-warning)] underline">
           View stored props
         </summary>
-        <pre className="mt-2 max-h-40 overflow-auto rounded bg-white p-2 text-xs text-slate-700">
+        <pre className="mt-2 max-h-40 overflow-auto rounded-lg border border-[color:var(--ff-border)] bg-[color:var(--ff-bg)] p-2 text-xs text-[color:var(--ff-muted)]">
           {propsJson(block.props)}
         </pre>
       </details>
@@ -43,7 +50,7 @@ export function BlockErrorFallback({
         type="button"
         aria-label="Delete block"
         onClick={onDelete}
-        className="mt-3 rounded-md border border-amber-300 bg-white px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+        className="ff-btn ff-btn-secondary ff-btn-sm mt-3"
       >
         Delete
       </button>

@@ -14,6 +14,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { DocumentType, Theme } from "@formforge/schema";
 import { DEFAULT_THEME_TOKENS, THEME_TOKEN_VARS } from "@/lib/bridge";
+import { Icon } from "@/components/ui/icons";
 import type { CanvasActions } from "@/lib/builder/canvas-ops";
 import {
   BUILDER_EVENTS,
@@ -72,6 +73,17 @@ function deselectAtRoot(event: MouseEvent<HTMLElement>, select: (id: string | nu
   if (event.target === event.currentTarget) select(null);
 }
 
+/* Builder-canvas texture (aurora redesign): a low-opacity dot grid tinted
+   with the DOCUMENT's border token — the canvas root carries the doc theme
+   vars (canvasThemeVars), so the pattern adapts to light/dark doc themes.
+   The app-level violet glow tokens (--ff-glow/--ff-grad) are resolved at
+   :root and stay usable inside the themed subtree. */
+const DOT_GRID: CSSProperties = {
+  backgroundImage:
+    "radial-gradient(color-mix(in srgb, var(--ff-border) 55%, transparent) 1px, transparent 1.4px)",
+  backgroundSize: "22px 22px",
+};
+
 /** Non-block chrome card for the welcome step (§5.1). */
 function StartScreenCard({ type, onOpen }: { type: DocumentType; onOpen: () => void }) {
   const title = type === "form" ? "Start screen" : "Start";
@@ -87,16 +99,30 @@ function StartScreenCard({ type, onOpen }: { type: DocumentType; onOpen: () => v
         event.stopPropagation();
         onOpen();
       }}
-      className="mb-2 cursor-pointer rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-white p-6 text-center shadow-sm outline-1 outline-offset-2 outline-transparent hover:[outline-color:var(--ff-border)] focus-visible:[outline:2px_solid_var(--ff-primary)]"
+      className="mb-2 cursor-pointer rounded-[var(--ff-radius)] border border-dashed p-6 text-center outline-1 outline-offset-2 outline-transparent transition-[border-color,background-color] hover:[border-color:color-mix(in_srgb,var(--ff-primary)_45%,var(--ff-border))] focus-visible:[outline:2px_solid_var(--ff-primary)]"
+      style={{
+        background: "color-mix(in srgb, var(--ff-primary) 3%, var(--ff-bg))",
+        borderColor: "color-mix(in srgb, var(--ff-border) 80%, transparent)",
+      }}
     >
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Welcome</p>
+      <span
+        aria-hidden="true"
+        className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-[calc(var(--ff-radius)*0.55)]"
+        style={{ background: "var(--ff-grad)", boxShadow: "var(--ff-glow)" }}
+      >
+        {/* text on the fixed app gradient is always white — the document
+            theme shadows --ff-primary-fg inside the canvas subtree */}
+        <span className="text-white">
+          <Icon name="plus" size={18} />
+        </span>
+      </span>
       <h2
-        className="mt-1 text-xl font-semibold text-slate-900"
+        className="mt-0 text-xl font-semibold text-[color:var(--ff-fg)]"
         style={{ fontFamily: "var(--ff-font-heading)" }}
       >
         {title}
       </h2>
-      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+      <p className="mt-1 text-sm text-[color:var(--ff-muted)]">{subtitle}</p>
     </article>
   );
 }
@@ -292,22 +318,41 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
       aria-label="Form editor"
       data-testid="builder-canvas"
       onClick={(event) => deselectAtRoot(event, select)}
-      className="ff-canvas min-h-full w-full overflow-x-hidden overflow-y-auto bg-[color:var(--ff-bg)] transition-colors"
-      style={{ ...themeStyle, fontFamily: "var(--ff-font-body)", color: "var(--ff-fg)" }}
+      className="ff-canvas min-h-full w-full overflow-x-hidden overflow-y-auto transition-colors"
+      style={{
+        ...themeStyle,
+        fontFamily: "var(--ff-font-body)",
+        color: "var(--ff-fg)",
+        // doc-theme paper stays the base surface (§5.1 theme-live canvas);
+        // the dot grid + drag ring are token-tinted so they adapt to it
+        backgroundColor: "var(--ff-bg)",
+        ...DOT_GRID,
+        // drag-over highlight: a violet (document-primary) ring around the
+        // drop field while a block is being dragged (§6.2)
+        ...(drag
+          ? { boxShadow: "inset 0 0 0 2px color-mix(in srgb, var(--ff-primary) 30%, transparent)" }
+          : null),
+      }}
     >
       <div
         className="relative mx-auto w-full max-w-[720px] px-4 py-8 sm:px-6"
         onClick={(event) => deselectAtRoot(event, select)}
       >
         {/* §6.2 drop indicator — absolutely positioned inside the content
-            column (no layout shift); pointer-events-none, aria-hidden. */}
+            column (no layout shift); pointer-events-none, aria-hidden. The
+            app gradient + glow preview the destination slot. */}
         {drag ? (
           <div
             aria-hidden="true"
             data-testid="drop-indicator"
             data-drop-slot={drag.dropSlot}
-            className="pointer-events-none absolute inset-x-4 z-20 h-0.5 rounded-full bg-[color:var(--ff-primary)]"
-            style={{ top: drag.indicatorTop }}
+            className="pointer-events-none absolute inset-x-4 z-20 h-0.5 rounded-full"
+            style={{
+              top: drag.indicatorTop,
+              background: "var(--ff-grad)",
+              boxShadow:
+                "0 0 0 3px color-mix(in srgb, var(--ff-primary) 16%, transparent), var(--ff-glow)",
+            }}
           />
         ) : null}
         <StartScreenCard type={body.type} onOpen={() => select(null)} />
@@ -349,15 +394,24 @@ export function Canvas({ initialEditingBlockId = null }: CanvasProps) {
               event.stopPropagation();
               openEndings();
             }}
-            className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[var(--ff-radius)] border border-[color:var(--ff-border)] bg-white p-4 text-left shadow-sm hover:shadow-md"
+            className="mt-2 flex min-h-[44px] w-full items-center justify-between gap-3 rounded-[var(--ff-radius)] border p-4 text-left shadow-sm transition-shadow hover:shadow-md"
+            style={{
+              background: "color-mix(in srgb, var(--ff-primary) 3%, var(--ff-bg))",
+              borderColor: "var(--ff-border)",
+            }}
           >
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-slate-800" dir="auto">
+              <span className="block truncate text-sm font-medium text-[color:var(--ff-fg)]" dir="auto">
                 {ending.title}
               </span>
-              <span className="text-xs text-slate-500">Final screen shown after submission</span>
+              <span className="text-xs text-[color:var(--ff-muted)]">
+                Final screen shown after submission
+              </span>
             </span>
-            <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+            <span
+              className="shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium text-[color:var(--ff-muted)]"
+              style={{ borderColor: "var(--ff-border)" }}
+            >
               Ending
             </span>
           </button>

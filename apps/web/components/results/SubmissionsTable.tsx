@@ -1,8 +1,9 @@
 // T15 — Submissions tab (spec §14.1.5): cursor-paginated table with one column
 // per question ("—" for empty), status filter, submitted_at sort, 5s poll so a
 // fresh submission shows within 5s, row click → detail drawer.
-// B5: ff-seg status filter, icon sort/refresh affordances, sticky tinted thead,
-// progressive column disclosure on small screens, token-driven states.
+// Aurora: ff-seg status filter, sticky glass thead (uppercase micro labels),
+// mono timestamps/tokens, violet row-hover wash, progressive column disclosure
+// on small screens, token-driven states.
 
 "use client";
 
@@ -45,7 +46,8 @@ const POLL_MS = 5000;
 const questionColClass = (index: number): string =>
   index === 0 ? "hidden md:table-cell" : "hidden lg:table-cell";
 
-const TH = "px-3 py-2.5 text-left text-xs font-medium text-[var(--ff-muted)] whitespace-nowrap";
+const TH =
+  "px-3 py-2.5 text-left text-[11px] font-medium uppercase tracking-wider text-[var(--ff-muted)] whitespace-nowrap";
 const TD = "px-3 py-2.5";
 
 export interface SubmissionsTableProps {
@@ -199,7 +201,11 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
         <div className={`${CARD} overflow-hidden`}>
           {state.loading ? (
             <TableSkeleton />
-          ) : state.error ? (
+          ) : state.error && errorCode !== "NOT_FOUND" ? (
+            // Hard errors get the retry state. NOT_FOUND is graceful: the
+            // submissions data plane may not be provisioned for this document
+            // yet (live API) — the document itself loaded, so this reads as
+            // "no responses so far" rather than a failure.
             <div className="p-6">
               <ErrorState message={state.error} code={errorCode} onRetry={() => load(status, sort)} />
             </div>
@@ -237,7 +243,7 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                 <caption className="sr-only">
                   Submissions, sorted by submitted time ({sort === "newest" ? "newest first" : "oldest first"})
                 </caption>
-                <thead className="sticky top-0 z-10 border-b border-[var(--ff-border)] bg-[var(--ff-card)]">
+                <thead className="sticky top-0 z-10 border-b border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-card)_85%,transparent)] backdrop-blur-sm">
                   <tr>
                     <th scope="col" className={TH}>
                       <button
@@ -291,9 +297,9 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
                         }
                       }}
                       aria-label={`Open submission ${row.id}`}
-                      className="cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--ff-fg)_3%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ff-accent)]"
+                      className="cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--ff-primary)_7%,transparent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ff-accent)]"
                     >
-                      <td className={`${TD} whitespace-nowrap tabular-nums text-[var(--ff-muted)]`}>
+                      <td className="whitespace-nowrap font-mono text-xs tabular-nums text-[var(--ff-muted)]">
                         {formatDateTimeShort(sortKeyOf(row))}
                       </td>
                       <td className={TD}>
@@ -340,8 +346,8 @@ export function SubmissionsTable({ docId, client, body, slug }: SubmissionsTable
 
           {/* Footer: cursor pagination controls (spec §4) */}
           {!state.loading && !state.error && state.rows.length > 0 ? (
-            <div className="flex items-center justify-between gap-3 border-t border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-fg)_3%,transparent)] px-4 py-3 text-xs text-[var(--ff-muted)]">
-              <span className="tabular-nums">
+            <div className="flex items-center justify-between gap-3 border-t border-[var(--ff-border)] bg-[color-mix(in_srgb,var(--ff-primary)_3%,transparent)] px-4 py-3 text-xs text-[var(--ff-muted)]">
+              <span className="font-mono tabular-nums">
                 Showing {state.rows.length} loaded
                 {state.pagesLoaded > 1 ? ` · ${state.pagesLoaded} pages` : ""}
               </span>

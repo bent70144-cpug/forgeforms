@@ -65,8 +65,8 @@ export function EmailListEditor({
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium" htmlFor={inputId}>
+    <div className="ff-field">
+      <label className="font-medium" htmlFor={inputId}>
         Notify emails ({emails.length}/{max})
       </label>
       <div className="flex gap-1">

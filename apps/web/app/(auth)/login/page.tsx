@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { GoogleSignInButton } from "@/components/auth/google-button";
+import { BANNER_ERROR, BANNER_SUCCESS } from "@/lib/ui";
+import { AuthHeading } from "@/app/(auth)/layout";
 
 export const metadata: Metadata = { title: "Log in" };
 
@@ -24,21 +26,21 @@ export default async function LoginPage({
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight text-balance">Log in</h1>
-      <p className="ff-subtle">Welcome back. Enter your details to continue.</p>
+      <AuthHeading>Welcome back</AuthHeading>
+      <p className="ff-subtle">Log in to your FormForge workspace.</p>
 
       {reset === "1" && (
-        <p className="ff-banner ff-banner-success" role="status">
+        <p className={BANNER_SUCCESS} role="status">
           Your password has been updated. Log in with the new password.
         </p>
       )}
       {verified === "1" && (
-        <p className="ff-banner ff-banner-success" role="status">
+        <p className={BANNER_SUCCESS} role="status">
           Email verified — thanks!
         </p>
       )}
       {oauthError !== undefined && (
-        <p className="ff-banner ff-banner-error" role="alert">
+        <p className={BANNER_ERROR} role="alert">
           {oauthError}
         </p>
       )}

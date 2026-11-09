@@ -5,16 +5,18 @@
 // rule goto edges. Pure presentation: the graph model comes from
 // lib/logic/graph.ts (unit-tested); clicking a node opens the rule drawer.
 //
-// Redesign (B7): token-driven node/edge colors (no hardcoded hexes), a shared
-// node surface (card bg, strong hairline, 12px radius), accent active ring,
-// icon ending marker (🏁 removed), and a restyled React Flow Controls cluster.
-// Node data + graph mapping logic is unchanged.
+// Aurora redesign (task 10/13): frosted node cards (14px radius, glass border,
+// backdrop blur) with gradient type tiles, violet ring + glow on the active
+// scope, violet (default-flow) / cyan (rule goto) edge strokes, --ff-primary
+// handles, a token-colored dot grid, and muted glass chrome for Controls +
+// MiniMap. Node data + graph mapping logic is unchanged.
 
 import { useMemo } from "react";
 import {
   Background,
   Controls,
   Handle,
+  MiniMap,
   Position,
   ReactFlow,
   type Edge,
@@ -23,7 +25,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import type { LogicGraph } from "@/lib/logic/graph";
-import { Icon } from "@/components/ui/icons";
+import { Icon, type IconName } from "@/components/ui/icons";
 
 export type LogicCanvasProps = {
   graph: LogicGraph;
@@ -41,32 +43,72 @@ type LogicNodeData = {
 
 type FlowNode = Node<LogicNodeData, "start" | "question" | "ending">;
 
-/* Shared node surface — warm-paper card with a stronger hairline so nodes read
-   as draggable objects on the dotted canvas. */
-const NODE_SURFACE =
-  "bg-[var(--ff-card)] border border-[var(--ff-border-strong)] rounded-xl shadow-[var(--ff-shadow-sm)]";
-/* Active scope: accent border + soft accent halo (box-shadow only, no layout shift). */
-const NODE_ACTIVE =
-  "border-[var(--ff-accent)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-accent)_20%,transparent)]";
+/* ---------------------------------------------------------------------------
+ * Node chrome (aurora glass)
+ * ------------------------------------------------------------------------ */
 
+/* Shared node surface — frosted glass card with the glass hairline so nodes
+   read as draggable objects floating over the dotted aurora canvas. */
+const NODE_SURFACE =
+  "border border-[var(--ff-glass-border)] bg-[var(--ff-glass)] shadow-[var(--ff-shadow-sm)] backdrop-blur-md";
+/* Active scope: violet ring + violet glow (box-shadow only, no layout shift). */
+const NODE_ACTIVE =
+  "border-[var(--ff-primary)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--ff-primary)_22%,transparent),var(--ff-glow)]";
+
+const NODE_TRANSITION = "transition-[border-color,box-shadow] duration-150";
+
+/* Gradient type tiles: violet→cyan for start/question, cyan for endings. */
+const TILE_BASE =
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] shadow-[inset_0_1px_0_rgb(255_255_255/0.25),var(--ff-shadow-sm)]";
+const TILE_VIOLET = `${TILE_BASE} text-[var(--ff-primary-fg)]`;
+const TILE_CYAN = `${TILE_BASE} text-[var(--ff-accent-fg)]`;
+
+const TILE_GRADIENT = { background: "var(--ff-grad)" } as const;
+const TILE_ENDING_GRADIENT = {
+  background: "linear-gradient(135deg, var(--ff-accent), var(--ff-primary-2))",
+} as const;
+
+/* Question kind → tile icon (presentation only; unknown kinds fall back). */
+const QUESTION_TILE_ICONS: Record<string, IconName> = {
+  "short-text": "file",
+  "long-text": "fileText",
+  email: "mail",
+  number: "chart",
+  "single-select": "list",
+  "multi-select": "list",
+  dropdown: "chevronDown",
+  rating: "sparkles",
+  nps: "chart",
+};
+
+function questionTileIcon(questionKind?: string): IconName {
+  return (questionKind !== undefined && QUESTION_TILE_ICONS[questionKind]) || "info";
+}
+
+/* Handles in --ff-primary with a card-colored rim so they pop off the glass. */
 const HANDLE_STYLE = {
-  width: 8,
-  height: 8,
-  background: "var(--ff-muted)",
+  width: 10,
+  height: 10,
+  background: "var(--ff-primary)",
   border: "2px solid var(--ff-card)",
+  boxShadow: "0 0 0 1px color-mix(in srgb, var(--ff-primary) 35%, transparent)",
 } as const;
 
 function StartNode({ data }: NodeProps<FlowNode>) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-medium shadow-[var(--ff-shadow-sm)] ${
-        data.active ? NODE_ACTIVE : "border-[var(--ff-border-strong)] bg-[var(--ff-card)] text-[var(--ff-fg)]"
+      className={`flex items-center gap-2.5 rounded-[14px] px-3 py-2 ${NODE_SURFACE} ${NODE_TRANSITION} ${
+        data.active ? NODE_ACTIVE : ""
       }`}
     >
-      <svg aria-hidden="true" viewBox="0 0 12 12" className="h-3 w-3 fill-current text-[var(--ff-success)]">
-        <path d="M3 1.6a.8.8 0 0 1 1.22-.68l6.4 4.4a.8.8 0 0 1 0 1.36l-6.4 4.4A.8.8 0 0 1 3 10.4Z" />
-      </svg>
-      {data.label}
+      <span aria-hidden="true" className={TILE_VIOLET} style={TILE_GRADIENT}>
+        <svg viewBox="0 0 12 12" className="h-3.5 w-3.5 fill-current">
+          <path d="M3 1.6a.8.8 0 0 1 1.22-.68l6.4 4.4a.8.8 0 0 1 0 1.36l-6.4 4.4A.8.8 0 0 1 3 10.4Z" />
+        </svg>
+      </span>
+      <span className="pr-0.5 text-sm font-semibold tracking-tight text-[var(--ff-fg)]">
+        {data.label}
+      </span>
       <Handle type="source" position={Position.Bottom} style={HANDLE_STYLE} />
     </div>
   );
@@ -74,17 +116,26 @@ function StartNode({ data }: NodeProps<FlowNode>) {
 
 function QuestionNode({ data }: NodeProps<FlowNode>) {
   return (
-    <div className={`min-w-[180px] px-3 py-2 ${NODE_SURFACE} ${data.active ? NODE_ACTIVE : ""}`}>
+    <div
+      className={`flex w-[220px] items-center gap-2.5 rounded-[14px] px-3 py-2.5 ${NODE_SURFACE} ${NODE_TRANSITION} ${
+        data.active ? NODE_ACTIVE : ""
+      }`}
+    >
       <Handle type="target" position={Position.Top} style={HANDLE_STYLE} />
-      <span className="mb-1 inline-flex rounded-md bg-[color-mix(in_srgb,var(--ff-fg)_6%,transparent)] px-1.5 py-px font-mono text-xs leading-4 text-[var(--ff-muted)]">
-        {data.questionKind ?? "question"}
+      <span aria-hidden="true" className={TILE_VIOLET} style={TILE_GRADIENT}>
+        <Icon name={questionTileIcon(data.questionKind)} size={15} />
       </span>
-      <div
-        className="max-w-[180px] truncate text-sm font-medium text-[var(--ff-fg)]"
-        title={data.label}
-      >
-        {data.label}
-      </div>
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="truncate font-mono text-[10px] font-medium uppercase leading-3 tracking-[0.08em] text-[var(--ff-accent)]">
+          {data.questionKind ?? "question"}
+        </span>
+        <span
+          className="truncate text-sm font-medium leading-tight text-[var(--ff-fg)]"
+          title={data.label}
+        >
+          {data.label}
+        </span>
+      </span>
       <Handle type="source" position={Position.Bottom} style={HANDLE_STYLE} />
     </div>
   );
@@ -92,14 +143,18 @@ function QuestionNode({ data }: NodeProps<FlowNode>) {
 
 function EndingNode({ data }: NodeProps<FlowNode>) {
   return (
-    <div className={`min-w-[160px] px-3 py-2 ${NODE_SURFACE} ${data.active ? NODE_ACTIVE : ""}`}>
+    <div
+      className={`flex w-[200px] items-center gap-2.5 rounded-[14px] px-3 py-2.5 ${NODE_SURFACE} ${NODE_TRANSITION} ${
+        data.active ? NODE_ACTIVE : ""
+      }`}
+    >
       <Handle type="target" position={Position.Top} style={HANDLE_STYLE} />
-      <div className="flex items-center gap-1.5">
-        <Icon name="checkCircle" size={14} className="shrink-0 text-[var(--ff-success)]" />
-        <span className="truncate text-sm font-medium text-[var(--ff-fg)]" title={data.label}>
-          {data.label}
-        </span>
-      </div>
+      <span aria-hidden="true" className={TILE_CYAN} style={TILE_ENDING_GRADIENT}>
+        <Icon name="check" size={15} />
+      </span>
+      <span className="truncate text-sm font-medium text-[var(--ff-fg)]" title={data.label}>
+        {data.label}
+      </span>
     </div>
   );
 }
@@ -110,21 +165,34 @@ const NODE_TYPES = {
   ending: EndingNode,
 };
 
+/* Mini-map node colors — violet family for start/questions, cyan for endings. */
+function miniMapNodeColor(node: FlowNode): string {
+  if (node.data.kind === "ending") return "var(--ff-accent)";
+  if (node.data.kind === "start") return "var(--ff-primary)";
+  return "color-mix(in srgb, var(--ff-primary) 55%, var(--ff-border-strong))";
+}
+
 /*
  * Scoped restyles for React Flow chrome that exposes no className props:
- *  · selected edges → chart color #1 (rule edges already use it)
- *  · Controls → 32px card buttons with hairline separators + hover lift
- * Kept in one small block (no globals.css edits allowed for B7); all colors
- * are tokens. Animations limited to transform/box-shadow/color transitions.
+ *  · selected edges → violet stroke + soft glow (rule edges stay cyan)
+ *  · Controls → frosted glass cluster with violet hover + accent focus ring
+ *  · MiniMap → muted glass panel to match
+ * Kept in one small block (no globals.css edits allowed); all colors are
+ * tokens. Animations limited to transform/box-shadow/color transitions.
  */
 const FLOW_CHROME_CSS = `
-.ff-logic-flow .react-flow__edge.selected .react-flow__edge-path { stroke: var(--ff-chart-1) !important; }
+.ff-logic-flow .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--ff-primary) !important;
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--ff-primary) 55%, transparent));
+}
 .ff-logic-flow .react-flow__controls {
-  border: 1px solid var(--ff-border);
-  border-radius: 10px;
+  border: 1px solid var(--ff-glass-border);
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--ff-card);
-  box-shadow: var(--ff-shadow-sm);
+  background: var(--ff-glass);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: var(--ff-shadow-md);
 }
 .ff-logic-flow .react-flow__controls-button {
   width: 32px;
@@ -132,13 +200,13 @@ const FLOW_CHROME_CSS = `
   border: none;
   border-bottom: 1px solid var(--ff-border);
   border-radius: 0;
-  background: var(--ff-card);
+  background: transparent;
   color: var(--ff-muted);
-  transition: background-color 150ms var(--ff-ease-out), color 150ms var(--ff-ease-out), transform 150ms var(--ff-ease-out);
+  transition: background-color 150ms var(--ff-ease-out), color 150ms var(--ff-ease-out);
 }
 .ff-logic-flow .react-flow__controls-button:last-child { border-bottom: none; }
 .ff-logic-flow .react-flow__controls-button:hover {
-  background: color-mix(in srgb, var(--ff-fg) 5%, var(--ff-card));
+  background: color-mix(in srgb, var(--ff-primary) 16%, transparent);
   color: var(--ff-fg);
 }
 .ff-logic-flow .react-flow__controls-button:focus-visible {
@@ -146,6 +214,16 @@ const FLOW_CHROME_CSS = `
   outline-offset: -2px;
 }
 .ff-logic-flow .react-flow__controls-button svg { fill: currentColor; }
+.ff-logic-flow .react-flow__minimap {
+  border: 1px solid var(--ff-glass-border);
+  border-radius: 12px;
+  background: var(--ff-glass);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: var(--ff-shadow-md);
+  overflow: hidden;
+}
+.ff-logic-flow .react-flow__minimap svg { background: transparent; }
 `;
 
 export function LogicCanvas({ graph, selectedId, onSelect }: LogicCanvasProps) {
@@ -179,6 +257,8 @@ export function LogicCanvas({ graph, selectedId, onSelect }: LogicCanvasProps) {
       };
     });
 
+    // Edge palette: violet strokes for the default flow spine, dashed cyan
+    // for rule goto edges (with a cyan rule-id label chip).
     const edges: Edge[] = graph.edges.map((edge) => ({
       id: edge.id,
       source: edge.source,
@@ -189,10 +269,18 @@ export function LogicCanvas({ graph, selectedId, onSelect }: LogicCanvasProps) {
       // give them screen-reader + tab-stop labels.
       ariaLabel: edge.isRuleEdge ? `goto rule ${edge.ruleId}` : `flow from ${edge.source} to ${edge.target}`,
       style: edge.isRuleEdge
-        ? { stroke: "var(--ff-chart-1)", strokeDasharray: "6 4", strokeWidth: 1.75 }
-        : { stroke: "var(--ff-border-strong)", strokeWidth: 1.75 },
-      labelStyle: { fontSize: 12, fill: "var(--ff-primary-fg)", fontWeight: 500 },
-      labelBgStyle: { fill: "var(--ff-primary)" },
+        ? { stroke: "var(--ff-accent)", strokeDasharray: "6 4", strokeWidth: 1.75 }
+        : {
+            stroke: "color-mix(in srgb, var(--ff-primary) 48%, var(--ff-border-strong))",
+            strokeWidth: 1.75,
+          },
+      labelStyle: {
+        fontSize: 11,
+        fill: "var(--ff-accent-fg)",
+        fontWeight: 600,
+        fontFamily: "var(--ff-font-mono)",
+      },
+      labelBgStyle: { fill: "var(--ff-accent)" },
       labelBgPadding: [6, 2],
       labelBgBorderRadius: 6,
     }));
@@ -214,7 +302,23 @@ export function LogicCanvas({ graph, selectedId, onSelect }: LogicCanvasProps) {
         elementsSelectable
         onNodeClick={(_, node) => onSelect(node.id)}
       >
-        <Background gap={24} />
+        <Background
+          gap={24}
+          size={1.4}
+          color="color-mix(in srgb, var(--ff-primary) 26%, var(--ff-border))"
+        />
+        <MiniMap
+          position="top-right"
+          pannable={false}
+          zoomable={false}
+          ariaLabel="Flow mini map"
+          nodeColor={miniMapNodeColor}
+          nodeBorderRadius={6}
+          maskColor="color-mix(in srgb, var(--ff-bg) 58%, transparent)"
+          maskStrokeColor="color-mix(in srgb, var(--ff-primary) 45%, transparent)"
+          maskStrokeWidth={1}
+          style={{ width: 160, height: 116 }}
+        />
         <Controls showInteractive={false} />
       </ReactFlow>
     </div>
