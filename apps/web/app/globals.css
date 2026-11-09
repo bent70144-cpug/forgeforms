@@ -6,10 +6,12 @@
 @source "../../../packages/renderer/src";
 
 /* ============================================================================
-   FORMFORGE APP DESIGN SYSTEM — "aurora glass" (2026 redesign)
+   FORMFORGE APP DESIGN SYSTEM — "Meridian" (2026 redesign #2)
    ----------------------------------------------------------------------------
-   Dark-first deep-indigo workspace with violet→cyan gradient energy, glass
-   surfaces and glow accents. Sections, in order:
+   Light-first editorial system: warm paper canvas, ink typography, ultramarine
+   primary with a terracotta signal accent, crisp 1px rules and soft paper
+   shadows (no glass, no gradients-as-chrome). A tuned night counterpart flips
+   automatically for prefers-color-scheme: dark. Sections, in order:
      TOKENS · BASE · BUTTONS · FORMS · CHROME (auth/app shell)
      PANELS/BADGES/CHIPS/SEG · DOC CARDS · OVERLAYS (modal/drawer)
      STATE (skeleton/banner/empty) · REVEAL/SPOTLIGHT · REDUCED MOTION
@@ -23,59 +25,59 @@
 /* ====== TOKENS ============================================================ */
 
 :root {
-  /* surfaces — deep space indigo (dark-first) */
-  --ff-bg: #0b0e1a;
-  --ff-bg-2: #0f1424;
-  --ff-card: #141a33;
-  --ff-card-2: #1a2142;
-  --ff-fg: #eef1ff;
-  --ff-muted: #9aa3c9;
-  --ff-border: #232b52;
-  --ff-border-strong: #34406f;
+  /* surfaces — warm paper (light-first editorial) */
+  --ff-bg: #f7f5f0;
+  --ff-bg-2: #efece4;
+  --ff-card: #ffffff;
+  --ff-card-2: #faf8f4;
+  --ff-fg: #1a1d26;
+  --ff-muted: #686e7e;
+  --ff-border: #e5e1d6;
+  --ff-border-strong: #d1ccbd;
 
-  /* actions — violet gradient is the primary; cyan is the signal */
-  --ff-primary: #6c5cff;
-  --ff-primary-2: #38bdf8;
+  /* actions — ultramarine is the primary; terracotta is the signal */
+  --ff-primary: #3d3bf3;
+  --ff-primary-2: #2b29c7;
   --ff-primary-fg: #ffffff;
-  --ff-accent: #22d3ee;
-  --ff-accent-soft: #7dd3fc;
-  --ff-accent-fg: #07222b;
+  --ff-accent: #c2410c;
+  --ff-accent-soft: #ea580c;
+  --ff-accent-fg: #ffffff;
 
-  /* semantics — readable on dark glass tints */
-  --ff-success: #4ade80;
-  --ff-success-soft: rgb(74 222 128 / 0.12);
-  --ff-warning: #fbbf24;
-  --ff-warning-soft: rgb(251 191 36 / 0.12);
-  --ff-danger: #fb7185;
-  --ff-danger-soft: rgb(251 113 133 / 0.12);
+  /* semantics — readable on paper and card whites */
+  --ff-success: #15803d;
+  --ff-success-soft: #e3f2e7;
+  --ff-warning: #a16207;
+  --ff-warning-soft: #faf0d4;
+  --ff-danger: #dc2626;
+  --ff-danger-soft: #fbeaea;
 
-  /* charts — violet / cyan / rose, distinct on the dark canvas */
-  --ff-chart-1: #8b7bff;
-  --ff-chart-2: #22d3ee;
-  --ff-chart-3: #f472b6;
+  /* charts — ultramarine / terracotta / teal, distinct on white cards */
+  --ff-chart-1: #3d3bf3;
+  --ff-chart-2: #e2603c;
+  --ff-chart-3: #0f766e;
 
   /* shape */
-  --ff-radius: 1rem;
+  --ff-radius: 0.875rem;
 
-  /* type — Space Grotesk / Inter / JetBrains Mono via next/font (root layout);
+  /* type — Sora / Inter / JetBrains Mono via next/font (root layout);
    * variable names unchanged so every consumer keeps working */
-  --ff-font-heading: var(--font-grotesk, "Space Grotesk"), "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --ff-font-body: var(--font-inter, "Inter"), "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --ff-font-mono: var(--font-jet, "JetBrains Mono"), "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ff-font-heading: var(--font-sora, "Sora"), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ff-font-body: var(--font-inter, "Inter"), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ff-font-mono: var(--font-jet, "JetBrains Mono"), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  /* glass chrome */
-  --ff-glass: rgb(20 26 51 / 0.78);
-  --ff-glass-border: rgb(122 134 213 / 0.16);
+  /* chrome — solid paper surfaces (no glass) */
+  --ff-glass: rgb(255 255 255 / 0.94);
+  --ff-glass-border: #e5e1d6;
 
-  /* gradient + glow recipes */
+  /* depth recipes — restrained ultramarine, print-like shadows */
   --ff-grad: linear-gradient(135deg, var(--ff-primary) 0%, var(--ff-primary-2) 100%);
-  --ff-glow: 0 8px 32px -8px rgb(108 92 255 / 0.45);
-  --ff-glow-soft: 0 0 0 1px rgb(122 134 213 / 0.14), 0 16px 48px -16px rgb(108 92 255 / 0.28);
+  --ff-glow: 0 6px 20px -8px rgb(61 59 243 / 0.4);
+  --ff-glow-soft: 0 0 0 1px rgb(61 59 243 / 0.12), 0 14px 40px -18px rgb(61 59 243 / 0.24);
 
   /* elevation + motion */
-  --ff-shadow-sm: 0 1px 2px rgb(3 6 18 / 0.5);
-  --ff-shadow-md: 0 1px 2px rgb(3 6 18 / 0.5), 0 12px 32px -12px rgb(3 6 18 / 0.55);
-  --ff-shadow-lg: 0 2px 4px rgb(3 6 18 / 0.5), 0 24px 64px -24px rgb(3 6 18 / 0.7);
+  --ff-shadow-sm: 0 1px 2px rgb(26 29 38 / 0.06);
+  --ff-shadow-md: 0 1px 2px rgb(26 29 38 / 0.06), 0 12px 32px -16px rgb(26 29 38 / 0.16);
+  --ff-shadow-lg: 0 2px 4px rgb(26 29 38 / 0.07), 0 24px 56px -24px rgb(26 29 38 / 0.24);
   --ff-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Back-compat mapping for Tailwind utilities referencing --background/-foreground */
@@ -83,45 +85,45 @@
   --foreground: var(--ff-fg);
 }
 
-/* porcelain counterpart for light-scheme users */
-@media (prefers-color-scheme: light) {
+/* Meridian night — tuned counterpart for prefers-color-scheme: dark */
+@media (prefers-color-scheme: dark) {
   :root {
-    --ff-bg: #f4f6fd;
-    --ff-bg-2: #eceffb;
-    --ff-card: #ffffff;
-    --ff-card-2: #f6f7fe;
-    --ff-fg: #171c36;
-    --ff-muted: #5b6284;
-    --ff-border: #e2e6f5;
-    --ff-border-strong: #cbd2ec;
+    --ff-bg: #13151c;
+    --ff-bg-2: #181b23;
+    --ff-card: #1d212b;
+    --ff-card-2: #232835;
+    --ff-fg: #ecebe2;
+    --ff-muted: #9ba1b2;
+    --ff-border: #2b3040;
+    --ff-border-strong: #3c4356;
 
-    --ff-primary: #5646e5;
-    --ff-primary-2: #0ea5e9;
-    --ff-primary-fg: #ffffff;
-    --ff-accent: #0e7490;
-    --ff-accent-soft: #0891b2;
-    --ff-accent-fg: #ffffff;
+    --ff-primary: #8381ff;
+    --ff-primary-2: #5b59f0;
+    --ff-primary-fg: #0e0d2e;
+    --ff-accent: #f0793f;
+    --ff-accent-soft: #f5946a;
+    --ff-accent-fg: #24100a;
 
-    --ff-success: #15803d;
-    --ff-success-soft: #e7f6ec;
-    --ff-warning: #a16207;
-    --ff-warning-soft: #fdf3d8;
-    --ff-danger: #dc2626;
-    --ff-danger-soft: #fdeaea;
+    --ff-success: #4ade80;
+    --ff-success-soft: rgb(74 222 128 / 0.14);
+    --ff-warning: #fbbf24;
+    --ff-warning-soft: rgb(251 191 36 / 0.14);
+    --ff-danger: #fb7185;
+    --ff-danger-soft: rgb(251 113 133 / 0.14);
 
-    --ff-chart-1: #6d5cff;
-    --ff-chart-2: #0891b2;
-    --ff-chart-3: #db2777;
+    --ff-chart-1: #8381ff;
+    --ff-chart-2: #f0793f;
+    --ff-chart-3: #2dd4bf;
 
-    --ff-glass: rgb(255 255 255 / 0.8);
-    --ff-glass-border: rgb(86 70 229 / 0.12);
+    --ff-glass: rgb(29 33 43 / 0.88);
+    --ff-glass-border: rgb(131 129 255 / 0.14);
 
-    --ff-glow: 0 8px 28px -10px rgb(86 70 229 / 0.35);
-    --ff-glow-soft: 0 0 0 1px rgb(86 70 229 / 0.1), 0 16px 44px -18px rgb(86 70 229 / 0.22);
+    --ff-glow: 0 6px 24px -10px rgb(131 129 255 / 0.35);
+    --ff-glow-soft: 0 0 0 1px rgb(131 129 255 / 0.12), 0 16px 44px -18px rgb(131 129 255 / 0.2);
 
-    --ff-shadow-sm: 0 1px 2px rgb(23 28 54 / 0.06);
-    --ff-shadow-md: 0 1px 2px rgb(23 28 54 / 0.06), 0 10px 28px -14px rgb(23 28 54 / 0.18);
-    --ff-shadow-lg: 0 2px 4px rgb(23 28 54 / 0.07), 0 20px 52px -22px rgb(23 28 54 / 0.26);
+    --ff-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --ff-shadow-md: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -14px rgb(0 0 0 / 0.5);
+    --ff-shadow-lg: 0 2px 4px rgb(0 0 0 / 0.4), 0 24px 56px -22px rgb(0 0 0 / 0.6);
   }
 }
 
@@ -134,11 +136,11 @@ body {
 
 body {
   background-color: var(--ff-bg);
-  /* aurora field: two fixed color washes that sit behind every surface */
+  /* meridian field: two whisper-quiet washes on the paper canvas */
   background-image:
-    radial-gradient(52rem 36rem at 8% -12%, rgb(108 92 255 / 0.14), transparent 60%),
-    radial-gradient(44rem 30rem at 96% 4%, rgb(34 211 238 / 0.08), transparent 55%),
-    radial-gradient(60rem 44rem at 50% 118%, rgb(56 189 248 / 0.07), transparent 60%);
+    radial-gradient(52rem 36rem at 8% -12%, rgb(61 59 243 / 0.05), transparent 60%),
+    radial-gradient(44rem 30rem at 96% 4%, rgb(226 96 60 / 0.04), transparent 55%),
+    radial-gradient(60rem 44rem at 50% 118%, rgb(15 118 110 / 0.03), transparent 60%);
   background-attachment: fixed;
   color: var(--ff-fg);
   font-family: var(--ff-font-body);
@@ -247,7 +249,7 @@ summary:focus-visible {
 .ff-button-primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.08);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 12px 40px -8px rgb(108 92 255 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 12px 36px -10px rgb(61 59 243 / 0.45);
 }
 
 /* secondary — frosted glass slab */
@@ -296,10 +298,10 @@ summary:focus-visible {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* dark danger is a light rose — flip the label to deep ink for contrast */
+  /* night danger is a light rose — flip the label to deep ink for contrast */
   .ff-btn-destructive,
   .ff-button-destructive {
-    color: #2f0a12;
+    color: #450a0a;
   }
 }
 

@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Inter, JetBrains_Mono, Sora } from "next/font/google";
 import "./globals.css";
 
-/* Aurora redesign type system — exposed as CSS variables consumed by the
-   --ff-font-* tokens in globals.css. Self-hosted General Sans / Geist Mono
-   (landing.css @font-face) remain as fallbacks. */
-const grotesk = Space_Grotesk({
+/* Meridian redesign type system — exposed as CSS variables consumed by the
+   --ff-font-* tokens in globals.css. Sora is the editorial display face. */
+const sora = Sora({
   subsets: ["latin"],
-  variable: "--font-grotesk",
+  variable: "--font-sora",
   display: "swap",
 });
 
@@ -34,7 +33,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${grotesk.variable} ${inter.variable} ${jet.variable}`}>
+    <html lang="en" className={`${sora.variable} ${inter.variable} ${jet.variable}`}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
