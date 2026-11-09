@@ -6,104 +6,122 @@
 @source "../../../packages/renderer/src";
 
 /* ============================================================================
-   FORMFORGE APP DESIGN SYSTEM — "warm paper studio"
+   FORMFORGE APP DESIGN SYSTEM — "aurora glass" (2026 redesign)
    ----------------------------------------------------------------------------
-   Sections, in order:
+   Dark-first deep-indigo workspace with violet→cyan gradient energy, glass
+   surfaces and glow accents. Sections, in order:
      TOKENS · BASE · BUTTONS · FORMS · CHROME (auth/app shell)
      PANELS/BADGES/CHIPS/SEG · DOC CARDS · OVERLAYS (modal/drawer)
-     STATE (skeleton/banner/empty) · LANDING-SCOPED · REVEAL/SPOTLIGHT
-     REDUCED MOTION
+     STATE (skeleton/banner/empty) · REVEAL/SPOTLIGHT · REDUCED MOTION
    The marketing landing chrome (.ff-land-*) lives in app/landing.css and
    app/tokens.css and is deliberately NOT duplicated here. Canonical class
    constants for builder agents: apps/web/lib/ui.ts. Documents carry their own
-   theme at render time (renderer packages consume --ff-bg/--ff-fg).
+   theme at render time (renderer packages consume --ff-bg/--ff-fg) and are
+   NOT affected by this system.
    ========================================================================== */
 
 /* ====== TOKENS ============================================================ */
 
 :root {
-  /* surfaces — warm paper */
-  --ff-bg: #faf8f3;
-  --ff-card: #ffffff;
-  --ff-fg: #211d18;
-  --ff-muted: #6f6862;
-  --ff-border: #e9e2d7;
-  --ff-border-strong: #d8cfc0;
+  /* surfaces — deep space indigo (dark-first) */
+  --ff-bg: #0b0e1a;
+  --ff-bg-2: #0f1424;
+  --ff-card: #141a33;
+  --ff-card-2: #1a2142;
+  --ff-fg: #eef1ff;
+  --ff-muted: #9aa3c9;
+  --ff-border: #232b52;
+  --ff-border-strong: #34406f;
 
-  /* actions — ink is the primary (Stripe/Linear-style); coral is the signal */
-  --ff-primary: #211d18;
-  --ff-primary-fg: #fdfcfa;
-  --ff-accent: oklch(54% 0.165 29);
-  --ff-accent-soft: oklch(74% 0.125 30);
-  --ff-accent-fg: #ffffff;
+  /* actions — violet gradient is the primary; cyan is the signal */
+  --ff-primary: #6c5cff;
+  --ff-primary-2: #38bdf8;
+  --ff-primary-fg: #ffffff;
+  --ff-accent: #22d3ee;
+  --ff-accent-soft: #7dd3fc;
+  --ff-accent-fg: #07222b;
 
-  /* semantics (light values hold ≥4.5:1 on their soft tints).
-     success is a warm SAGE green — semantically unambiguous next to the red
-     danger token (a coral-family success would read as an error), while the
-     muted olive cast harmonizes with the warm paper palette. */
-  --ff-success: #3d6b4f;
-  --ff-success-soft: #e7efe6;
-  --ff-warning: #966a0b;
-  --ff-warning-soft: #f6ecd6;
-  --ff-danger: #b3261e;
-  --ff-danger-soft: #f7e5e3;
+  /* semantics — readable on dark glass tints */
+  --ff-success: #4ade80;
+  --ff-success-soft: rgb(74 222 128 / 0.12);
+  --ff-warning: #fbbf24;
+  --ff-warning-soft: rgb(251 191 36 / 0.12);
+  --ff-danger: #fb7185;
+  --ff-danger-soft: rgb(251 113 133 / 0.12);
 
-  /* charts — coral / amber / ink, distinguishable on paper and in dark;
-     teal/green series colors are off-system for this palette */
-  --ff-chart-1: var(--ff-accent);
-  --ff-chart-2: #b45309;
-  --ff-chart-3: var(--ff-fg);
+  /* charts — violet / cyan / rose, distinct on the dark canvas */
+  --ff-chart-1: #8b7bff;
+  --ff-chart-2: #22d3ee;
+  --ff-chart-3: #f472b6;
 
   /* shape */
-  --ff-radius: 0.75rem;
+  --ff-radius: 1rem;
 
-  /* type — General Sans + Geist Mono are self-hosted via @font-face in
-     app/landing.css and globally available */
-  --ff-font-heading: "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --ff-font-body: "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --ff-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* type — Space Grotesk / Inter / JetBrains Mono via next/font (root layout);
+   * variable names unchanged so every consumer keeps working */
+  --ff-font-heading: var(--font-grotesk, "Space Grotesk"), "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ff-font-body: var(--font-inter, "Inter"), "General Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ff-font-mono: var(--font-jet, "JetBrains Mono"), "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* glass chrome */
+  --ff-glass: rgb(20 26 51 / 0.78);
+  --ff-glass-border: rgb(122 134 213 / 0.16);
+
+  /* gradient + glow recipes */
+  --ff-grad: linear-gradient(135deg, var(--ff-primary) 0%, var(--ff-primary-2) 100%);
+  --ff-glow: 0 8px 32px -8px rgb(108 92 255 / 0.45);
+  --ff-glow-soft: 0 0 0 1px rgb(122 134 213 / 0.14), 0 16px 48px -16px rgb(108 92 255 / 0.28);
 
   /* elevation + motion */
-  --ff-shadow-sm: 0 1px 2px rgb(42 32 22 / 0.05);
-  --ff-shadow-md: 0 1px 2px rgb(42 32 22 / 0.05), 0 8px 24px -12px rgb(42 32 22 / 0.16);
-  --ff-shadow-lg: 0 2px 4px rgb(42 32 22 / 0.06), 0 20px 48px -20px rgb(42 32 22 / 0.24);
-  --ff-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ff-shadow-sm: 0 1px 2px rgb(3 6 18 / 0.5);
+  --ff-shadow-md: 0 1px 2px rgb(3 6 18 / 0.5), 0 12px 32px -12px rgb(3 6 18 / 0.55);
+  --ff-shadow-lg: 0 2px 4px rgb(3 6 18 / 0.5), 0 24px 64px -24px rgb(3 6 18 / 0.7);
+  --ff-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* Back-compat mapping for Tailwind utilities referencing --background/-foreground */
   --background: var(--ff-bg);
   --foreground: var(--ff-fg);
 }
 
-@media (prefers-color-scheme: dark) {
+/* porcelain counterpart for light-scheme users */
+@media (prefers-color-scheme: light) {
   :root {
-    --ff-bg: #17130e;
-    --ff-card: #211c15;
-    --ff-fg: #f4eee5;
-    --ff-muted: #a89f93;
-    --ff-border: #342c21;
-    --ff-border-strong: #4a4033;
+    --ff-bg: #f4f6fd;
+    --ff-bg-2: #eceffb;
+    --ff-card: #ffffff;
+    --ff-card-2: #f6f7fe;
+    --ff-fg: #171c36;
+    --ff-muted: #5b6284;
+    --ff-border: #e2e6f5;
+    --ff-border-strong: #cbd2ec;
 
-    --ff-primary: #f4eee5;
-    --ff-primary-fg: #211c15;
-    --ff-accent: oklch(74% 0.125 30);
-    --ff-accent-soft: oklch(63% 0.155 29);
-    --ff-accent-fg: #241009;
+    --ff-primary: #5646e5;
+    --ff-primary-2: #0ea5e9;
+    --ff-primary-fg: #ffffff;
+    --ff-accent: #0e7490;
+    --ff-accent-soft: #0891b2;
+    --ff-accent-fg: #ffffff;
 
-    --ff-success: #6ee7a0;
-    --ff-success-soft: rgb(110 231 160 / 0.13);
-    --ff-warning: #fbbf24;
-    --ff-warning-soft: rgb(251 191 36 / 0.13);
-    --ff-danger: #f87171;
-    --ff-danger-soft: rgb(248 113 113 / 0.13);
+    --ff-success: #15803d;
+    --ff-success-soft: #e7f6ec;
+    --ff-warning: #a16207;
+    --ff-warning-soft: #fdf3d8;
+    --ff-danger: #dc2626;
+    --ff-danger-soft: #fdeaea;
 
-    --ff-chart-1: var(--ff-accent);
-    --ff-chart-2: #fbbf24;
-    --ff-chart-3: var(--ff-fg);
+    --ff-chart-1: #6d5cff;
+    --ff-chart-2: #0891b2;
+    --ff-chart-3: #db2777;
 
-    /* slightly stronger alphas so elevation still reads on dark paper */
-    --ff-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
-    --ff-shadow-md: 0 1px 2px rgb(0 0 0 / 0.28), 0 8px 24px -12px rgb(0 0 0 / 0.5);
-    --ff-shadow-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 20px 48px -20px rgb(0 0 0 / 0.6);
+    --ff-glass: rgb(255 255 255 / 0.8);
+    --ff-glass-border: rgb(86 70 229 / 0.12);
+
+    --ff-glow: 0 8px 28px -10px rgb(86 70 229 / 0.35);
+    --ff-glow-soft: 0 0 0 1px rgb(86 70 229 / 0.1), 0 16px 44px -18px rgb(86 70 229 / 0.22);
+
+    --ff-shadow-sm: 0 1px 2px rgb(23 28 54 / 0.06);
+    --ff-shadow-md: 0 1px 2px rgb(23 28 54 / 0.06), 0 10px 28px -14px rgb(23 28 54 / 0.18);
+    --ff-shadow-lg: 0 2px 4px rgb(23 28 54 / 0.07), 0 20px 52px -22px rgb(23 28 54 / 0.26);
   }
 }
 
@@ -115,7 +133,13 @@ body {
 }
 
 body {
-  background: var(--ff-bg);
+  background-color: var(--ff-bg);
+  /* aurora field: two fixed color washes that sit behind every surface */
+  background-image:
+    radial-gradient(52rem 36rem at 8% -12%, rgb(108 92 255 / 0.14), transparent 60%),
+    radial-gradient(44rem 30rem at 96% 4%, rgb(34 211 238 / 0.08), transparent 55%),
+    radial-gradient(60rem 44rem at 50% 118%, rgb(56 189 248 / 0.07), transparent 60%);
+  background-attachment: fixed;
   color: var(--ff-fg);
   font-family: var(--ff-font-body);
 }
@@ -131,7 +155,7 @@ h6 {
 
 /* Single selection rule (was duplicated). */
 ::selection {
-  background: color-mix(in srgb, var(--ff-accent) 25%, transparent);
+  background: color-mix(in srgb, var(--ff-primary) 38%, transparent);
 }
 
 /* WCAG 2.1 AA: visible focus everywhere (spec §14.4). */
@@ -210,34 +234,37 @@ summary:focus-visible {
   pointer-events: none;
 }
 
-/* primary — ink; dark mode flips automatically via the token block */
+/* primary — violet→cyan gradient with a soft glow */
 .ff-btn-primary,
 .ff-button-primary {
-  background: var(--ff-primary);
+  background: var(--ff-grad);
   color: var(--ff-primary-fg);
   border-color: transparent;
-  box-shadow: var(--ff-shadow-sm);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), var(--ff-glow);
 }
 
 .ff-btn-primary:hover,
 .ff-button-primary:hover {
   transform: translateY(-1px);
-  box-shadow: var(--ff-shadow-md);
+  filter: brightness(1.08);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 12px 40px -8px rgb(108 92 255 / 0.6);
 }
 
-/* secondary — card surface + hairline */
+/* secondary — frosted glass slab */
 .ff-btn-secondary,
 .ff-button-secondary {
-  background: var(--ff-card);
+  background: color-mix(in srgb, var(--ff-fg) 5%, transparent);
   color: var(--ff-fg);
   border-color: var(--ff-border-strong);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
 .ff-btn-secondary:hover,
 .ff-button-secondary:hover {
-  background: color-mix(in srgb, var(--ff-fg) 4%, var(--ff-card));
+  background: color-mix(in srgb, var(--ff-fg) 9%, transparent);
+  border-color: color-mix(in srgb, var(--ff-primary) 45%, var(--ff-border-strong));
   transform: translateY(-1px);
-  box-shadow: var(--ff-shadow-sm);
+  box-shadow: var(--ff-glow-soft);
 }
 
 /* ghost — transparent, quiet hover wash */
@@ -269,10 +296,10 @@ summary:focus-visible {
 }
 
 @media (prefers-color-scheme: dark) {
-  /* dark danger is a light coral — flip the label to ink for contrast */
+  /* dark danger is a light rose — flip the label to deep ink for contrast */
   .ff-btn-destructive,
   .ff-button-destructive {
-    color: #2a0a07;
+    color: #2f0a12;
   }
 }
 
@@ -352,16 +379,17 @@ summary:focus-visible {
 .ff-input {
   width: 100%;
   min-height: 2.75rem;
-  background: var(--ff-card);
+  background: color-mix(in srgb, var(--ff-bg) 36%, var(--ff-card));
   border: 1px solid var(--ff-border-strong);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0 0.75rem;
   font: inherit;
   font-size: 0.9375rem;
   color: var(--ff-fg);
   transition:
     border-color 150ms var(--ff-ease-out),
-    box-shadow 150ms var(--ff-ease-out);
+    box-shadow 150ms var(--ff-ease-out),
+    background-color 150ms var(--ff-ease-out);
 }
 
 .ff-field textarea,
@@ -383,8 +411,9 @@ textarea.ff-input {
 .ff-field select:focus-visible,
 .ff-input:focus-visible {
   outline: none;
-  border-color: var(--ff-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff-accent) 18%, transparent);
+  border-color: var(--ff-primary);
+  background: color-mix(in srgb, var(--ff-bg) 18%, var(--ff-card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ff-primary) 22%, transparent);
 }
 
 .ff-field input[aria-invalid="true"],
@@ -489,11 +518,13 @@ textarea.ff-input {
 .ff-auth-card {
   width: 100%;
   max-width: 24rem;
-  background: var(--ff-card);
-  border: 1px solid var(--ff-border);
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: var(--ff-shadow-md);
+  background: var(--ff-glass);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--ff-glass-border);
+  border-radius: 20px;
+  padding: 2.25rem 2rem;
+  box-shadow: var(--ff-glow-soft), var(--ff-shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -546,12 +577,17 @@ textarea.ff-input {
 }
 
 .ff-app-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: flex;
   align-items: center;
   gap: 1.25rem;
   padding: 0.875rem 1.5rem;
-  border-bottom: 1px solid var(--ff-border);
-  background: var(--ff-card);
+  border-bottom: 1px solid var(--ff-glass-border);
+  background: var(--ff-glass);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
 }
 
 .ff-app-header nav a {
@@ -562,7 +598,7 @@ textarea.ff-input {
 }
 
 .ff-app-header nav a:hover {
-  color: var(--ff-accent);
+  color: var(--ff-accent-soft);
 }
 
 .ff-app-header-meta {
@@ -598,9 +634,9 @@ textarea.ff-input {
 /* the canonical card */
 .ff-panel {
   background: var(--ff-card);
-  border: 1px solid var(--ff-border);
+  border: 1px solid var(--ff-glass-border);
   border-radius: var(--ff-radius);
-  box-shadow: var(--ff-shadow-sm);
+  box-shadow: var(--ff-shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
 
 .ff-badge {
@@ -754,10 +790,10 @@ textarea.ff-input {
   flex-direction: column;
   gap: 0.625rem;
   background: var(--ff-card);
-  border: 1px solid var(--ff-border);
-  border-radius: 14px;
+  border: 1px solid var(--ff-glass-border);
+  border-radius: 16px;
   padding: 1.25rem;
-  box-shadow: var(--ff-shadow-sm);
+  box-shadow: var(--ff-shadow-sm), inset 0 1px 0 rgb(255 255 255 / 0.04);
   transition:
     transform 200ms var(--ff-ease-out),
     box-shadow 200ms var(--ff-ease-out),
@@ -766,8 +802,8 @@ textarea.ff-input {
 
 .ff-doc-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--ff-shadow-md);
-  border-color: color-mix(in srgb, var(--ff-accent) 30%, var(--ff-border));
+  box-shadow: var(--ff-glow-soft), var(--ff-shadow-md);
+  border-color: color-mix(in srgb, var(--ff-primary) 40%, var(--ff-border));
 }
 
 .ff-doc-card .ff-doc-title {
@@ -780,7 +816,7 @@ textarea.ff-input {
 }
 
 .ff-doc-card .ff-doc-title:hover {
-  color: var(--ff-accent);
+  color: var(--ff-accent-soft);
 }
 
 /* Pin quick actions to the card floor so unequal title heights don't pool
@@ -905,9 +941,9 @@ textarea.ff-input {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: color-mix(in srgb, var(--ff-fg) 40%, transparent);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  background: rgb(6 9 22 / 0.62);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
   animation: ff-fade-in 200ms var(--ff-ease-out);
 }
 
@@ -959,10 +995,12 @@ textarea.ff-input {
   flex-direction: column;
   width: min(32rem, calc(100vw - 2rem));
   max-height: calc(100dvh - 2rem);
-  background: var(--ff-card);
-  border: 1px solid var(--ff-border);
-  border-radius: 16px;
-  box-shadow: var(--ff-shadow-lg);
+  background: var(--ff-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid var(--ff-glass-border);
+  border-radius: 20px;
+  box-shadow: var(--ff-glow-soft), var(--ff-shadow-lg);
   outline: none;
   animation: ff-modal-in 200ms var(--ff-ease-out);
 }
@@ -980,21 +1018,23 @@ textarea.ff-input {
   flex-direction: column;
   width: min(28rem, 92vw);
   max-width: 92vw;
-  background: var(--ff-card);
+  background: var(--ff-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  backdrop-filter: blur(24px) saturate(1.5);
   box-shadow: var(--ff-shadow-lg);
   outline: none;
 }
 
 .ff-drawer-panel--right {
   right: 0;
-  border-left: 1px solid var(--ff-border);
+  border-left: 1px solid var(--ff-glass-border);
   border-radius: 16px 0 0 16px;
   animation: ff-drawer-in-right 260ms var(--ff-ease-out);
 }
 
 .ff-drawer-panel--left {
   left: 0;
-  border-right: 1px solid var(--ff-border);
+  border-right: 1px solid var(--ff-glass-border);
   border-radius: 0 16px 16px 0;
   animation: ff-drawer-in-left 260ms var(--ff-ease-out);
 }
@@ -1090,9 +1130,9 @@ textarea.ff-input {
 }
 
 .ff-empty {
-  border: 1.5px dashed var(--ff-border-strong);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--ff-fg) 2%, var(--ff-bg));
+  border: 1.5px dashed color-mix(in srgb, var(--ff-primary) 30%, var(--ff-border-strong));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--ff-primary) 5%, var(--ff-bg-2));
   padding: 3rem 2rem;
   display: flex;
   flex-direction: column;
@@ -1122,9 +1162,10 @@ textarea.ff-input {
   place-items: center;
   width: 2.75rem;
   height: 2.75rem;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--ff-accent) 10%, transparent);
-  color: var(--ff-accent);
+  border-radius: 14px;
+  background: var(--ff-grad);
+  color: #ffffff;
+  box-shadow: var(--ff-glow);
 }
 
 .ff-empty-description {
@@ -1182,12 +1223,12 @@ textarea.ff-input {
   transition-delay: calc(var(--i, 0) * 60ms);
 }
 
-/* Spotlight: a soft neutral wash follows the mouse via --sx/--sy. */
+/* Spotlight: a soft violet wash follows the mouse via --sx/--sy. */
 .ff-spot {
   position: relative;
   height: 100%;
   padding: 1.375rem;
-  border: 1px solid var(--ff-border);
+  border: 1px solid var(--ff-glass-border);
   border-radius: var(--ff-radius);
   background: var(--ff-card);
   overflow: hidden;
@@ -1202,7 +1243,7 @@ textarea.ff-input {
   pointer-events: none;
   background: radial-gradient(
     16rem circle at var(--sx, 50%) var(--sy, 35%),
-    color-mix(in srgb, var(--ff-fg) 6%, transparent),
+    color-mix(in srgb, var(--ff-primary) 14%, transparent),
     transparent 72%
   );
   transition: opacity 240ms var(--ff-ease-out);

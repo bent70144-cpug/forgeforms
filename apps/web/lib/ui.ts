@@ -1,11 +1,17 @@
-// Canonical class constants for the FormForge design system ("warm paper
-// studio"). Builder agents: import from here instead of hand-writing class
-// strings so markup stays consistent and refactor-safe.
+// Canonical class constants for the FormForge design system ("aurora glass",
+// 2026 redesign). Builder agents: import from here instead of hand-writing
+// class strings so markup stays consistent and refactor-safe.
 //
 // The CSS recipes behind these constants live in apps/web/app/globals.css
 // (sections BUTTONS, PANELS/BADGES/CHIPS/SEG, STATE). Every value is a plain
 // string, so they compose with template literals and Tailwind utilities:
 //   className={`${BTN_SECONDARY} w-full`}
+//
+// Aurora vocabulary:
+//   --ff-grad      violet→cyan gradient (buttons, icons, highlights)
+//   --ff-glow      soft violet glow shadow
+//   --ff-glass     frosted chrome surface (+ --ff-glass-border)
+//   Text on gradient surfaces is always --ff-primary-fg (#fff).
 
 /* ---------- buttons ---------- */
 
@@ -24,7 +30,7 @@ export const BTN_PRIMARY_LG = "ff-btn ff-btn-primary ff-btn-lg";
 
 /* ---------- surfaces ---------- */
 
-/** The canonical card: white surface, hairline border, soft shadow. */
+/** The canonical card: deep-indigo surface, glass hairline, glow on hover. */
 export const CARD = "ff-panel";
 
 /** Standalone input styling (same look as a .ff-field control). */
