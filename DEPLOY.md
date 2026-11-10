@@ -1,44 +1,74 @@
 # Deploying FormForge to Vercel
 
-## Status (2026-11-09)
+## Status (2026-11-10) — DEPLOYED ✅
 
-The provided Vercel token (`vcp_…8qd`) **authenticates** (`/v2/user` → `ash365042-4219`)
-but is **not authorized for any project scope** — every project/deploy call returns:
+Production is live at **https://formforge-livid.vercel.app** serving the
+Meridian editorial redesign (commit `915c9be`).
 
-```
-403 Not authorized: Trying to access resource under scope
-"ash365042-gmailcoms-projects". You must re-authenticate to this scope or
-use a token with access to this scope.
-```
+Deployment `formforge-ll7xi0trz` (CLI upload from repo root, aliased to
+`formforge-livid.vercel.app`). Post-deploy verification:
 
-Verified via REST (`GET /v9/projects`, `POST /v13/deployments`) and CLI
-(`vercel projects ls`, `vercel deploy --prod`). No teams exist on the account,
-so there is no alternate scope to target.
+- all key routes `200` (`/`, `/login`, `/register`, `/forgot`, `/templates`,
+  `/embed`, `/report-abuse`, `/dpa`); `/dashboard` correctly `307`s to login
+- DB-backed public route `/p/[slug]` returns a styled `404` (previously
+  `500` — see env fix below)
+- served CSS carries the Meridian system: Sora display face,
+  `--font-display` / `--font-body`, `--ink` / `--accent` tokens
+- visual check via headless browser: landing, login and templates pages all
+  render the paper/ink/ultramarine editorial design
 
-**Fix:** sign in to https://vercel.com as `ash365042@gmail.com`, open
-**Settings → Tokens**, create a new token with full scope, then run:
+## Environment fix (2026-11-10)
+
+The project's runtime env vars were empty on Vercel, which broke every
+DB-backed route in production (HTTP 500). Fixed by:
+
+1. Rotating the Neon `neondb_owner` password via the Neon API
+   (`POST /v2/projects/…/roles/neondb_owner/reset_password`) and building
+   the pooled DSN (`ep-empty-lab-bb9yco0v-pooler.c-15.us-east-1.aws.neon.tech`).
+2. Recreating `DATABASE_URL`, `SESSION_SECRET`, `AUTH_SECRET`,
+   `NEXT_PUBLIC_APP_URL`, `PUBLIC_BASE_URL` on the Vercel project via the
+   REST API (`POST /v9/projects/{id}/env`; the API rejects upserts, so
+   delete-then-create).
+
+Secrets live in the Vercel project env and the gitignored
+`apps/web/.env` — never in the repo.
+
+## Deploy procedure (works as of 2026-11-10)
 
 ```bash
-VERCEL_TOKEN=<new token> ./scripts/deploy-vercel.sh
+# link the REPO ROOT to the formforge project (apps/web is built via the
+# project's Root Directory setting — CLI deploys from apps/web/ itself
+# upload only that subtree and fail on missing workspace packages)
+cat > .vercel/project.json <<'EOF'
+{"projectId":"prj_6LmiNvExx0l4z4yyfZYpAr6j82tn","orgId":"team_qyfSwpghWuSxv2MonHtbDer1"}
+EOF
+
+# build check locally, then deploy from the repo root
+pnpm install --frozen-lockfile
+pnpm --filter @formforge/web build
+npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
 ```
 
-## What the deploy needs
+Requirements:
 
 | Env var | Value |
 | --- | --- |
-| `DATABASE_URL` | Neon pooled DSN (role `neondb_owner`, db `neondb`, host `ep-empty-lab-bb9yco0v-pooler…neon.tech`) — already in `apps/web/.env` |
-| `SESSION_SECRET` / `AUTH_SECRET` | ≥32-char hex — already in `apps/web/.env` |
-| `NEXT_PUBLIC_APP_URL` / `PUBLIC_BASE_URL` | the production URL after the first deploy |
-| `NEXT_PUBLIC_RESULTS_MODE` | `fetch` (live results client) — already in `apps/web/.env` |
+| `DATABASE_URL` | Neon pooled DSN (role `neondb_owner`, db `neondb`) — set on the Vercel project |
+| `SESSION_SECRET` / `AUTH_SECRET` | ≥32-char hex — set on the Vercel project |
+| `NEXT_PUBLIC_APP_URL` / `PUBLIC_BASE_URL` | `https://formforge-livid.vercel.app` |
+| `NEXT_PUBLIC_RESULTS_MODE` | `fetch` (live results client) |
 | `REDIS_URL` | omit — ingest falls back to in-memory stores (documented in `.env.example`) |
 
-The database (Neon project `formforge`, `morning-water-20366572`, PG 17,
-us-east-1) is live and reachable; the redesign was QA'd against it end-to-end.
+## Redesign history
 
-## What shipped in this redesign
+- `68040c3` aurora glass design system (dark-first, violet→cyan gradients,
+  Space Grotesk / Inter / JetBrains Mono) — 91 files, 1040 unit tests green
+- `9d9aaa4` + `915c9be` Meridian editorial system (paper/ink/ultramarine,
+  Sora display face) — every page reskinned; this is what ships today
 
-Commit `68040c3` on `main` (91 files): aurora glass design system
-(dark-first tokens, violet→cyan gradients, glass chrome, Space Grotesk /
-Inter / JetBrains Mono) applied to every page — landing, marketing,
-auth, dashboard, builder, results, analytics, logic, AI, settings,
-public/embed — with 1040 unit tests passing and a full production build green.
+The earlier token-scope blocker (v1 token authenticating but not authorized
+for the `ash365042-gmailcoms-projects` scope) is resolved: the current token
+has full project scope. CLI deploys must run from the **repo root** with the
+`.vercel/project.json` link above — deploying from `apps/web/` creates a
+broken standalone project (seen live: stray `web` project, failed `npm
+install` on missing workspace packages).
